@@ -41,7 +41,9 @@ const TypingText: React.FC<{ text: string; onComplete: () => void; speed?: numbe
 const QUICK_PRESETS = [
   { label: 'Remove BG', value: 'Remove the background and make it transparent' },
   { label: 'Add Brand Color', value: '__ASK_BRAND_COLOR__' },
-  { label: 'Upscale', value: 'Upscale the image and enhance details' },
+  { label: 'Duplicate', value: '__ASK_DUPLICATE_COUNT__' },
+  { label: 'Upscale', value: 'Upscale the image and enhance details while maintaining the original quality and composition' },
+  { label: 'Transform', value: '__ASK_TRANSFORM_STYLE__' },
   { label: 'Desaturate', value: 'Desaturate the image to make it more muted' },
 ];
 
@@ -61,6 +63,8 @@ export const Chat: React.FC<ChatProps> = ({
     { type: 'assistant', text: 'Welcome to Nano Brandana, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
   ]);
   const [waitingForBrandColor, setWaitingForBrandColor] = useState(false);
+  const [waitingForDuplicateCount, setWaitingForDuplicateCount] = useState(false);
+  const [waitingForTransformStyle, setWaitingForTransformStyle] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +93,59 @@ export const Chat: React.FC<ChatProps> = ({
           setMessages(prev => [...prev, { 
             type: 'assistant', 
             text: `Perfect! I'll add ${userMessage} branding to your images by changing suitable objects to that color. Added to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
+            isTyping: true
+          }]);
+        }, 100);
+      } else if (waitingForDuplicateCount) {
+        // Handle duplicate count response
+        const count = parseInt(userMessage);
+        if (count && count > 0 && count <= 10) {
+          const cameraAngles = [
+            'from the opposite angle',
+            'from the back view',
+            'from the direct front',
+            'from a low angle looking up',
+            'from a high angle looking down',
+            'from the left side profile',
+            'from the right side profile',
+            'from a 45-degree angle',
+            'from closer proximity',
+            'from further back with wider framing'
+          ];
+          
+          const selectedAngles = cameraAngles.slice(0, count).join(', ');
+          const duplicateInstruction = `Generate ${count} additional variations of this exact scene using these specific camera perspectives: ${selectedAngles}. For each variation, maintain all the same subjects, objects, and overall scene composition while shooting ${selectedAngles}. Include realistic photographic elements like natural lighting variations, authentic camera grain, depth of field changes, and subtle environmental differences that would occur when changing camera positions. Each photo should feel like it was captured during the same photo session by a professional photographer moving around the scene.`;
+          const displayText = `Make ${count} more photos from this scene`;
+          onSendInstruction(duplicateInstruction, displayText);
+          setWaitingForDuplicateCount(false);
+          
+          setTimeout(() => {
+            setMessages(prev => [...prev, { 
+              type: 'assistant', 
+              text: `Great! I'll create ${count} additional realistic photo variations of each scene. Added to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
+              isTyping: true
+            }]);
+          }, 100);
+        } else {
+          setTimeout(() => {
+            setMessages(prev => [...prev, { 
+              type: 'assistant', 
+              text: 'Please enter a number between 1 and 10 for how many additional photos you want.',
+              isTyping: true
+            }]);
+          }, 100);
+        }
+      } else if (waitingForTransformStyle) {
+        // Handle transform style response
+        const transformInstruction = `Transform this image into ${userMessage} while maintaining the core composition, subjects, and scene. Apply the visual characteristics, textures, colors, and artistic techniques typical of ${userMessage}. Ensure the transformation feels authentic to the chosen style while preserving all important elements and details from the original image.`;
+        const displayText = `Transform to ${userMessage}`;
+        onSendInstruction(transformInstruction, displayText);
+        setWaitingForTransformStyle(false);
+        
+        setTimeout(() => {
+          setMessages(prev => [...prev, { 
+            type: 'assistant', 
+            text: `Excellent! I'll transform your images to ${userMessage}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -126,6 +183,24 @@ export const Chat: React.FC<ChatProps> = ({
         isTyping: true
       }]);
       setWaitingForBrandColor(true);
+      textareaRef.current?.focus();
+    } else if (preset === '__ASK_DUPLICATE_COUNT__') {
+      // Start duplicate flow
+      setMessages(prev => [...prev, { 
+        type: 'assistant', 
+        text: 'How many more photos do you want me to create from each scene? (Enter a number between 1-10)',
+        isTyping: true
+      }]);
+      setWaitingForDuplicateCount(true);
+      textareaRef.current?.focus();
+    } else if (preset === '__ASK_TRANSFORM_STYLE__') {
+      // Start transform flow
+      setMessages(prev => [...prev, { 
+        type: 'assistant', 
+        text: 'What style would you like me to transform your images to? (e.g., "claymation style", "comic book style", "watercolor painting", "vintage film photography", "oil painting")',
+        isTyping: true
+      }]);
+      setWaitingForTransformStyle(true);
       textareaRef.current?.focus();
     } else {
       setInstruction(preset);
@@ -275,7 +350,7 @@ export const Chat: React.FC<ChatProps> = ({
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={waitingForBrandColor ? "ENTER_COLOR..." : "ENTER_INSTRUCTION..."}
+            placeholder={waitingForBrandColor ? "ENTER_COLOR..." : waitingForDuplicateCount ? "ENTER_NUMBER..." : waitingForTransformStyle ? "ENTER_STYLE..." : "ENTER_INSTRUCTION..."}
             disabled={isProcessing}
             className="w-full px-2 py-2 border-2 border-black resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
             rows={3}

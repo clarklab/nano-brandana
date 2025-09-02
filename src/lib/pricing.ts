@@ -6,10 +6,11 @@ const VERCEL_COST_PER_IMAGE = 0.039; // USD per image from Vercel dashboard
 export function calculateTokenCost(
   _promptTokens: number, 
   _completionTokens: number, 
-  _model: string
+  _model: string,
+  imageCount: number = 1
 ): number {
-  // Use Vercel's flat rate per image
-  return VERCEL_COST_PER_IMAGE;
+  // Use Vercel's flat rate per image, multiplied by number of generated images
+  return VERCEL_COST_PER_IMAGE * imageCount;
 }
 
 export function calculateTimeSaved(): number {

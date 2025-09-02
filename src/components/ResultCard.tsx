@@ -13,6 +13,17 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   const [showOriginal, setShowOriginal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [timeSaved] = useState(() => calculateTimeSaved()); // Calculate once and persist
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // Update timer for processing items
+  React.useEffect(() => {
+    if (item.status === 'processing' && item.startTime) {
+      const interval = setInterval(() => {
+        setCurrentTime(Date.now());
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [item.status, item.startTime]);
 
   const getStatusColor = () => {
     switch (item.status) {
@@ -46,6 +57,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
     ? ((item.endTime - item.startTime) / 1000).toFixed(1)
     : null;
 
+  const processingTime = item.status === 'processing' && item.startTime
+    ? ((currentTime - item.startTime) / 1000).toFixed(1)
+    : null;
+
   return (
     <div className="border-2 border-black p-2 hover:bg-gray-50 transition-colors">
       <div className="flex items-center justify-between mb-2">
@@ -57,12 +72,61 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
           {elapsedTime && (
             <span className="text-xs font-light">{elapsedTime}s</span>
           )}
+          {processingTime && (
+            <span className="text-xs font-light text-blue-500">{processingTime}s</span>
+          )}
         </div>
       </div>
 
       {item.status === 'processing' && (
-        <div className="h-32 border border-black animate-pulse flex items-center justify-center bg-gray-100">
-          <div className="text-xs font-light">PROCESSING...</div>
+        <div className="h-32 border border-black flex items-center justify-center bg-gray-100">
+          <div className="flex flex-col items-center gap-2">
+            <svg width="60" height="60" viewBox="0 0 50 50">
+              <path 
+                d="M5,25 Q12.5,15 25,25 T45,25" 
+                fill="none" 
+                stroke="#00FF00" 
+                strokeWidth="2" 
+                opacity="0.3"
+              >
+                <animate 
+                  attributeName="d" 
+                  values="M5,25 Q12.5,15 25,25 T45,25; M5,25 Q12.5,35 25,25 T45,25; M5,25 Q12.5,15 25,25 T45,25" 
+                  dur="1.33s" 
+                  repeatCount="indefinite"
+                />
+              </path>
+              <path 
+                d="M5,25 Q12.5,15 25,25 T45,25" 
+                fill="none" 
+                stroke="#00FF00" 
+                strokeWidth="2" 
+                opacity="0.5"
+              >
+                <animate 
+                  attributeName="d" 
+                  values="M5,25 Q12.5,15 25,25 T45,25; M5,25 Q12.5,35 25,25 T45,25; M5,25 Q12.5,15 25,25 T45,25" 
+                  dur="2s" 
+                  repeatCount="indefinite"
+                />
+              </path>
+              <path 
+                d="M5,25 Q12.5,15 25,25 T45,25" 
+                fill="none" 
+                stroke="#00FF00" 
+                strokeWidth="2" 
+                opacity="0.7"
+              >
+                <animate 
+                  attributeName="d" 
+                  values="M5,25 Q12.5,15 25,25 T45,25; M5,25 Q12.5,35 25,25 T45,25; M5,25 Q12.5,15 25,25 T45,25" 
+                  dur="2.67s" 
+                  repeatCount="indefinite"
+                />
+              </path>
+            </svg>
+            <div className="text-xs font-light">PROCESSING...</div>
+          </div>
         </div>
       )}
 

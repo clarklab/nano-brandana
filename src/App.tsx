@@ -237,12 +237,12 @@ function App() {
               <p className="text-sm">BATCH IMAGE EDITOR FOR BRANDS</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <label className="text-sm">MODEL:</label>
             <select
               value={currentModel}
               onChange={(e) => setCurrentModel(e.target.value)}
-              className="bg-white border border-black px-2 py-1 text-sm focus:outline-none focus:border-neon"
+              className="bg-white border border-black px-2 py-1 pr-6 text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
             >
               <option value="google/gemini-2.5-flash-image-preview">
                 GEMINI-2.5-FLASH

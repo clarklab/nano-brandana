@@ -9,6 +9,7 @@ interface ChatProps {
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
+  files?: File[];
 }
 
 interface TypingMessage {
@@ -53,6 +54,7 @@ export const Chat: React.FC<ChatProps> = ({
   canRunBatch,
   instructions = [],
   onClearInstructions,
+  files = [],
 }) => {
   const [instruction, setInstruction] = useState('');
   const [messages, setMessages] = useState<TypingMessage[]>([
@@ -256,30 +258,42 @@ export const Chat: React.FC<ChatProps> = ({
         </div>
       </div>
 
-      <div className="relative leading-none">
-        <textarea
-          ref={textareaRef}
-          value={instruction}
-          onChange={(e) => setInstruction(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={waitingForBrandColor ? "ENTER_COLOR..." : "ENTER_INSTRUCTION..."}
-          disabled={isProcessing}
-          className="w-full px-2 py-2 border-2 border-black resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
-          rows={3}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!instruction.trim() || isProcessing}
-          className={`absolute bottom-3 right-2 p-1 border border-black hover:bg-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
-            instruction.trim() && !isProcessing
-              ? 'bg-black text-white'
-              : 'bg-white text-black'
-          }`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-            <path fillRule="evenodd" d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z" clipRule="evenodd" />
-          </svg>
-        </button>
+      <div className="space-y-2">
+        {files.length > 0 && instructions.length > 0 && (
+          <button
+            onClick={onRunBatch}
+            disabled={isProcessing}
+            className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all"
+          >
+            {isProcessing ? 'PROCESSING...' : `RUN_BATCH [${files.length}]`}
+          </button>
+        )}
+        
+        <div className="relative leading-none">
+          <textarea
+            ref={textareaRef}
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={waitingForBrandColor ? "ENTER_COLOR..." : "ENTER_INSTRUCTION..."}
+            disabled={isProcessing}
+            className="w-full px-2 py-2 border-2 border-black resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
+            rows={3}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!instruction.trim() || isProcessing}
+            className={`absolute bottom-3 right-2 p-1 border border-black hover:bg-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+              instruction.trim() && !isProcessing
+                ? 'bg-black text-white'
+                : 'bg-white text-black'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

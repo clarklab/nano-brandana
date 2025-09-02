@@ -264,7 +264,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <div className="h-[calc(100vh-170px)] md:h-[calc(100vh-110px)] grid grid-cols-1 md:grid-cols-3">
+      <div className="h-[calc(100vh-170px)] md:h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-3">
         {/* Left: Input Panel */}
         <div className={`border-r-0 md:border-r border-black p-4 overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
           <Dropzone
@@ -342,30 +342,17 @@ function App() {
           ) : (
             // Show chat/tasks interface when not processing
             <>
-              <div className="flex-1 overflow-hidden">
-                <Chat
-                  onSendInstruction={handleSendInstruction}
-                  isProcessing={isProcessing}
-                  currentModel={currentModel}
-                  onModelChange={setCurrentModel}
-                  onRunBatch={handleRunBatch}
-                  canRunBatch={files.length > 0 && instructions.length > 0 && !isProcessing}
-                  instructions={displayInstructions}
-                  onClearInstructions={handleClearInstructions}
-                />
-              </div>
-              
-              {files.length > 0 && instructions.length > 0 && (
-                <div className="border-t border-black pt-4 mt-4 space-y-2 flex-shrink-0">
-                  <button
-                    onClick={handleRunBatch}
-                    disabled={isProcessing}
-                    className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all"
-                  >
-                    {isProcessing ? 'PROCESSING...' : `RUN_BATCH [${files.length}]`}
-                  </button>
-                </div>
-              )}
+              <Chat
+                onSendInstruction={handleSendInstruction}
+                isProcessing={isProcessing}
+                currentModel={currentModel}
+                onModelChange={setCurrentModel}
+                onRunBatch={handleRunBatch}
+                canRunBatch={files.length > 0 && instructions.length > 0 && !isProcessing}
+                instructions={displayInstructions}
+                onClearInstructions={handleClearInstructions}
+                files={files}
+              />
             </>
           )}
         </div>

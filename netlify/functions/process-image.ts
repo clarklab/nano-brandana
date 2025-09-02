@@ -64,7 +64,7 @@ export const handler: Handler = async (event) => {
         role: 'user',
         content: [
           { type: 'text', text: instruction },
-          { type: 'image_url', image_url: { url: image, detail: 'auto' } }
+          { type: 'image_url', image_url: { url: image, detail: 'high' } }
         ]
       }],
       stream,

@@ -29,7 +29,7 @@ Success = smooth batch UX (dozens of images), clear progress per image, attracti
   * `process-image` — receives one image + instruction; calls Gateway; returns edited image(s).
   * `batch` — accepts a list of files (multipart) and per-batch settings; fans out to `process-image` with client-side concurrency control (see §6).
 * **AI layer:** **Vercel AI Gateway (OpenAI-compatible API)**; model ID **`google/gemini-2.5-flash-image-preview`** (confirm in model list; update if GA name changes). For image output, set modalities/response options per docs. ([Vercel][1])
-* **Secrets:** `AI_GATEWAY_API_KEY` stored in Netlify env, not exposed to the client.
+* **Secrets:** `AI_GATEWAY_API_KEY` stored in Netlify env, not exposed to the client. Use the Netlify CLI to run dev server and create/edit environment variables.
 * **No database:** keep it stateless; the browser holds batch state.
 
 ---

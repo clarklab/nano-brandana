@@ -30,6 +30,7 @@ function App() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxTitle, setLightboxTitle] = useState('');
   const [introModalOpen, setIntroModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'input' | 'tasks' | 'results'>('input');
 
   // Check if intro has been seen before
   useEffect(() => {
@@ -239,20 +240,20 @@ function App() {
     <div className="min-h-screen bg-white text-black font-mono">
       {/* Header */}
       <header className="border-b-2 border-black p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/brandana.webp" alt="Brandana" className="w-12 h-12" />
+            <img src="/brandana.webp" alt="Brandana" className="size-8 md:size-12" />
             <div>
-              <h1 className="text-xl font-bold">NANO-BRANDANA</h1>
-              <p className="text-sm">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
+              <h1 className="text-base md:text-xl font-bold">NANO-BRANDANA</h1>
+              <p className="text-xs md:text-sm">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-2">
             <label className="text-sm">MODEL:</label>
             <select
               value={currentModel}
               onChange={(e) => setCurrentModel(e.target.value)}
-              className="bg-white border border-black px-2 py-1 pr-6 text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
+              className="bg-white border border-black px-2 py-1 pr-6 text-xs md:text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
             >
               <option value="google/gemini-2.5-flash-image-preview">
                 GEMINI-2.5-FLASH
@@ -263,9 +264,9 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <div className="h-[calc(100vh-80px)] grid grid-cols-3">
+      <div className="h-[calc(100vh-170px)] md:h-[calc(100vh-110px)] grid grid-cols-1 md:grid-cols-3">
         {/* Left: Input Panel */}
-        <div className="border-r border-black p-4 overflow-hidden">
+        <div className={`border-r-0 md:border-r border-black p-4 overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
           <Dropzone
             onFilesAdded={handleFilesAdded}
             files={files}
@@ -275,7 +276,7 @@ function App() {
         </div>
 
         {/* Middle: Tasks/Progress */}
-        <div className="border-r border-black p-4 flex flex-col overflow-hidden">
+        <div className={`border-r-0 md:border-r border-black p-4 flex flex-col overflow-hidden ${activeTab === 'tasks' ? 'block' : 'hidden'} md:block`}>
           {isProcessing || workItems.length > 0 ? (
             // Show progress/stats during and after processing
             <>
@@ -317,6 +318,9 @@ function App() {
                   <div className="text-xs font-light">
                     {workItems.filter(i => i.status === 'processing').length} PROCESSING
                   </div>
+                  <p className="text-xs font-light mt-2 italic">
+                    Brandana says "Have a nice day!"
+                  </p>
                 </div>
               </div>
               
@@ -367,7 +371,7 @@ function App() {
         </div>
 
         {/* Right: Results */}
-        <div className="p-4 flex flex-col overflow-hidden">
+        <div className={`p-4 flex flex-col overflow-hidden ${activeTab === 'results' ? 'block' : 'hidden'} md:block`}>
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h2 className="text-lg font-bold">RESULTS</h2>
             {hasResults && (
@@ -399,6 +403,45 @@ function App() {
           )}
         </div>
       </div>
+      
+      {/* Mobile Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black">
+        <div className="grid grid-cols-3">
+          <button
+            onClick={() => setActiveTab('input')}
+            className={`p-3 text-xs font-bold border-r border-black flex flex-col items-center gap-1 ${
+              activeTab === 'input' ? 'bg-neon' : 'hover:bg-neon/20'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#1f1f1f">
+              <path d="M440-440v-80h80v80h-80Zm-80 80v-80h80v80h-80Zm160 0v-80h80v80h-80Zm80-80v-80h80v80h-80Zm-320 0v-80h80v80h-80Zm-80 320q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm80-80h80v-80h-80v80Zm160 0h80v-80h-80v80Zm320 0v-80 80Zm-560-80h80v-80h80v80h80v-80h80v80h80v-80h80v80h80v-80h-80v-80h80v-320H200v320h80v80h-80v80Zm0 80v-560 560Zm560-240v80-80ZM600-280v80h80v-80h-80Z"/>
+            </svg>
+            IMAGES
+          </button>
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`p-3 text-xs font-bold border-r border-black flex flex-col items-center gap-1 ${
+              activeTab === 'tasks' ? 'bg-neon' : 'hover:bg-neon/20'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#1f1f1f">
+              <path d="M620-163 450-333l56-56 114 114 226-226 56 56-282 282Zm220-397h-80v-200h-80v120H280v-120h-80v560h240v80H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v200ZM480-760q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z"/>
+            </svg>
+            TASKS
+          </button>
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`p-3 text-xs font-bold flex flex-col items-center gap-1 ${
+              activeTab === 'results' ? 'bg-neon' : 'hover:bg-neon/20'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#1f1f1f">
+              <path d="m720-80 120-120-28-28-72 72v-164h-40v164l-72-72-28 28L720-80ZM480-800 243-663l237 137 237-137-237-137ZM120-321v-318q0-22 10.5-40t29.5-29l280-161q10-5 19.5-8t20.5-3q11 0 21 3t19 8l280 161q19 11 29.5 29t10.5 40v159h-80v-116L479-434 200-596v274l240 139v92L160-252q-19-11-29.5-29T120-321ZM720 0q-83 0-141.5-58.5T520-200q0-83 58.5-141.5T720-400q83 0 141.5 58.5T920-200q0 83-58.5 141.5T720 0ZM480-491Z"/>
+            </svg>
+            RESULTS
+          </button>
+        </div>
+      </nav>
       
       <Lightbox
         images={lightboxImages}

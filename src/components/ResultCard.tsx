@@ -73,7 +73,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             <span className="text-xs font-light">{elapsedTime}s</span>
           )}
           {processingTime && (
-            <span className="text-xs font-light text-blue-500">{processingTime}s</span>
+            <span className="text-xs font-semibold text-neon">{processingTime}s</span>
           )}
         </div>
       </div>

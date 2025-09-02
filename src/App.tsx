@@ -70,7 +70,7 @@ function App() {
         console.log('Completing item:', { fileName: item.file.name, status: item.status });
 
         // Update totals
-        if (result.usage?.total_tokens) {
+        if (result.usage && result.usage.total_tokens) {
           setTotalTokens(prev => prev + result.usage.total_tokens);
         }
 

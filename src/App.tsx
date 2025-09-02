@@ -244,7 +244,7 @@ function App() {
             <img src="/brandana.webp" alt="Brandana" className="w-12 h-12" />
             <div>
               <h1 className="text-xl font-bold">NANO-BRANDANA</h1>
-              <p className="text-sm">BATCH IMAGE EDITOR FOR BRANDS</p>
+              <p className="text-sm">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

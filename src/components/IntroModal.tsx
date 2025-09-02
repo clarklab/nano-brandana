@@ -30,7 +30,7 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
               <img src="/brandana.webp" alt="Brandana" className="w-16 h-16" />
               <div>
                 <h1 className="text-2xl font-bold">NANO-BRANDANA</h1>
-                <p className="text-sm font-light">BATCH IMAGE EDITOR FOR BRANDS</p>
+                <p className="text-sm font-light">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
               </div>
             </div>
             
@@ -49,11 +49,19 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
               <p className="text-sm">
                 Perfect for social media content, product photos, marketing materials, and brand consistency.
               </p>
+              
+              <p>
+                <a href="" onClick={handleClose} className="get-started-link underline decoration-neon decoration-2 decoration-offset-2">Get Started</a>
+                
+              </p>
             </div>
             
             <div className="inline-flex items-center gap-2">
-              <span className="bg-black text-white px-2 py-1 text-xs font-bold">
-                POWERED BY VERCEL AI GATEWAY
+              <span className="bg-black text-white px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 18 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 0.205765L18 15.7942H0L9 0.205765Z" fill="white"/>
+</svg>
+POWERED BY VERCEL AI GATEWAY
               </span>
             </div>
           </div>

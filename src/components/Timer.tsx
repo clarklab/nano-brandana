@@ -15,6 +15,7 @@ interface TimerProps {
         completion_tokens?: number;
         model?: string;
       };
+      images?: string[];
     };
   }>;
 }

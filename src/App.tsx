@@ -6,6 +6,7 @@ import { ResultCard } from './components/ResultCard';
 import { ProgressBar } from './components/ProgressBar';
 import { Timer } from './components/Timer';
 import { Lightbox } from './components/Lightbox';
+import { IntroModal } from './components/IntroModal';
 import { WorkItem, createBatchProcessor } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff } from './lib/api';
@@ -28,6 +29,15 @@ function App() {
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxTitle, setLightboxTitle] = useState('');
+  const [introModalOpen, setIntroModalOpen] = useState(false);
+
+  // Check if intro has been seen before
+  useEffect(() => {
+    const hasSeenIntro = localStorage.getItem('nano-brandana-intro-seen');
+    if (!hasSeenIntro) {
+      setIntroModalOpen(true);
+    }
+  }, []);
 
   // Create batch processor
   const batchProcessor = React.useMemo(() => {
@@ -396,6 +406,11 @@ function App() {
         isOpen={lightboxOpen}
         onClose={handleCloseLightbox}
         title={lightboxTitle}
+      />
+      
+      <IntroModal
+        isOpen={introModalOpen}
+        onClose={() => setIntroModalOpen(false)}
       />
     </div>
   );

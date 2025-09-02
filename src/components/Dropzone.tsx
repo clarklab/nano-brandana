@@ -65,7 +65,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          flex-1 border-2 transition-all rounded-xl
+          flex-1 border-2 transition-all rounded-xl min-h-0 overflow-hidden
           ${isDragging 
             ? 'border-neon bg-neon/10' 
             : 'border-black border-dashed opacity-50'

@@ -266,7 +266,7 @@ function App() {
       {/* Main Content */}
       <div className="h-[calc(100vh-170px)] md:h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-3">
         {/* Left: Input Panel */}
-        <div className={`border-r-0 md:border-r border-black p-4 overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
+        <div className={`border-r-0 md:border-r border-black p-4 flex flex-col overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
           <Dropzone
             onFilesAdded={handleFilesAdded}
             files={files}
@@ -371,23 +371,27 @@ function App() {
             )}
           </div>
           
-          {workItems.length === 0 ? (
-            <div className="text-center mt-16">
-              <div className="text-4xl mb-4">[ ]</div>
-              <p className="text-sm">AWAITING_RESULTS</p>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {workItems.map((item) => (
-                <ResultCard
-                  key={item.id}
-                  item={item}
-                  originalImage={fileToBase64Map.get(item.file) || ''}
-                  onOpenLightbox={handleOpenLightbox}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex-1 overflow-y-auto h-full">
+            {workItems.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">[ ]</div>
+                  <p className="text-sm">AWAITING_RESULTS</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {workItems.map((item) => (
+                  <ResultCard
+                    key={item.id}
+                    item={item}
+                    originalImage={fileToBase64Map.get(item.file) || ''}
+                    onOpenLightbox={handleOpenLightbox}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       

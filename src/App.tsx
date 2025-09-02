@@ -69,9 +69,13 @@ function App() {
 
         console.log('Completing item:', { fileName: item.file.name, status: item.status });
 
-        // Update totals
-        if (result.usage && typeof result.usage.total_tokens === 'number') {
-          setTotalTokens(prev => prev + result.usage.total_tokens);
+        // Update totals - safely handle potentially undefined usage
+        try {
+          if (result.usage?.total_tokens) {
+            setTotalTokens(prev => prev + (result.usage?.total_tokens || 0));
+          }
+        } catch (e) {
+          // Ignore token counting errors
         }
 
         return item;

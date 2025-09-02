@@ -9,6 +9,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions."process-image"]
+  timeout = 26
+
 [dev]
   command = "npm run dev"
   targetPort = 3000

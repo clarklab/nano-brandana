@@ -113,8 +113,11 @@ export const Chat: React.FC<ChatProps> = ({
             'from further back with wider framing'
           ];
           
-          const selectedAngles = cameraAngles.slice(0, count).join(', ');
-          const duplicateInstruction = `Generate ${count} additional variations of this exact scene using these specific camera perspectives: ${selectedAngles}. For each variation, maintain all the same subjects, objects, and overall scene composition while shooting ${selectedAngles}. Include realistic photographic elements like natural lighting variations, authentic camera grain, depth of field changes, and subtle environmental differences that would occur when changing camera positions. Each photo should feel like it was captured during the same photo session by a professional photographer moving around the scene.`;
+          const selectedAngles = cameraAngles.slice(0, Math.min(count, 3));
+          const angleList = selectedAngles.join(', ');
+          const duplicateInstruction = count <= 3 
+            ? `Generate ${count} variations of this scene from these angles: ${angleList}. Keep the same subjects and scene.`
+            : `Generate ${count} variations of this scene from different camera angles. Keep the same subjects and scene.`;
           const displayText = `Make ${count} more photos from this scene`;
           onSendInstruction(duplicateInstruction, displayText);
           setWaitingForDuplicateCount(false);

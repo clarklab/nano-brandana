@@ -43,20 +43,20 @@ function App() {
           await new Promise((resolve, reject) => {
             img.onload = resolve;
             img.onerror = reject;
-            img.src = base64;
+            img.src = base64!;
           });
           
           if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {
             base64 = await resizeImage(item.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
           }
           
-          setFileToBase64Map(prev => new Map(prev).set(item.file, base64));
+          setFileToBase64Map(prev => new Map(prev).set(item.file, base64!));
         }
 
         console.log('Starting API call for:', item.file.name);
         const result = await retryWithBackoff(() => 
           processImage({
-            image: base64,
+            image: base64!,
             instruction: item.instruction,
             model: currentModel,
           })
@@ -70,7 +70,7 @@ function App() {
         console.log('Completing item:', { fileName: item.file.name, status: item.status });
 
         // Update totals
-        if (result.usage && result.usage.total_tokens) {
+        if (result.usage?.total_tokens) {
           setTotalTokens(prev => prev + result.usage.total_tokens);
         }
 

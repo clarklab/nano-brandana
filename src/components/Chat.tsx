@@ -47,8 +47,8 @@ const QUICK_PRESETS = [
 export const Chat: React.FC<ChatProps> = ({
   onSendInstruction,
   isProcessing,
-  currentModel,
-  onModelChange,
+  currentModel: _currentModel,
+  onModelChange: _onModelChange,
   onRunBatch,
   canRunBatch,
   instructions = [],

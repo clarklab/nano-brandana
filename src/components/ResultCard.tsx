@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { WorkItem } from '../lib/concurrency';
 import { base64ToBlob } from '../lib/base64';
-import { Lightbox } from './Lightbox';
 import { calculateTokenCost, formatUSD, calculateTimeSaved, formatTime } from '../lib/pricing';
 
 interface ResultCardProps {
@@ -137,7 +136,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   COST: {formatUSD(calculateTokenCost(
                     item.result.usage.prompt_tokens || 0,
                     item.result.usage.completion_tokens || 0,
-                    item.result.model || 'google/gemini-2.5-flash-image-preview'
+                    'google/gemini-2.5-flash-image-preview'
                   ))}
                 </span>
                 <span className="text-gray-400 font-semibold">

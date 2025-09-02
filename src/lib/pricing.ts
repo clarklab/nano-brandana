@@ -4,9 +4,9 @@
 const VERCEL_COST_PER_IMAGE = 0.039; // USD per image from Vercel dashboard
 
 export function calculateTokenCost(
-  promptTokens: number, 
-  completionTokens: number, 
-  model: string
+  _promptTokens: number, 
+  _completionTokens: number, 
+  _model: string
 ): number {
   // Use Vercel's flat rate per image
   return VERCEL_COST_PER_IMAGE;
@@ -15,8 +15,6 @@ export function calculateTokenCost(
 export function calculateTimeSaved(): number {
   // Random time saved between 5-15 minutes per image
   // Weighted slightly toward higher values since complex edits take longer
-  const min = 5;
-  const max = 15;
   const weights = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   const weightedWeights = [1, 1, 2, 2, 3, 3, 3, 2, 2, 1, 1]; // Bell curve favoring 8-12 minutes
   

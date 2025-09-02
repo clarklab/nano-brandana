@@ -8,6 +8,7 @@ interface TimerProps {
   totalTokens: number;
   hasCompletedWork?: boolean;
   workItems?: Array<{
+    status?: string;
     result?: {
       usage?: {
         prompt_tokens?: number;
@@ -56,7 +57,6 @@ export const Timer: React.FC<TimerProps> = ({
   const currentElapsed = startTime ? currentTime - startTime : 0;
 
   // Calculate total cost and time saved from all completed work items
-  const completedItems = workItems.filter(item => item.status === 'completed' || item.status === 'failed');
   const successfulItems = workItems.filter(item => item.status === 'completed');
   
   const totalCost = successfulItems.reduce((sum, item) => {

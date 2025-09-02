@@ -50,7 +50,7 @@ function App() {
             base64 = await resizeImage(item.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
           }
           
-          setFileToBase64Map(prev => new Map(prev).set(item.file, base64!));
+          setFileToBase64Map(prev => new Map(prev).set(item.file, base64));
         }
 
         console.log('Starting API call for:', item.file.name);
@@ -70,7 +70,7 @@ function App() {
         console.log('Completing item:', { fileName: item.file.name, status: item.status });
 
         // Update totals
-        if (result.usage?.total_tokens) {
+        if (result.usage && result.usage.total_tokens) {
           setTotalTokens(prev => prev + result.usage.total_tokens);
         }
 
@@ -193,7 +193,7 @@ function App() {
 
   const hasResults = workItems.some(item => item.status === 'completed');
 
-  const handleOpenLightbox = useCallback((images: string[], index: number, title: string) => {
+  const handleOpenLightbox = useCallback((_images: string[], _index: number, title: string) => {
     // Collect ALL images from ALL completed work items
     const allImages: string[] = [];
     let clickedImageGlobalIndex = 0;

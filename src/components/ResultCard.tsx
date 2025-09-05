@@ -7,9 +7,10 @@ interface ResultCardProps {
   item: WorkItem;
   originalImage: string;
   onOpenLightbox?: (images: string[], index: number, title: string) => void;
+  onRetry?: (itemId: string) => void;
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onOpenLightbox }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onOpenLightbox, onRetry }) => {
   const [showOriginal, setShowOriginal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [timeSaved] = useState(() => calculateTimeSaved()); // Calculate once and persist
@@ -73,7 +74,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             <span className="text-xs font-light">{elapsedTime}s</span>
           )}
           {processingTime && (
-            <span className="text-xs font-semibold text-neon">{processingTime}s</span>
+            <span className="text-xs font-semibold text-neon-text">{processingTime}s</span>
           )}
         </div>
       </div>
@@ -132,6 +133,23 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
 
       {item.status === 'completed' && item.result?.images && item.result.images.length > 0 && (
         <>
+          {/* Check if we got fewer duplicates than requested */}
+          {(() => {
+            const duplicateMatch = item.instruction?.match(/Generate (?:exactly )?(\d+) variations/);
+            if (duplicateMatch && item.result?.images) {
+              const expectedCount = parseInt(duplicateMatch[1]);
+              const actualCount = item.result.images.length;
+              if (actualCount < expectedCount) {
+                return (
+                  <div className="mb-2 p-1 bg-yellow-100 border border-yellow-400 text-xs">
+                    ⚠️ Requested {expectedCount} variations but got {actualCount}
+                  </div>
+                );
+              }
+            }
+            return null;
+          })()}
+          
           <div className="relative h-32 mb-2 group">
             <img
               src={showOriginal ? originalImage : item.result.images[selectedImageIndex]}
@@ -142,6 +160,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   onOpenLightbox(item.result.images, selectedImageIndex, item.file.name);
                 }
               }}
+              onError={(e) => {
+                console.error('Image failed to load:', item.file.name, selectedImageIndex);
+                // Add a visual indicator for broken images
+                (e.target as HTMLImageElement).style.backgroundColor = '#fee2e2';
+                (e.target as HTMLImageElement).style.border = '2px solid red';
+              }}
+              onLoad={() => {
+                console.log('Image loaded successfully:', item.file.name, selectedImageIndex);
+              }}
             />
             <button
               onMouseDown={() => setShowOriginal(true)}
@@ -149,9 +176,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               onMouseLeave={() => setShowOriginal(false)}
               onTouchStart={() => setShowOriginal(true)}
               onTouchEnd={() => setShowOriginal(false)}
-              className="absolute top-1 left-1 px-1 py-0.5 bg-white border border-black text-xs font-bold hover:bg-neon transition-colors"
+              className="absolute top-1 left-1 px-1 py-0.5 bg-white border border-black text-xs font-bold hover:bg-neon transition-colors w-[120px]"
             >
-              {showOriginal ? 'ORIG' : 'HOLD'}
+              {showOriginal ? 'ORIG' : 'HOLD TO COMPARE'}
             </button>
           </div>
 
@@ -196,7 +223,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             <div className="mt-1 text-xs font-light">
               <div className="flex justify-between">
                 <span>TOKENS: {item.result.usage.total_tokens || 0}</span>
-                <span className="text-neon font-semibold">
+                <span className="text-neon-text font-semibold">
                   COST: {formatUSD(calculateTokenCost(
                     item.result.usage.prompt_tokens || 0,
                     item.result.usage.completion_tokens || 0,
@@ -213,15 +240,42 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
         </>
       )}
 
-      {item.status === 'failed' && (
-        <div className="h-32 border border-black flex items-center justify-center p-2 bg-gray-100">
+      {item.status === 'completed' && (!item.result?.images || item.result.images.length === 0) && (
+        <div className="h-32 border border-black flex items-center justify-center p-2 bg-yellow-100">
           <div className="text-center">
-            <div className="text-lg font-bold mb-1">✗</div>
-            <p className="text-xs font-bold">{item.error || 'FAILED'}</p>
-            {item.retries > 0 && (
-              <p className="text-xs font-light mt-1">RETRIED {item.retries}x</p>
-            )}
+            <div className="text-lg font-bold mb-1">⚠</div>
+            <p className="text-xs font-bold">NO IMAGES RETURNED</p>
+            <p className="text-xs font-light mt-1">API completed but no images received</p>
           </div>
+        </div>
+      )}
+
+      {item.status === 'failed' && (
+        <div className="border border-black bg-gray-100">
+          <div className="h-24 flex items-center justify-center p-2">
+            <div className="text-center">
+              <div className="text-lg font-bold mb-1">✗</div>
+              <p className="text-xs font-bold">
+                {item.error?.includes('Internal Server Error') ? 'SERVER_ERROR' : 
+                 item.error?.includes('Rate limit') ? 'RATE_LIMITED' :
+                 item.error?.includes('validation failed') ? 'INVALID_RESULT' :
+                 item.error || 'FAILED'}
+              </p>
+              {item.retries > 0 && (
+                <p className="text-xs font-light mt-1">RETRIED {item.retries}x</p>
+              )}
+            </div>
+          </div>
+          {onRetry && (
+            <div className="border-t border-black p-2">
+              <button
+                onClick={() => onRetry(item.id)}
+                className="w-full px-2 py-1 border border-black bg-white text-xs font-bold hover:bg-neon transition-colors"
+              >
+                RETRY_IMAGE
+              </button>
+            </div>
+          )}
         </div>
       )}
 

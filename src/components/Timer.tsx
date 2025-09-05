@@ -105,7 +105,7 @@ export const Timer: React.FC<TimerProps> = ({
         
         <div className="flex justify-between">
           <span className="font-light">COST:</span>
-          <span className="font-mono text-neon font-semibold">{formatUSD(totalCost)}</span>
+          <span className="font-mono text-neon-text font-semibold">{formatUSD(totalCost)}</span>
         </div>
         
         <div className="flex justify-between">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 interface LightboxProps {
   images: string[];
+  originalImages?: string[]; // Original images for comparison
   initialIndex: number;
   isOpen: boolean;
   onClose: () => void;
@@ -10,12 +11,14 @@ interface LightboxProps {
 
 export const Lightbox: React.FC<LightboxProps> = ({
   images,
+  originalImages,
   initialIndex,
   isOpen,
   onClose,
   title
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -84,11 +87,27 @@ export const Lightbox: React.FC<LightboxProps> = ({
 
       {/* Image Container */}
       <div className="relative flex-1 flex items-center justify-center min-h-0">
-        <img
-          src={images[currentIndex]}
-          alt={`Image ${currentIndex + 1}`}
-          className="max-w-[calc(100vw-8rem)] max-h-[calc(100vh-12rem)] object-contain border-2 border-white"
-        />
+        <div className="relative">
+          <img
+            src={showOriginal && originalImages?.[currentIndex] ? originalImages[currentIndex] : images[currentIndex]}
+            alt={showOriginal ? `Original ${currentIndex + 1}` : `Image ${currentIndex + 1}`}
+            className="max-w-[calc(100vw-8rem)] max-h-[calc(100vh-12rem)] object-contain border-2 border-white"
+          />
+          
+          {/* Hold to Compare button - positioned over top-left of image */}
+          {originalImages && originalImages[currentIndex] && (
+            <button
+              onMouseDown={() => setShowOriginal(true)}
+              onMouseUp={() => setShowOriginal(false)}
+              onMouseLeave={() => setShowOriginal(false)}
+              onTouchStart={() => setShowOriginal(true)}
+              onTouchEnd={() => setShowOriginal(false)}
+              className="absolute top-2 left-2 px-1 py-0.5 bg-white border border-black text-xs font-bold hover:bg-neon transition-colors w-[120px]"
+            >
+              {showOriginal ? 'ORIG' : 'HOLD TO COMPARE'}
+            </button>
+          )}
+        </div>
 
           {/* Navigation Arrows */}
           {images.length > 1 && (

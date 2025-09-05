@@ -9,10 +9,23 @@ import { Lightbox } from './components/Lightbox';
 import { IntroModal } from './components/IntroModal';
 import { WorkItem, createBatchProcessor } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
-import { processImage, retryWithBackoff } from './lib/api';
+import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 
 const MAX_IMAGE_DIMENSION = 2048;
-const CONCURRENCY_LIMIT = 3;
+const BASE_CONCURRENCY = 3;
+
+// Dynamic concurrency based on batch size to reduce server load
+const getConcurrencyLimit = (batchSize: number) => {
+  if (batchSize >= 10) return 1; // Large batches: sequential processing
+  if (batchSize >= 5) return 2;  // Medium batches: low concurrency
+  return BASE_CONCURRENCY;       // Small batches: normal concurrency
+};
+
+const getStaggerDelay = (batchSize: number) => {
+  if (batchSize >= 10) return 2000; // 2 second delays for large batches
+  if (batchSize >= 5) return 1000;  // 1 second delays for medium batches
+  return 500;                       // 500ms delays for small batches
+};
 
 function App() {
   const [files, setFiles] = useState<File[]>([]);
@@ -27,6 +40,7 @@ function App() {
   const [fileToBase64Map, setFileToBase64Map] = useState<Map<File, string>>(new Map());
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxOriginalImages, setLightboxOriginalImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxTitle, setLightboxTitle] = useState('');
   const [introModalOpen, setIntroModalOpen] = useState(false);
@@ -40,8 +54,17 @@ function App() {
     }
   }, []);
 
-  // Create batch processor
+  // Create batch processor with dynamic settings
   const batchProcessor = React.useMemo(() => {
+    const concurrency = getConcurrencyLimit(files.length);
+    const staggerDelay = getStaggerDelay(files.length);
+    
+    console.log('Creating batch processor:', { 
+      fileCount: files.length, 
+      concurrency, 
+      staggerDelay 
+    });
+
     return createBatchProcessor(async (item: WorkItem) => {
       try {
         // Get or create base64 for file
@@ -65,12 +88,41 @@ function App() {
         }
 
         console.log('Starting API call for:', item.file.name);
-        const result = await retryWithBackoff(() => 
-          processImage({
+        const result = await retryWithBackoff(
+          () => processImage({
             image: base64!,
             instruction: item.instruction,
             model: currentModel,
-          })
+          }),
+          3, // maxRetries
+          1000, // initialDelay
+          (result) => {
+            // Validator function - check if result has valid images
+            if (!result.images || result.images.length === 0) {
+              console.error('No images in result for:', item.file.name);
+              return false;
+            }
+
+            const invalidImages = result.images.filter(img => !validateImageData(img));
+            if (invalidImages.length > 0) {
+              console.error('Invalid images detected for:', item.file.name, invalidImages.length, 'out of', result.images.length);
+              return false;
+            }
+
+            // Check if we got the expected number of duplicates
+            const duplicateMatch = item.instruction.match(/Generate (\d+) variations/);
+            if (duplicateMatch) {
+              const expectedCount = parseInt(duplicateMatch[1]);
+              if (result.images.length < expectedCount) {
+                console.warn(`Expected ${expectedCount} variations but got ${result.images.length} for:`, item.file.name);
+                // Allow partial results but log the discrepancy
+                // We don't fail validation to avoid endless retries
+              }
+            }
+
+            console.log('Image validation passed for:', item.file.name, result.images.length, 'valid images');
+            return true;
+          }
         );
         console.log('API call completed for:', item.file.name, result);
 
@@ -97,8 +149,13 @@ function App() {
         item.retries = (item.retries || 0) + 1;
         return item;
       }
-    }, CONCURRENCY_LIMIT);
-  }, [currentModel, fileToBase64Map]);
+    }, concurrency, staggerDelay);
+  }, [currentModel, fileToBase64Map, files.length]);
+
+  const handleRetryItem = useCallback((itemId: string) => {
+    console.log('Retrying item:', itemId);
+    batchProcessor.retryItem(itemId);
+  }, [batchProcessor]);
 
   // Subscribe to updates
   useEffect(() => {
@@ -177,6 +234,26 @@ function App() {
 
     if (allDone && workItems.length > 0) {
       console.log('Setting isProcessing to false - job complete!');
+      
+      // Final validation check - ensure all completed items have valid images
+      const completedItems = workItems.filter(item => item.status === 'completed');
+      const validCompletedItems = completedItems.filter(item => 
+        item.result?.images && item.result.images.length > 0 && 
+        item.result.images.every(img => validateImageData(img))
+      );
+      
+      console.log('Batch completion summary:', {
+        totalItems: workItems.length,
+        completedItems: completedItems.length,
+        validCompletedItems: validCompletedItems.length,
+        failedItems: workItems.filter(item => item.status === 'failed').length
+      });
+      
+      if (completedItems.length !== validCompletedItems.length) {
+        console.warn('Some completed items have invalid images:', 
+          completedItems.length - validCompletedItems.length, 'items affected');
+      }
+      
       setIsProcessing(false);
       if (batchStartTime) {
         setTotalElapsed(prev => prev + (Date.now() - batchStartTime));
@@ -211,26 +288,30 @@ function App() {
   const handleOpenLightbox = useCallback((_images: string[], _index: number, title: string) => {
     // Collect ALL images from ALL completed work items
     const allImages: string[] = [];
+    const allOriginalImages: string[] = [];
     let clickedImageGlobalIndex = 0;
     let foundClickedImage = false;
     
     workItems.forEach((item) => {
       if (item.status === 'completed' && item.result?.images) {
+        const originalImage = fileToBase64Map.get(item.file);
         item.result.images.forEach((image) => {
           if (item.file.name === title && !foundClickedImage) {
             clickedImageGlobalIndex = allImages.length;
             foundClickedImage = true;
           }
           allImages.push(image);
+          allOriginalImages.push(originalImage || '');
         });
       }
     });
     
     setLightboxImages(allImages);
+    setLightboxOriginalImages(allOriginalImages);
     setLightboxIndex(clickedImageGlobalIndex);
     setLightboxTitle(`All Results (${allImages.length} images)`);
     setLightboxOpen(true);
-  }, [workItems]);
+  }, [workItems, fileToBase64Map]);
 
   const handleCloseLightbox = useCallback(() => {
     setLightboxOpen(false);
@@ -387,6 +468,7 @@ function App() {
                     item={item}
                     originalImage={fileToBase64Map.get(item.file) || ''}
                     onOpenLightbox={handleOpenLightbox}
+                    onRetry={handleRetryItem}
                   />
                 ))}
               </div>
@@ -436,6 +518,7 @@ function App() {
       
       <Lightbox
         images={lightboxImages}
+        originalImages={lightboxOriginalImages}
         initialIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={handleCloseLightbox}

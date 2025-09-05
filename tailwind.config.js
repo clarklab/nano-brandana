@@ -8,6 +8,7 @@ module.exports = {
     extend: {
       colors: {
         'neon': '#00FF00',
+        'neon-text': '#00CC00', // Darker green for better text readability on white
       },
       fontFamily: {
         'mono': ['JetBrains Mono', 'monospace'],

@@ -15,12 +15,14 @@ export interface WorkItem {
   retries: number;
   startTime?: number;
   endTime?: number;
+  expectedImageCount?: number; // Track expected duplicate count
 }
 
 export interface BatchProcessor {
   addItems(items: Omit<WorkItem, 'id' | 'status' | 'retries'>[]): void;
   start(): void;
   stop(): void;
+  retryItem(itemId: string): void;
   getItems(): WorkItem[];
   onUpdate(callback: (items: WorkItem[]) => void): void;
   isProcessing(): boolean;
@@ -28,7 +30,8 @@ export interface BatchProcessor {
 
 export function createBatchProcessor(
   processItem: (item: WorkItem) => Promise<WorkItem>,
-  concurrency: number = 3
+  concurrency: number = 3,
+  staggerDelay: number = 500 // Delay between starting each request
 ): BatchProcessor {
   const limit = pLimit(concurrency);
   const items: WorkItem[] = [];
@@ -52,8 +55,15 @@ export function createBatchProcessor(
     abortController = new AbortController();
 
     await Promise.all(
-      queuedItems.map(item =>
+      queuedItems.map((item, index) =>
         limit(async () => {
+          if (abortController?.signal.aborted) return;
+
+          // Add stagger delay to reduce server load
+          if (index > 0 && staggerDelay > 0) {
+            await new Promise(resolve => setTimeout(resolve, index * staggerDelay));
+          }
+
           if (abortController?.signal.aborted) return;
 
           item.status = 'processing';
@@ -143,6 +153,26 @@ export function createBatchProcessor(
       return () => {
         updateCallbacks = updateCallbacks.filter(cb => cb !== callback);
       };
+    },
+
+    retryItem(itemId: string) {
+      const item = items.find(i => i.id === itemId);
+      if (item && (item.status === 'failed' || item.status === 'completed')) {
+        console.log('Retrying item:', item.file.name);
+        item.status = 'queued';
+        item.error = undefined;
+        item.result = undefined;
+        item.startTime = undefined;
+        item.endTime = undefined;
+        item.retries = (item.retries || 0) + 1;
+        notifyUpdate();
+        
+        // Start processing if not already running
+        if (!processing) {
+          processing = true;
+          processQueue();
+        }
+      }
     },
 
     isProcessing() {

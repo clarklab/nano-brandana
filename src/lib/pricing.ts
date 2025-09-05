@@ -43,7 +43,7 @@ export function formatTime(minutes: number): string {
 
 export function formatUSD(amount: number): string {
   if (amount < 0.01) {
-    return `$${(amount * 100).toFixed(2)}¢`;
+    return `$${(amount * 100).toFixed(2)}`;
   }
-  return `$${amount.toFixed(3)}`;
+  return `$${amount.toFixed(2)}`;
 }

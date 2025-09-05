@@ -101,23 +101,26 @@ export const Chat: React.FC<ChatProps> = ({
         const count = parseInt(userMessage);
         if (count && count > 0 && count <= 10) {
           const cameraAngles = [
-            'from the opposite angle',
             'from the back view',
-            'from the direct front',
             'from a low angle looking up',
             'from a high angle looking down',
             'from the left side profile',
             'from the right side profile',
             'from a 45-degree angle',
-            'from closer proximity',
-            'from further back with wider framing'
+            'from closer proximity portrait',
+            'from further back with wider framing and lots of space'
           ];
           
-          const selectedAngles = cameraAngles.slice(0, Math.min(count, 3));
+          // Always use angles for more interesting variations
+          const selectedAngles = cameraAngles.slice(0, Math.min(count, cameraAngles.length));
           const angleList = selectedAngles.join(', ');
-          const duplicateInstruction = count <= 3 
-            ? `Generate ${count} variations of this scene from these angles: ${angleList}. Keep the same subjects and scene.`
-            : `Generate ${count} variations of this scene from different camera angles. Keep the same subjects and scene.`;
+          
+          // If requesting more angles than we have defined, add "and other creative angles"
+          const angleInstruction = count > cameraAngles.length 
+            ? `${angleList}, and ${count - cameraAngles.length} other creative angles`
+            : angleList;
+            
+          const duplicateInstruction = `Generate exactly ${count} variations of this scene from these angles: ${angleInstruction}. Keep the same subjects and scene. IMPORTANT: You must generate exactly ${count} images, no more, no less.`;
           const displayText = `Make ${count} more photos from this scene`;
           onSendInstruction(duplicateInstruction, displayText);
           setWaitingForDuplicateCount(false);

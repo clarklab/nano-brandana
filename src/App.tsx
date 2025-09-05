@@ -461,7 +461,7 @@ function App() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-24">
                 {workItems.map((item) => (
                   <ResultCard
                     key={item.id}

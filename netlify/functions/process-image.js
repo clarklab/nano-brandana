@@ -160,7 +160,7 @@ exports.handler = async (event) => {
     const elapsed = Date.now() - startTime;
 
     // Extract generated images from response
-    const generatedImages = result.choices?.[0]?.message?.images?.map((img: any) => 
+    const generatedImages = result.choices?.[0]?.message?.images?.map((img) =>
       img.image_url?.url || img.url
     ).filter(Boolean) || [];
 

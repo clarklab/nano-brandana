@@ -2,7 +2,7 @@ import { Handler } from '@netlify/functions';
 
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1';
-const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-2.5-flash-image-preview';
+const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 

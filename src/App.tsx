@@ -33,7 +33,7 @@ function App() {
   const [displayInstructions, setDisplayInstructions] = useState<string[]>([]);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentModel, setCurrentModel] = useState('google/gemini-2.5-flash-image-preview');
+  const [currentModel, setCurrentModel] = useState('google/gemini-3-pro-image');
   const [batchStartTime, setBatchStartTime] = useState<number | null>(null);
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [totalTokens, setTotalTokens] = useState(0);
@@ -336,8 +336,8 @@ function App() {
               onChange={(e) => setCurrentModel(e.target.value)}
               className="bg-white border border-black px-2 py-1 pr-6 text-xs md:text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
             >
-              <option value="google/gemini-2.5-flash-image-preview">
-                GEMINI-2.5-FLASH
+              <option value="google/gemini-3-pro-image">
+                NANO-BANANA-PRO
               </option>
             </select>
           </div>

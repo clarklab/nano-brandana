@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a drag-and-drop batch image editor web application that uses AI-powered image editing via Vercel AI Gateway and Google's Gemini 2.5 Flash Image model. The app is designed to handle dozens of high-quality photos with batch processing capabilities.
+This is a drag-and-drop batch image editor web application that uses AI-powered image editing via Vercel AI Gateway and Google's Gemini 3 Pro Image model (Nano Banana Pro). The app is designed to handle dozens of high-quality photos with batch processing capabilities.
 
 ## Common Development Commands
 
@@ -24,7 +24,7 @@ npm test
 # Set up environment variables in Netlify
 netlify env:set AI_GATEWAY_API_KEY your-api-key
 netlify env:set AI_GATEWAY_BASE_URL https://ai-gateway.vercel.sh/v1
-netlify env:set IMAGE_MODEL_ID google/gemini-2.5-flash-image-preview
+netlify env:set IMAGE_MODEL_ID google/gemini-3-pro-image
 ```
 
 ## High-Level Architecture
@@ -32,7 +32,7 @@ netlify env:set IMAGE_MODEL_ID google/gemini-2.5-flash-image-preview
 ### Tech Stack
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS
 - **Backend**: Netlify Functions (serverless Node.js)
-- **AI Service**: Vercel AI Gateway → Google Gemini 2.5 Flash Image
+- **AI Service**: Vercel AI Gateway → Google Gemini 3 Pro Image (Nano Banana Pro)
 - **Deployment**: Netlify (with GitHub integration)
 - **State Management**: Client-side only (no database)
 
@@ -69,7 +69,7 @@ tsconfig.json         # TypeScript configuration
 
 1. **AI Gateway Integration**
    - Use OpenAI-compatible API at `https://ai-gateway.vercel.sh/v1/chat/completions`
-   - Model ID: `google/gemini-2.5-flash-image-preview` (verify in Vercel Model Library)
+   - Model ID: `google/gemini-3-pro-image` (verify in Vercel Model Library)
    - Images sent as base64 data URIs in messages array
    - Response includes generated images in `choices[0].message.images[].image_url.url`
 

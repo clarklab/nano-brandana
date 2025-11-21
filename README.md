@@ -1,6 +1,6 @@
 # Nano Brandana - AI-Powered Batch Image Editor
 
-A drag-and-drop batch image editor powered by Vercel AI Gateway and Google's Gemini 2.5 Flash Image model (aka "Nano/Nana Banana"). Built with React, TypeScript, Tailwind CSS, and deployed on Netlify.
+A drag-and-drop batch image editor powered by Vercel AI Gateway and Google's Gemini 3 Pro Image model (aka "Nano Banana Pro"). Built with React, TypeScript, Tailwind CSS, and deployed on Netlify.
 
 ## Features
 
@@ -37,7 +37,7 @@ npm install
 ```bash
 netlify env:set AI_GATEWAY_API_KEY your-api-key
 netlify env:set AI_GATEWAY_BASE_URL https://ai-gateway.vercel.sh/v1
-netlify env:set IMAGE_MODEL_ID google/gemini-2.5-flash-image-preview
+netlify env:set IMAGE_MODEL_ID google/gemini-3-pro-image
 ```
 
 ### Development

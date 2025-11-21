@@ -1,16 +1,22 @@
 // Pricing for Google Gemini models via Vercel AI Gateway
 // Using actual Vercel dashboard pricing (as of January 2025)
 
-const VERCEL_COST_PER_IMAGE = 0.039; // USD per image from Vercel dashboard
+const VERCEL_COST_PER_IMAGE_1K_2K = 0.134; // USD per 1K or 2K image
+const VERCEL_COST_PER_IMAGE_4K = 0.24; // USD per 4K image
 
 export function calculateTokenCost(
-  _promptTokens: number, 
-  _completionTokens: number, 
+  _promptTokens: number,
+  _completionTokens: number,
   _model: string,
-  imageCount: number = 1
+  imageCount: number = 1,
+  imageSize?: string
 ): number {
-  // Use Vercel's flat rate per image, multiplied by number of generated images
-  return VERCEL_COST_PER_IMAGE * imageCount;
+  // Use Vercel's pricing based on image resolution
+  const costPerImage = imageSize === '4K'
+    ? VERCEL_COST_PER_IMAGE_4K
+    : VERCEL_COST_PER_IMAGE_1K_2K;
+
+  return costPerImage * imageCount;
 }
 
 export function calculateTimeSaved(): number {

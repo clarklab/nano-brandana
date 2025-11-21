@@ -65,8 +65,9 @@ export const Timer: React.FC<TimerProps> = ({
       const cost = calculateTokenCost(
         item.result.usage.prompt_tokens || 0,
         item.result.usage.completion_tokens || 0,
-        item.result.usage.model || 'google/gemini-2.5-flash-image-preview',
-        item.result.images?.length || 1
+        item.result.usage.model || 'google/gemini-3-pro-image',
+        item.result.images?.length || 1,
+        item.result.imageSize
       );
       return sum + cost;
     }

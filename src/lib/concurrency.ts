@@ -4,12 +4,14 @@ export interface WorkItem {
   id: string;
   file: File;
   instruction: string;
+  imageSize?: '1K' | '2K' | '4K';
   status: 'queued' | 'processing' | 'completed' | 'failed';
   result?: {
     images: string[];
     content?: string;
     elapsed: number;
     usage?: any;
+    imageSize?: string;
   };
   error?: string;
   retries: number;

@@ -28,7 +28,7 @@ Success = smooth batch UX (dozens of images), clear progress per image, attracti
 
   * `process-image` — receives one image + instruction; calls Gateway; returns edited image(s).
   * `batch` — accepts a list of files (multipart) and per-batch settings; fans out to `process-image` with client-side concurrency control (see §6).
-* **AI layer:** **Vercel AI Gateway (OpenAI-compatible API)**; model ID **`google/gemini-2.5-flash-image-preview`** (confirm in model list; update if GA name changes). For image output, set modalities/response options per docs. ([Vercel][1])
+* **AI layer:** **Vercel AI Gateway (OpenAI-compatible API)**; model ID **`google/gemini-3-pro-image`** (Nano Banana Pro). For image output, set modalities/response options per docs. ([Vercel][1])
 * **Secrets:** `AI_GATEWAY_API_KEY` stored in Netlify env, not exposed to the client. Use the Netlify CLI to run dev server and create/edit environment variables.
 * **No database:** keep it stateless; the browser holds batch state.
 
@@ -47,7 +47,7 @@ Success = smooth batch UX (dozens of images), clear progress per image, attracti
 
     * `AI_GATEWAY_API_KEY` (Vercel AI Gateway API key)
     * `AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1` (OpenAI-compatible base) ([Vercel][4])
-    * `IMAGE_MODEL_ID=google/gemini-2.5-flash-image-preview` (or latest from Model Library). ([Vercel][1])
+    * `IMAGE_MODEL_ID=google/gemini-3-pro-image` (Nano Banana Pro). ([Vercel][1])
 * **GitHub:** PR checks (lint/type), Netlify Git integration for auto-deploy.
 
 ---
@@ -102,7 +102,7 @@ Success = smooth batch UX (dozens of images), clear progress per image, attracti
 
 ```json
 {
-  "model": "google/gemini-2.5-flash-image-preview",
+  "model": "google/gemini-3-pro-image",
   "messages": [{
     "role": "user",
     "content": [
@@ -119,7 +119,7 @@ Success = smooth batch UX (dozens of images), clear progress per image, attracti
 
 **Notes:**
 
-* When using **AI SDK** instead of raw fetch, set `providerOptions.google.responseModalities = ['TEXT','IMAGE']` and `model: 'google/gemini-2.5-flash-image-preview'` as shown in the Gateway’s Image Generation page. ([Vercel][1])
+* When using **AI SDK** instead of raw fetch, set `providerOptions.google.responseModalities = ['TEXT','IMAGE']` and `model: 'google/gemini-3-pro-image'` as shown in the Gateway's Image Generation page. ([Vercel][1])
 * Always confirm the latest **model ID** in the Model Library before shipping. If Google flips from `*-preview` to GA, update here. ([Vercel][2])
 
 ---
@@ -214,7 +214,7 @@ Success = smooth batch UX (dozens of images), clear progress per image, attracti
 1. **Read these exact docs before coding:**
 
    * Vercel AI Gateway — *Image Generation* and *OpenAI-compatible API*. Confirm model string and response/streaming shapes, including how images are returned. ([Vercel][1])
-   * Check the **Model Library** for the latest Gemini 2.5 Flash Image identifier (currently `google/gemini-2.5-flash-image-preview`). ([Vercel][2])
+   * Check the **Model Library** for the Gemini 3 Pro Image identifier (Nano Banana Pro: `google/gemini-3-pro-image`). ([Vercel][2])
    * Review Google’s example for passing an image + prompt to “Gemini 2.5 Flash Image” (Nano/Nana Banana) to understand expected behavior, but **do not** call Gemini directly—always go through the Gateway. ([Google AI for Developers][3])
 2. Implement the **Netlify Function** first (single-image edit). Verify with cURL using a small PNG.
 3. Build the **frontend** with a small queue & concurrency limit, then scale to 50+ images.

@@ -16,6 +16,7 @@ interface TimerProps {
         model?: string;
       };
       images?: string[];
+      imageSize?: string;
     };
   }>;
 }

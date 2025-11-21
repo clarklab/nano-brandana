@@ -46,8 +46,8 @@ exports.handler = async (event) => {
     }
 
     // Check image size (rough estimate for base64)
-    const imageSize = image.length * 0.75;
-    if (imageSize > MAX_IMAGE_SIZE) {
+    const imageFileSize = image.length * 0.75;
+    if (imageFileSize > MAX_IMAGE_SIZE) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: `Image too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
@@ -58,7 +58,7 @@ exports.handler = async (event) => {
 
     // Prepare request
     const endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
-    const requestBody: any = {
+    const requestBody = {
       model,
       messages: [{
         role: 'user',

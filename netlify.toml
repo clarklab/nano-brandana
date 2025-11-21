@@ -9,6 +9,10 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions.esbuild]
+  format = "cjs"
+  target = "node20"
+
 [functions."process-image"]
   timeout = 26
 

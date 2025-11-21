@@ -5,7 +5,7 @@ interface ChatProps {
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
-  onRunBatch: () => void;
+  onRunBatch: (imageSize?: '1K' | '2K' | '4K') => void;
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
@@ -341,13 +341,33 @@ export const Chat: React.FC<ChatProps> = ({
 
       <div className="space-y-2">
         {files.length > 0 && instructions.length > 0 && (
-          <button
-            onClick={onRunBatch}
-            disabled={isProcessing}
-            className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all"
-          >
-            {isProcessing ? 'PROCESSING...' : `RUN_BATCH [${files.length}]`}
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => onRunBatch('1K')}
+              disabled={isProcessing}
+              className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all relative"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span>{isProcessing ? 'PROCESSING...' : `RUN_BATCH [${files.length}]`}</span>
+                {!isProcessing && (
+                  <span className="flex gap-1 text-xs opacity-60">
+                    <span
+                      onClick={(e) => { e.stopPropagation(); onRunBatch('2K'); }}
+                      className="hover:opacity-100 hover:underline cursor-pointer px-1"
+                    >
+                      2k
+                    </span>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); onRunBatch('4K'); }}
+                      className="hover:opacity-100 hover:underline cursor-pointer px-1"
+                    >
+                      4k
+                    </span>
+                  </span>
+                )}
+              </div>
+            </button>
+          </div>
         )}
         
         <div className="relative leading-none">

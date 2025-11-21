@@ -87,12 +87,13 @@ function App() {
           setFileToBase64Map(prev => new Map(prev).set(item.file, base64!));
         }
 
-        console.log('Starting API call for:', item.file.name);
+        console.log('Starting API call for:', item.file.name, 'with imageSize:', item.imageSize);
         const result = await retryWithBackoff(
           () => processImage({
             image: base64!,
             instruction: item.instruction,
             model: currentModel,
+            imageSize: item.imageSize || '1K',
           }),
           3, // maxRetries
           1000, // initialDelay
@@ -186,7 +187,7 @@ function App() {
     setDisplayInstructions([]);
   }, []);
 
-  const handleRunBatch = useCallback(() => {
+  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
     if (files.length === 0 || instructions.length === 0) return;
 
     // Combine all instructions into one
@@ -196,6 +197,7 @@ function App() {
     const newItems = files.map(file => ({
       file,
       instruction: combinedInstruction,
+      imageSize,
     }));
 
     batchProcessor.addItems(newItems);

@@ -228,12 +228,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                     item.result.usage.prompt_tokens || 0,
                     item.result.usage.completion_tokens || 0,
                     'google/gemini-3-pro-image',
-                    item.result.images?.length || 1
+                    item.result.images?.length || 1,
+                    item.result.imageSize
                   ))}
                 </span>
                 <span className="text-gray-400 font-semibold">
                   SAVED: {formatTime(timeSaved)}
                 </span>
+                {item.result.imageSize && item.result.imageSize !== '1K' && (
+                  <span className="text-purple-600 font-bold">
+                    {item.result.imageSize}
+                  </span>
+                )}
               </div>
             </div>
           )}

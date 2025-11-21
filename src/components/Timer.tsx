@@ -66,7 +66,8 @@ export const Timer: React.FC<TimerProps> = ({
         item.result.usage.prompt_tokens || 0,
         item.result.usage.completion_tokens || 0,
         item.result.usage.model || 'google/gemini-3-pro-image',
-        item.result.images?.length || 1
+        item.result.images?.length || 1,
+        item.result.imageSize
       );
       return sum + cost;
     }

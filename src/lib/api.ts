@@ -3,6 +3,7 @@ export interface ProcessImageRequest {
   instruction: string;
   model?: string;
   stream?: boolean;
+  imageSize?: '1K' | '2K' | '4K';
 }
 
 export interface ProcessImageResponse {
@@ -16,6 +17,7 @@ export interface ProcessImageResponse {
   providerMetadata?: any;
   elapsed: number;
   model?: string;
+  imageSize?: string;
 }
 
 export class APIError extends Error {

@@ -35,7 +35,7 @@ export const handler: Handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { image, instruction, model = IMAGE_MODEL_ID, stream = false } = body;
+    const { image, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K' } = body;
 
     // Validate input
     if (!image || !instruction) {
@@ -58,7 +58,7 @@ export const handler: Handler = async (event) => {
 
     // Prepare request
     const endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
-    const requestBody = {
+    const requestBody: any = {
       model,
       messages: [{
         role: 'user',
@@ -71,11 +71,21 @@ export const handler: Handler = async (event) => {
       modalities: ['text', 'image'],
     };
 
+    // Add image size configuration if specified
+    if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
+      requestBody.generation_config = {
+        image_config: {
+          image_size: imageSize
+        }
+      };
+    }
+
     // Log request details (without sensitive data)
     console.log('API Request:', {
       endpoint,
       model,
       stream,
+      imageSize,
       hasImage: !!image,
       imageLength: image?.length,
       instructionLength: instruction?.length,
@@ -171,6 +181,7 @@ export const handler: Handler = async (event) => {
         providerMetadata: result.providerMetadata,
         elapsed,
         model: result.model,
+        imageSize,
       }),
     };
   } catch (error) {

@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
-import { Dropzone } from './components/Dropzone';
+import { InputPanel } from './components/InputPanel';
 import { Chat } from './components/Chat';
 import { ResultCard } from './components/ResultCard';
 import { ProgressBar } from './components/ProgressBar';
 import { Timer } from './components/Timer';
 import { Lightbox } from './components/Lightbox';
 import { IntroModal } from './components/IntroModal';
-import { WorkItem, createBatchProcessor } from './lib/concurrency';
+import { WorkItem, InputItem, createBatchProcessor } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 
@@ -28,7 +28,7 @@ const getStaggerDelay = (batchSize: number) => {
 };
 
 function App() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [inputs, setInputs] = useState<InputItem[]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
   const [displayInstructions, setDisplayInstructions] = useState<string[]>([]);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
@@ -37,7 +37,7 @@ function App() {
   const [batchStartTime, setBatchStartTime] = useState<number | null>(null);
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [totalTokens, setTotalTokens] = useState(0);
-  const [fileToBase64Map, setFileToBase64Map] = useState<Map<File, string>>(new Map());
+  const [inputToBase64Map, setInputToBase64Map] = useState<Map<string, string>>(new Map());
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxOriginalImages, setLightboxOriginalImages] = useState<string[]>([]);
@@ -56,41 +56,49 @@ function App() {
 
   // Create batch processor with dynamic settings
   const batchProcessor = React.useMemo(() => {
-    const concurrency = getConcurrencyLimit(files.length);
-    const staggerDelay = getStaggerDelay(files.length);
-    
-    console.log('Creating batch processor:', { 
-      fileCount: files.length, 
-      concurrency, 
-      staggerDelay 
+    const concurrency = getConcurrencyLimit(inputs.length);
+    const staggerDelay = getStaggerDelay(inputs.length);
+
+    console.log('Creating batch processor:', {
+      inputCount: inputs.length,
+      concurrency,
+      staggerDelay
     });
 
     return createBatchProcessor(async (item: WorkItem) => {
       try {
-        // Get or create base64 for file
-        let base64 = fileToBase64Map.get(item.file);
-        if (!base64) {
-          base64 = await fileToBase64(item.file);
-          
-          // Check if resizing is needed
-          const img = new Image();
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = base64!;
-          });
-          
-          if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {
-            base64 = await resizeImage(item.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
-          }
-          
-          setFileToBase64Map(prev => new Map(prev).set(item.file, base64!));
-        }
+        let base64: string | undefined;
+        const inputId = item.input.id;
 
-        console.log('Starting API call for:', item.file.name, 'with imageSize:', item.imageSize);
+        // Handle image inputs
+        if (item.input.type === 'image') {
+          // Get or create base64 for file
+          base64 = inputToBase64Map.get(inputId);
+          if (!base64) {
+            base64 = await fileToBase64(item.input.file);
+
+            // Check if resizing is needed
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = base64!;
+            });
+
+            if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {
+              base64 = await resizeImage(item.input.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
+            }
+
+            setInputToBase64Map(prev => new Map(prev).set(inputId, base64!));
+          }
+        }
+        // For text inputs, base64 remains undefined
+
+        const inputName = item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`;
+        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize);
         const result = await retryWithBackoff(
           () => processImage({
-            image: base64!,
+            image: base64, // undefined for text-only
             instruction: item.instruction,
             model: currentModel,
             imageSize: item.imageSize || '1K',
@@ -100,13 +108,13 @@ function App() {
           (result) => {
             // Validator function - check if result has valid images
             if (!result.images || result.images.length === 0) {
-              console.error('No images in result for:', item.file.name);
+              console.error('No images in result for:', inputName);
               return false;
             }
 
             const invalidImages = result.images.filter(img => !validateImageData(img));
             if (invalidImages.length > 0) {
-              console.error('Invalid images detected for:', item.file.name, invalidImages.length, 'out of', result.images.length);
+              console.error('Invalid images detected for:', inputName, invalidImages.length, 'out of', result.images.length);
               return false;
             }
 
@@ -115,23 +123,24 @@ function App() {
             if (duplicateMatch) {
               const expectedCount = parseInt(duplicateMatch[1]);
               if (result.images.length < expectedCount) {
-                console.warn(`Expected ${expectedCount} variations but got ${result.images.length} for:`, item.file.name);
+                console.warn(`Expected ${expectedCount} variations but got ${result.images.length} for:`, inputName);
                 // Allow partial results but log the discrepancy
                 // We don't fail validation to avoid endless retries
               }
             }
 
-            console.log('Image validation passed for:', item.file.name, result.images.length, 'valid images');
+            console.log('Image validation passed for:', inputName, result.images.length, 'valid images');
             return true;
           }
         );
-        console.log('API call completed for:', item.file.name, result);
+        console.log('API call completed for:', inputName, result);
 
         item.status = 'completed';
         item.result = result;
         item.endTime = Date.now();
 
-        console.log('Completing item:', { fileName: item.file.name, status: item.status });
+        const displayName = item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`;
+        console.log('Completing item:', { inputName: displayName, status: item.status });
 
         // Update totals - safely handle potentially undefined usage
         try {
@@ -151,7 +160,7 @@ function App() {
         return item;
       }
     }, concurrency, staggerDelay);
-  }, [currentModel, fileToBase64Map, files.length]);
+  }, [currentModel, inputToBase64Map, inputs.length]);
 
   const handleRetryItem = useCallback((itemId: string) => {
     console.log('Retrying item:', itemId);
@@ -165,16 +174,30 @@ function App() {
   }, [batchProcessor]);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
-    setFiles(prev => [...prev, ...newFiles]);
+    const newInputs: InputItem[] = newFiles.map(file => ({
+      type: 'image',
+      file,
+      id: `${Date.now()}-${Math.random()}`,
+    }));
+    setInputs(prev => [...prev, ...newInputs]);
   }, []);
 
-  const handleRemoveFile = useCallback((index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+  const handlePromptsAdded = useCallback((prompts: string[]) => {
+    const newInputs: InputItem[] = prompts.map(prompt => ({
+      type: 'text',
+      prompt,
+      id: `${Date.now()}-${Math.random()}`,
+    }));
+    setInputs(prev => [...prev, ...newInputs]);
+  }, []);
+
+  const handleRemoveInput = useCallback((id: string) => {
+    setInputs(prev => prev.filter(input => input.id !== id));
   }, []);
 
   const handleClearAll = useCallback(() => {
-    setFiles([]);
-    setFileToBase64Map(new Map());
+    setInputs([]);
+    setInputToBase64Map(new Map());
   }, []);
 
   const handleSendInstruction = useCallback((inst: string, displayText?: string) => {
@@ -188,14 +211,14 @@ function App() {
   }, []);
 
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
-    if (files.length === 0 || instructions.length === 0) return;
+    if (inputs.length === 0 || instructions.length === 0) return;
 
     // Combine all instructions into one
     const combinedInstruction = instructions.join('. ');
 
     // Create work items
-    const newItems = files.map(file => ({
-      file,
+    const newItems = inputs.map(input => ({
+      input,
       instruction: combinedInstruction,
       imageSize,
     }));
@@ -204,11 +227,14 @@ function App() {
     batchProcessor.start();
     setIsProcessing(true);
     setBatchStartTime(Date.now());
-  }, [files, instructions, batchProcessor]);
+  }, [inputs, instructions, batchProcessor]);
 
   // Check if processing is complete
   useEffect(() => {
-    const statusSummary = workItems.map(item => ({ name: item.file.name, status: item.status }));
+    const statusSummary = workItems.map(item => ({
+      name: item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`,
+      status: item.status
+    }));
     console.log('Processing check:', {
       isProcessing,
       workItemsLength: workItems.length,
@@ -226,8 +252,8 @@ function App() {
       allDone,
       workItemsLength: workItems.length,
       shouldComplete: allDone && workItems.length > 0,
-      detailedStatuses: workItems.map(item => ({ 
-        name: item.file.name, 
+      detailedStatuses: workItems.map(item => ({
+        name: item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`,
         status: item.status,
         hasResult: !!item.result,
         hasImages: !!item.result?.images?.length
@@ -271,7 +297,10 @@ function App() {
     completedItems.forEach((item, itemIndex) => {
       item.result!.images.forEach((image, imageIndex) => {
         const blob = base64ToBlob(image);
-        const filename = `${item.file.name.split('.')[0]}_edited_${itemIndex + 1}_v${imageIndex + 1}.png`;
+        const baseName = item.input.type === 'image'
+          ? item.input.file.name.split('.')[0]
+          : `text_prompt_${itemIndex + 1}`;
+        const filename = `${baseName}_edited_${itemIndex + 1}_v${imageIndex + 1}.png`;
         zip.file(filename, blob);
       });
     });
@@ -293,12 +322,13 @@ function App() {
     const allOriginalImages: string[] = [];
     let clickedImageGlobalIndex = 0;
     let foundClickedImage = false;
-    
+
     workItems.forEach((item) => {
       if (item.status === 'completed' && item.result?.images) {
-        const originalImage = fileToBase64Map.get(item.file);
+        const itemTitle = item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`;
+        const originalImage = item.input.type === 'image' ? inputToBase64Map.get(item.input.id) : '';
         item.result.images.forEach((image) => {
-          if (item.file.name === title && !foundClickedImage) {
+          if (itemTitle === title && !foundClickedImage) {
             clickedImageGlobalIndex = allImages.length;
             foundClickedImage = true;
           }
@@ -307,13 +337,13 @@ function App() {
         });
       }
     });
-    
+
     setLightboxImages(allImages);
     setLightboxOriginalImages(allOriginalImages);
     setLightboxIndex(clickedImageGlobalIndex);
     setLightboxTitle(`All Results (${allImages.length} images)`);
     setLightboxOpen(true);
-  }, [workItems, fileToBase64Map]);
+  }, [workItems, inputToBase64Map]);
 
   const handleCloseLightbox = useCallback(() => {
     setLightboxOpen(false);
@@ -350,10 +380,11 @@ function App() {
       <div className="h-[calc(100vh-170px)] md:h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-3">
         {/* Left: Input Panel */}
         <div className={`border-r-0 md:border-r border-black p-4 flex flex-col overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
-          <Dropzone
+          <InputPanel
             onFilesAdded={handleFilesAdded}
-            files={files}
-            onRemoveFile={handleRemoveFile}
+            onPromptsAdded={handlePromptsAdded}
+            inputs={inputs}
+            onRemoveInput={handleRemoveInput}
             onClearAll={handleClearAll}
           />
         </div>
@@ -376,7 +407,10 @@ function App() {
                     console.log('hasCompletedWork calculation:', {
                       hasWork,
                       workItemsCount: workItems.length,
-                      statuses: workItems.map(item => ({ name: item.file.name, status: item.status }))
+                      statuses: workItems.map(item => ({
+                        name: item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`,
+                        status: item.status
+                      }))
                     });
                     return hasWork;
                   })()}
@@ -431,10 +465,10 @@ function App() {
                 currentModel={currentModel}
                 onModelChange={setCurrentModel}
                 onRunBatch={handleRunBatch}
-                canRunBatch={files.length > 0 && instructions.length > 0 && !isProcessing}
+                canRunBatch={inputs.length > 0 && instructions.length > 0 && !isProcessing}
                 instructions={displayInstructions}
                 onClearInstructions={handleClearInstructions}
-                files={files}
+                inputs={inputs}
               />
             </>
           )}
@@ -468,7 +502,7 @@ function App() {
                   <ResultCard
                     key={item.id}
                     item={item}
-                    originalImage={fileToBase64Map.get(item.file) || ''}
+                    originalImage={item.input.type === 'image' ? (inputToBase64Map.get(item.input.id) || '') : ''}
                     onOpenLightbox={handleOpenLightbox}
                     onRetry={handleRetryItem}
                   />

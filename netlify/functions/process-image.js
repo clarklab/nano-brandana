@@ -37,35 +37,41 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const { image, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K' } = body;
 
-    // Validate input
-    if (!image || !instruction) {
+    // Validate input - instruction is always required, image is optional for text-to-image
+    if (!instruction) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Missing required fields: image and instruction' }),
+        body: JSON.stringify({ error: 'Missing required field: instruction' }),
       };
     }
 
-    // Check image size (rough estimate for base64)
-    const imageFileSize = image.length * 0.75;
-    if (imageFileSize > MAX_IMAGE_SIZE) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: `Image too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
-      };
+    // Check image size if image is provided
+    if (image) {
+      const imageFileSize = image.length * 0.75;
+      if (imageFileSize > MAX_IMAGE_SIZE) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Image too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
+        };
+      }
     }
 
     const startTime = Date.now();
 
     // Prepare request
     const endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
+
+    // Build content array based on whether we have an image
+    const content = [{ type: 'text', text: instruction }];
+    if (image) {
+      content.push({ type: 'image_url', image_url: { url: image, detail: 'high' } });
+    }
+
     const requestBody = {
       model,
       messages: [{
         role: 'user',
-        content: [
-          { type: 'text', text: instruction },
-          { type: 'image_url', image_url: { url: image, detail: 'high' } }
-        ]
+        content
       }],
       stream,
       modalities: ['text', 'image'],

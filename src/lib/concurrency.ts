@@ -1,8 +1,13 @@
 import pLimit from 'p-limit';
 
+// Input types - can be either an image file or a text prompt
+export type InputItem =
+  | { type: 'image'; file: File; id: string }
+  | { type: 'text'; prompt: string; id: string };
+
 export interface WorkItem {
   id: string;
-  file: File;
+  input: InputItem; // Changed from 'file: File' to support both types
   instruction: string;
   imageSize?: '1K' | '2K' | '4K';
   status: 'queued' | 'processing' | 'completed' | 'failed';
@@ -28,6 +33,11 @@ export interface BatchProcessor {
   getItems(): WorkItem[];
   onUpdate(callback: (items: WorkItem[]) => void): void;
   isProcessing(): boolean;
+}
+
+// Helper function to get display name for an input item
+export function getInputDisplayName(input: InputItem): string {
+  return input.type === 'image' ? input.file.name : `Text: ${input.prompt.substring(0, 30)}...`;
 }
 
 export function createBatchProcessor(
@@ -75,15 +85,15 @@ export function createBatchProcessor(
           try {
             const result = await processItem(item);
             if (!abortController?.signal.aborted) {
-              console.log('Batch processor - assigning result:', { 
-                fileName: item.file.name, 
-                beforeStatus: item.status, 
-                resultStatus: result.status 
+              console.log('Batch processor - assigning result:', {
+                inputName: getInputDisplayName(item.input),
+                beforeStatus: item.status,
+                resultStatus: result.status
               });
               Object.assign(item, result);
-              console.log('Batch processor - after assign:', { 
-                fileName: item.file.name, 
-                afterStatus: item.status 
+              console.log('Batch processor - after assign:', {
+                inputName: getInputDisplayName(item.input),
+                afterStatus: item.status
               });
               notifyUpdate();
               
@@ -160,7 +170,7 @@ export function createBatchProcessor(
     retryItem(itemId: string) {
       const item = items.find(i => i.id === itemId);
       if (item && (item.status === 'failed' || item.status === 'completed')) {
-        console.log('Retrying item:', item.file.name);
+        console.log('Retrying item:', getInputDisplayName(item.input));
         item.status = 'queued';
         item.error = undefined;
         item.result = undefined;
@@ -168,7 +178,7 @@ export function createBatchProcessor(
         item.endTime = undefined;
         item.retries = (item.retries || 0) + 1;
         notifyUpdate();
-        
+
         // Start processing if not already running
         if (!processing) {
           processing = true;

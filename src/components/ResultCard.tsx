@@ -16,6 +16,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   const [timeSaved] = useState(() => calculateTimeSaved()); // Calculate once and persist
   const [currentTime, setCurrentTime] = useState(Date.now());
 
+  // Generate display name and filename based on input type
+  const displayName = item.input.type === 'image'
+    ? item.input.file.name
+    : `Text: ${item.input.prompt.substring(0, 30)}...`;
+
+  const fileBaseName = item.input.type === 'image'
+    ? item.input.file.name.split('.')[0]
+    : 'text_prompt';
+
   // Update timer for processing items
   React.useEffect(() => {
     if (item.status === 'processing' && item.startTime) {
@@ -49,7 +58,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${item.file.name.split('.')[0]}_edited_${index + 1}.png`;
+    a.download = `${fileBaseName}_edited_${index + 1}.png`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -65,7 +74,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   return (
     <div className="border-2 border-black p-2 hover:bg-gray-50 transition-colors">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-bold truncate flex-1 mr-2">{item.file.name}</h3>
+        <h3 className="text-xs font-bold truncate flex-1 mr-2">{displayName}</h3>
         <div className="flex items-center gap-2">
           <span className={`px-1 py-0.5 text-xs font-bold ${getStatusColor()}`}>
             {getStatusText()}
@@ -157,17 +166,17 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               className="w-full h-full object-cover border border-black cursor-pointer"
               onClick={() => {
                 if (onOpenLightbox && item.result?.images && !showOriginal) {
-                  onOpenLightbox(item.result.images, selectedImageIndex, item.file.name);
+                  onOpenLightbox(item.result.images, selectedImageIndex, displayName);
                 }
               }}
               onError={(e) => {
-                console.error('Image failed to load:', item.file.name, selectedImageIndex);
+                console.error('Image failed to load:', displayName, selectedImageIndex);
                 // Add a visual indicator for broken images
                 (e.target as HTMLImageElement).style.backgroundColor = '#fee2e2';
                 (e.target as HTMLImageElement).style.border = '2px solid red';
               }}
               onLoad={() => {
-                console.log('Image loaded successfully:', item.file.name, selectedImageIndex);
+                console.log('Image loaded successfully:', displayName, selectedImageIndex);
               }}
             />
             <button
@@ -210,7 +219,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             <button
               onClick={() => {
                 if (onOpenLightbox && item.result?.images) {
-                  onOpenLightbox(item.result.images, selectedImageIndex, item.file.name);
+                  onOpenLightbox(item.result.images, selectedImageIndex, displayName);
                 }
               }}
               className="px-2 py-1 border border-black bg-white text-xs font-bold hover:bg-neon transition-colors"

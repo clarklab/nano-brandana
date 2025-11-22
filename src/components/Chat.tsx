@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { InputItem } from '../lib/concurrency';
 
 interface ChatProps {
   onSendInstruction: (instruction: string, displayText?: string) => void;
@@ -9,7 +10,7 @@ interface ChatProps {
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
-  files?: File[];
+  inputs?: InputItem[];
 }
 
 interface TypingMessage {
@@ -56,7 +57,7 @@ export const Chat: React.FC<ChatProps> = ({
   canRunBatch,
   instructions = [],
   onClearInstructions,
-  files = [],
+  inputs = [],
 }) => {
   const [instruction, setInstruction] = useState('');
   const [messages, setMessages] = useState<TypingMessage[]>([
@@ -340,7 +341,7 @@ export const Chat: React.FC<ChatProps> = ({
       </div>
 
       <div className="space-y-2">
-        {files.length > 0 && instructions.length > 0 && (
+        {inputs.length > 0 && instructions.length > 0 && (
           <div className="relative">
             <button
               onClick={() => onRunBatch('1K')}
@@ -348,7 +349,7 @@ export const Chat: React.FC<ChatProps> = ({
               className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all relative"
             >
               <div className="flex items-center justify-center gap-2">
-                <span>{isProcessing ? 'PROCESSING...' : `RUN_BATCH [${files.length}]`}</span>
+                <span>{isProcessing ? 'PROCESSING...' : `RUN_BATCH [${inputs.length}]`}</span>
                 {!isProcessing && (
                   <span className="flex gap-1 text-xs opacity-60">
                     <span

@@ -1,5 +1,5 @@
 export interface ProcessImageRequest {
-  image: string;
+  image?: string; // Optional - omit for text-only generation
   instruction: string;
   model?: string;
   stream?: boolean;

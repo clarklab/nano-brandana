@@ -62,16 +62,16 @@ exports.handler = async (event) => {
     const endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
 
     // Build content array based on whether we have an image
-    const content = [{ type: 'text', text: instruction }];
+    const messageContent = [{ type: 'text', text: instruction }];
     if (image) {
-      content.push({ type: 'image_url', image_url: { url: image, detail: 'high' } });
+      messageContent.push({ type: 'image_url', image_url: { url: image, detail: 'high' } });
     }
 
     const requestBody = {
       model,
       messages: [{
         role: 'user',
-        content
+        content: messageContent
       }],
       stream,
       modalities: ['text', 'image'],

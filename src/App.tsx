@@ -211,17 +211,35 @@ function App() {
   }, []);
 
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
-    if (inputs.length === 0 || instructions.length === 0) return;
+    if (inputs.length === 0) return;
 
-    // Combine all instructions into one
-    const combinedInstruction = instructions.join('. ');
+    // Check if we have instructions for image inputs
+    const hasImages = inputs.some(input => input.type === 'image');
+    if (hasImages && instructions.length === 0) return;
 
-    // Create work items
-    const newItems = inputs.map(input => ({
-      input,
-      instruction: combinedInstruction,
-      imageSize,
-    }));
+    // Combine all global instructions
+    const globalInstruction = instructions.join('. ');
+
+    // Create work items - for text prompts, combine the prompt with global instructions
+    const newItems = inputs.map(input => {
+      let finalInstruction: string;
+
+      if (input.type === 'text') {
+        // For text prompts: combine the prompt text with global instructions
+        finalInstruction = globalInstruction
+          ? `${input.prompt}. ${globalInstruction}`
+          : input.prompt;
+      } else {
+        // For images: just use global instructions
+        finalInstruction = globalInstruction;
+      }
+
+      return {
+        input,
+        instruction: finalInstruction,
+        imageSize,
+      };
+    });
 
     batchProcessor.addItems(newItems);
     batchProcessor.start();
@@ -465,7 +483,12 @@ function App() {
                 currentModel={currentModel}
                 onModelChange={setCurrentModel}
                 onRunBatch={handleRunBatch}
-                canRunBatch={inputs.length > 0 && instructions.length > 0 && !isProcessing}
+                canRunBatch={
+                  inputs.length > 0 &&
+                  !isProcessing &&
+                  // Either all text prompts, or has instructions for images
+                  (inputs.every(i => i.type === 'text') || instructions.length > 0)
+                }
                 instructions={displayInstructions}
                 onClearInstructions={handleClearInstructions}
                 inputs={inputs}

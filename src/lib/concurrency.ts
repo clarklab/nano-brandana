@@ -1,9 +1,15 @@
 import pLimit from 'p-limit';
 
-// Input types - can be either an image file or a text prompt
-export type InputItem =
-  | { type: 'image'; file: File; id: string }
-  | { type: 'text'; prompt: string; id: string };
+// Base input types - original inputs from user (image or text)
+export type ImageInputItem = { type: 'image'; file: File; id: string };
+export type TextInputItem = { type: 'text'; prompt: string; id: string };
+export type BaseInputItem = ImageInputItem | TextInputItem;
+
+// Composite input type - combines multiple inputs for Single Job mode
+export type CompositeInputItem = { type: 'composite'; items: BaseInputItem[]; id: string };
+
+// Full input type including composite (used in WorkItem)
+export type InputItem = BaseInputItem | CompositeInputItem;
 
 export interface WorkItem {
   id: string;
@@ -37,7 +43,19 @@ export interface BatchProcessor {
 
 // Helper function to get display name for an input item
 export function getInputDisplayName(input: InputItem): string {
-  return input.type === 'image' ? input.file.name : `Text: ${input.prompt.substring(0, 30)}...`;
+  if (input.type === 'image') {
+    return input.file.name;
+  } else if (input.type === 'text') {
+    return `Text: ${input.prompt.substring(0, 30)}...`;
+  } else if (input.type === 'composite') {
+    const imageCount = input.items.filter(i => i.type === 'image').length;
+    const textCount = input.items.filter(i => i.type === 'text').length;
+    const parts = [];
+    if (imageCount > 0) parts.push(`${imageCount} image${imageCount > 1 ? 's' : ''}`);
+    if (textCount > 0) parts.push(`${textCount} text${textCount > 1 ? 's' : ''}`);
+    return `Combined: ${parts.join(' + ')}`;
+  }
+  return 'Unknown';
 }
 
 export function createBatchProcessor(

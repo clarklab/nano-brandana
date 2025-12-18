@@ -35,7 +35,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { image, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K' } = body;
+    const { image, images, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', mode = 'batch' } = body;
 
     // Validate input - instruction is always required, image is optional for text-to-image
     if (!instruction) {
@@ -45,13 +45,17 @@ exports.handler = async (event) => {
       };
     }
 
-    // Check image size if image is provided
-    if (image) {
-      const imageFileSize = image.length * 0.75;
+    // Get all images to process (single image or multiple images array)
+    const allImages = images || (image ? [image] : []);
+
+    // Check image sizes if images are provided
+    for (let i = 0; i < allImages.length; i++) {
+      const img = allImages[i];
+      const imageFileSize = img.length * 0.75;
       if (imageFileSize > MAX_IMAGE_SIZE) {
         return {
           statusCode: 400,
-          body: JSON.stringify({ error: `Image too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
+          body: JSON.stringify({ error: `Image ${i + 1} too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
         };
       }
     }
@@ -61,10 +65,12 @@ exports.handler = async (event) => {
     // Prepare request
     const endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
 
-    // Build content array based on whether we have an image
+    // Build content array based on whether we have images
     const messageContent = [{ type: 'text', text: instruction }];
-    if (image) {
-      messageContent.push({ type: 'image_url', image_url: { url: image, detail: 'high' } });
+
+    // Add all images to the message content
+    for (const img of allImages) {
+      messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
     }
 
     const requestBody = {
@@ -92,8 +98,9 @@ exports.handler = async (event) => {
       model,
       stream,
       imageSize,
-      hasImage: !!image,
-      imageLength: image?.length,
+      mode,
+      imageCount: allImages.length,
+      totalImageLength: allImages.reduce((sum, img) => sum + img.length, 0),
       instructionLength: instruction?.length,
       authHeader: `Bearer ${AI_GATEWAY_API_KEY?.substring(0, 15)}...`,
     });

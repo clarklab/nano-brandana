@@ -11,6 +11,7 @@ interface ChatProps {
   instructions: string[];
   onClearInstructions: () => void;
   inputs?: InputItem[];
+  processingMode: 'batch' | 'singleJob';
 }
 
 interface TypingMessage {
@@ -58,7 +59,11 @@ export const Chat: React.FC<ChatProps> = ({
   instructions = [],
   onClearInstructions,
   inputs = [],
+  processingMode,
 }) => {
+  // Dynamic labels based on processing mode
+  const runLabel = processingMode === 'batch' ? 'run the batch' : 'run the job';
+  const runButtonLabel = processingMode === 'batch' ? 'RUN_BATCH' : 'RUN_JOB';
   const [instruction, setInstruction] = useState('');
   const [messages, setMessages] = useState<TypingMessage[]>([
     { type: 'assistant', text: 'Welcome to Nano Brandana, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
@@ -93,7 +98,7 @@ export const Chat: React.FC<ChatProps> = ({
         setTimeout(() => {
           setMessages(prev => [...prev, { 
             type: 'assistant', 
-            text: `Perfect! I'll add ${userMessage} branding to your images by changing suitable objects to that color. Added to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
+            text: `Perfect! I'll add ${userMessage} branding to your images by changing suitable objects to that color. Added to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -129,7 +134,7 @@ export const Chat: React.FC<ChatProps> = ({
           setTimeout(() => {
             setMessages(prev => [...prev, { 
               type: 'assistant', 
-              text: `Great! I'll create ${count} additional realistic photo variations of each scene. Added to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
+              text: `Great! I'll create ${count} additional realistic photo variations of each scene. Added to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
               isTyping: true
             }]);
           }, 100);
@@ -152,7 +157,7 @@ export const Chat: React.FC<ChatProps> = ({
         setTimeout(() => {
           setMessages(prev => [...prev, { 
             type: 'assistant', 
-            text: `Excellent! I'll transform your images to ${userMessage}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
+            text: `Excellent! I'll transform your images to ${userMessage}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -166,7 +171,7 @@ export const Chat: React.FC<ChatProps> = ({
           const randomConfirmation = confirmations[Math.floor(Math.random() * confirmations.length)];
           setMessages(prev => [...prev, { 
             type: 'assistant', 
-            text: `${randomConfirmation} Added "${userMessage}" to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
+            text: `${randomConfirmation} Added "${userMessage}" to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -349,7 +354,7 @@ export const Chat: React.FC<ChatProps> = ({
               className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all relative"
             >
               <div className="flex items-center justify-center gap-2">
-                <span>{isProcessing ? 'PROCESSING...' : `RUN_JOB [${inputs.length}]`}</span>
+                <span>{isProcessing ? 'PROCESSING...' : `${runButtonLabel} [${inputs.length}]`}</span>
                 {!isProcessing && (
                   <span className="flex gap-1 text-xs opacity-60">
                     <span

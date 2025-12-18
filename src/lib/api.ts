@@ -1,3 +1,5 @@
+import { supabase, isSupabaseConfigured } from './supabase';
+
 export interface ProcessImageRequest {
   image?: string; // Optional - omit for text-only generation
   images?: string[]; // Multiple images for Single Job mode
@@ -36,11 +38,25 @@ export class APIError extends Error {
 export async function processImage(
   request: ProcessImageRequest
 ): Promise<ProcessImageResponse> {
+  // Get auth token if Supabase is configured
+  let authToken: string | undefined;
+  if (isSupabaseConfigured) {
+    const { data: { session } } = await supabase.auth.getSession();
+    authToken = session?.access_token;
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Include auth token if available
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
   const response = await fetch('/.netlify/functions/process-image', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify(request),
   });
 

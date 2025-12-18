@@ -7,9 +7,11 @@ import { ProgressBar } from './components/ProgressBar';
 import { Timer } from './components/Timer';
 import { Lightbox } from './components/Lightbox';
 import { IntroModal } from './components/IntroModal';
+import { AuthModal } from './components/AuthModal';
 import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
+import { useAuth } from './contexts/AuthContext';
 
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
@@ -28,6 +30,10 @@ const getStaggerDelay = (batchSize: number) => {
 };
 
 function App() {
+  // Auth state
+  const { user, profile, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
   const [inputs, setInputs] = useState<BaseInputItem[]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
   const [displayInstructions, setDisplayInstructions] = useState<string[]>([]);
@@ -243,6 +249,21 @@ function App() {
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
     if (inputs.length === 0) return;
 
+    // AUTH GATE: If auth is configured and user is not logged in, show auth modal
+    if (authConfigured && !user) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    // Check if user has enough tokens (rough estimate: ~1500 tokens per image)
+    if (authConfigured && profile) {
+      const estimatedTokens = inputs.length * 1500;
+      if (profile.tokens_remaining < estimatedTokens) {
+        alert(`Not enough tokens! You need ~${estimatedTokens.toLocaleString()} tokens but only have ${profile.tokens_remaining.toLocaleString()} remaining.`);
+        return;
+      }
+    }
+
     // Check if we have instructions for image inputs
     const hasImages = inputs.some(input => input.type === 'image');
     if (hasImages && instructions.length === 0) return;
@@ -302,7 +323,7 @@ function App() {
     batchProcessor.start();
     setIsProcessing(true);
     setBatchStartTime(Date.now());
-  }, [inputs, instructions, batchProcessor, processingMode]);
+  }, [inputs, instructions, batchProcessor, processingMode, authConfigured, user, profile]);
 
   // Check if processing is complete
   useEffect(() => {
@@ -362,8 +383,13 @@ function App() {
         setTotalElapsed(prev => prev + (Date.now() - batchStartTime));
       }
       setBatchStartTime(null);
+
+      // Refresh profile to get updated token balance
+      if (authConfigured) {
+        refreshProfile();
+      }
     }
-  }, [workItems, isProcessing, batchStartTime]);
+  }, [workItems, isProcessing, batchStartTime, authConfigured, refreshProfile]);
 
   const handleDownloadAll = async () => {
     const zip = new JSZip();
@@ -445,17 +471,55 @@ function App() {
               <p className="text-xs md:text-sm">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-2">
-            <label className="text-sm">MODEL:</label>
-            <select
-              value={currentModel}
-              onChange={(e) => setCurrentModel(e.target.value)}
-              className="bg-white border border-black px-2 py-1 pr-6 text-xs md:text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
-            >
-              <option value="google/gemini-3-pro-image">
-                NANO-BANANA-PRO
-              </option>
-            </select>
+
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Model selector - hidden on mobile */}
+            <div className="hidden md:flex items-center gap-2">
+              <label className="text-sm">MODEL:</label>
+              <select
+                value={currentModel}
+                onChange={(e) => setCurrentModel(e.target.value)}
+                className="bg-white border border-black px-2 py-1 pr-6 text-xs md:text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
+              >
+                <option value="google/gemini-3-pro-image">
+                  NANO-BANANA-PRO
+                </option>
+              </select>
+            </div>
+
+            {/* Auth section */}
+            {authConfigured && (
+              <div className="flex items-center gap-2">
+                {authLoading ? (
+                  <span className="text-xs">...</span>
+                ) : user ? (
+                  <>
+                    {/* Token display */}
+                    <div className="text-right">
+                      <div className="text-[10px] md:text-xs text-gray-500 truncate max-w-[100px] md:max-w-[150px]">
+                        {profile?.email || user.email}
+                      </div>
+                      <div className="text-xs md:text-sm font-bold text-neon-dark">
+                        {profile?.tokens_remaining?.toLocaleString() || '...'} tokens
+                      </div>
+                    </div>
+                    <button
+                      onClick={signOut}
+                      className="text-xs border border-black px-2 py-1 hover:bg-gray-100 transition-colors"
+                    >
+                      LOGOUT
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="text-xs border-2 border-black px-3 py-1 font-bold hover:bg-neon transition-colors"
+                  >
+                    SIGN IN
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -668,6 +732,11 @@ function App() {
       <IntroModal
         isOpen={introModalOpen}
         onClose={() => setIntroModalOpen(false)}
+      />
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
       />
     </div>
   );

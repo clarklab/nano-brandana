@@ -1,10 +1,21 @@
-const { Handler } = require('@netlify/functions');
+const { createClient } = require('@supabase/supabase-js');
 
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1';
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 
+// Supabase configuration
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// Create Supabase admin client (only if configured)
+const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  : null;
+
+const isAuthEnabled = Boolean(supabaseAdmin);
 
 exports.handler = async (event) => {
   // Log environment variables (masked)
@@ -14,6 +25,7 @@ exports.handler = async (event) => {
     apiKeyPrefix: AI_GATEWAY_API_KEY?.substring(0, 10) + '...',
     baseUrl: AI_GATEWAY_BASE_URL,
     imageModelId: IMAGE_MODEL_ID,
+    authEnabled: isAuthEnabled,
   });
 
   // Only allow POST
@@ -31,6 +43,75 @@ exports.handler = async (event) => {
       statusCode: 500,
       body: JSON.stringify({ error: 'AI Gateway API key not configured' }),
     };
+  }
+
+  let userId = null;
+  let userProfile = null;
+
+  // AUTH: If Supabase is configured, verify user and check tokens
+  if (isAuthEnabled) {
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Authentication required. Please sign in.' }),
+      };
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    try {
+      // Verify the user's session
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+      if (authError || !user) {
+        console.error('Auth error:', authError);
+        return {
+          statusCode: 401,
+          body: JSON.stringify({ error: 'Invalid or expired session. Please sign in again.' }),
+        };
+      }
+
+      userId = user.id;
+
+      // Get user's token balance
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('tokens_remaining')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Failed to fetch user profile' }),
+        };
+      }
+
+      userProfile = profile;
+
+      // Check if user has enough tokens (minimum 500 to attempt)
+      if (!profile || profile.tokens_remaining < 500) {
+        return {
+          statusCode: 402,
+          body: JSON.stringify({
+            error: 'Insufficient tokens',
+            tokens_remaining: profile?.tokens_remaining || 0,
+            message: 'You have run out of tokens. Please contact support for more.'
+          }),
+        };
+      }
+
+      console.log('User authenticated:', { userId, tokens_remaining: profile.tokens_remaining });
+    } catch (err) {
+      console.error('Auth verification failed:', err);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Authentication failed' }),
+      };
+    }
   }
 
   try {
@@ -130,39 +211,39 @@ exports.handler = async (event) => {
         error,
         headers: Object.fromEntries(response.headers.entries()),
       });
-      
+
       if (response.status === 403) {
         // Check if it's the free credits restriction error
         if (error.includes('Free credits temporarily have restricted access')) {
           return {
             statusCode: 403,
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               error: 'Vercel AI Gateway free credits are temporarily restricted due to abuse.',
               message: 'To continue using this service, you need to purchase paid credits. Visit https://vercel.com/docs/ai-gateway/pricing for more information.',
               details: error,
             }),
           };
         }
-        
+
         return {
           statusCode: 403,
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             error: 'Authentication failed. Please check your API key.',
             details: error,
           }),
         };
       }
-      
+
       if (response.status === 429) {
         return {
           statusCode: 429,
           body: JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
         };
       }
-      
+
       return {
         statusCode: response.status,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: `AI Gateway error: ${response.statusText}`,
           details: error,
         }),
@@ -180,12 +261,39 @@ exports.handler = async (event) => {
     // Also check for images in the content
     const content = result.choices?.[0]?.message?.content;
 
+    // Get tokens used from response
+    const tokensUsed = result.usage?.total_tokens || 1500; // Fallback estimate
+
+    // DEDUCT TOKENS: If auth is enabled, deduct tokens from user's balance
+    let newTokenBalance = null;
+    if (isAuthEnabled && userId) {
+      try {
+        // Use atomic update to prevent race conditions
+        const { data: updateResult, error: updateError } = await supabaseAdmin
+          .rpc('deduct_tokens', {
+            user_id: userId,
+            amount: tokensUsed
+          });
+
+        if (updateError) {
+          console.error('Token deduction error:', updateError);
+          // Don't fail the request, just log the error
+        } else if (updateResult && updateResult[0]) {
+          newTokenBalance = updateResult[0].new_balance;
+          console.log('Tokens deducted:', { userId, tokensUsed, newBalance: newTokenBalance });
+        }
+      } catch (err) {
+        console.error('Token deduction failed:', err);
+        // Don't fail the request, just log the error
+      }
+    }
+
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
       body: JSON.stringify({
         images: generatedImages,
@@ -195,13 +303,14 @@ exports.handler = async (event) => {
         elapsed,
         model: result.model,
         imageSize,
+        tokens_remaining: newTokenBalance,
       }),
     };
   } catch (error) {
     console.error('Function error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       }),

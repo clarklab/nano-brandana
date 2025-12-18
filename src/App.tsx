@@ -560,6 +560,7 @@ function App() {
                 instructions={displayInstructions}
                 onClearInstructions={handleClearInstructions}
                 inputs={inputs}
+                processingMode={processingMode}
               />
             </>
           )}

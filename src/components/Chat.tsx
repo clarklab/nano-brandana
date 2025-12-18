@@ -93,7 +93,7 @@ export const Chat: React.FC<ChatProps> = ({
         setTimeout(() => {
           setMessages(prev => [...prev, { 
             type: 'assistant', 
-            text: `Perfect! I'll add ${userMessage} branding to your images by changing suitable objects to that color. Added to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
+            text: `Perfect! I'll add ${userMessage} branding to your images by changing suitable objects to that color. Added to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -129,7 +129,7 @@ export const Chat: React.FC<ChatProps> = ({
           setTimeout(() => {
             setMessages(prev => [...prev, { 
               type: 'assistant', 
-              text: `Great! I'll create ${count} additional realistic photo variations of each scene. Added to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
+              text: `Great! I'll create ${count} additional realistic photo variations of each scene. Added to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
               isTyping: true
             }]);
           }, 100);
@@ -152,7 +152,7 @@ export const Chat: React.FC<ChatProps> = ({
         setTimeout(() => {
           setMessages(prev => [...prev, { 
             type: 'assistant', 
-            text: `Excellent! I'll transform your images to ${userMessage}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
+            text: `Excellent! I'll transform your images to ${userMessage}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -166,7 +166,7 @@ export const Chat: React.FC<ChatProps> = ({
           const randomConfirmation = confirmations[Math.floor(Math.random() * confirmations.length)];
           setMessages(prev => [...prev, { 
             type: 'assistant', 
-            text: `${randomConfirmation} Added "${userMessage}" to the instruction list. Ready to [run the batch](#run-batch) when you are! Need any other edits?`,
+            text: `${randomConfirmation} Added "${userMessage}" to the instruction list. Ready to [run the job](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
@@ -349,7 +349,7 @@ export const Chat: React.FC<ChatProps> = ({
               className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all relative"
             >
               <div className="flex items-center justify-center gap-2">
-                <span>{isProcessing ? 'PROCESSING...' : `RUN_BATCH [${inputs.length}]`}</span>
+                <span>{isProcessing ? 'PROCESSING...' : `RUN_JOB [${inputs.length}]`}</span>
                 {!isProcessing && (
                   <span className="flex gap-1 text-xs opacity-60">
                     <span

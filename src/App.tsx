@@ -7,7 +7,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { Timer } from './components/Timer';
 import { Lightbox } from './components/Lightbox';
 import { IntroModal } from './components/IntroModal';
-import { WorkItem, InputItem, createBatchProcessor } from './lib/concurrency';
+import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 
@@ -28,7 +28,7 @@ const getStaggerDelay = (batchSize: number) => {
 };
 
 function App() {
-  const [inputs, setInputs] = useState<InputItem[]>([]);
+  const [inputs, setInputs] = useState<BaseInputItem[]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
   const [displayInstructions, setDisplayInstructions] = useState<string[]>([]);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
@@ -45,6 +45,7 @@ function App() {
   const [lightboxTitle, setLightboxTitle] = useState('');
   const [introModalOpen, setIntroModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'input' | 'tasks' | 'results'>('input');
+  const [processingMode, setProcessingMode] = useState<'batch' | 'singleJob'>('batch');
 
   // Check if intro has been seen before
   useEffect(() => {
@@ -68,10 +69,38 @@ function App() {
     return createBatchProcessor(async (item: WorkItem) => {
       try {
         let base64: string | undefined;
+        let base64Array: string[] | undefined;
         const inputId = item.input.id;
 
-        // Handle image inputs
-        if (item.input.type === 'image') {
+        // Handle composite inputs (Single Job mode)
+        if (item.input.type === 'composite') {
+          const imageItems = item.input.items.filter(i => i.type === 'image') as { type: 'image'; file: File; id: string }[];
+          base64Array = [];
+
+          for (const imgItem of imageItems) {
+            let imgBase64 = inputToBase64Map.get(imgItem.id);
+            if (!imgBase64) {
+              imgBase64 = await fileToBase64(imgItem.file);
+
+              // Check if resizing is needed
+              const img = new Image();
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = imgBase64!;
+              });
+
+              if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {
+                imgBase64 = await resizeImage(imgItem.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
+              }
+
+              setInputToBase64Map(prev => new Map(prev).set(imgItem.id, imgBase64!));
+            }
+            base64Array.push(imgBase64);
+          }
+        }
+        // Handle single image inputs
+        else if (item.input.type === 'image') {
           // Get or create base64 for file
           base64 = inputToBase64Map.get(inputId);
           if (!base64) {
@@ -92,16 +121,18 @@ function App() {
             setInputToBase64Map(prev => new Map(prev).set(inputId, base64!));
           }
         }
-        // For text inputs, base64 remains undefined
+        // For text inputs, both base64 and base64Array remain undefined
 
-        const inputName = item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`;
-        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize);
+        const inputName = getInputDisplayName(item.input);
+        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize, 'images:', base64Array?.length || (base64 ? 1 : 0));
         const result = await retryWithBackoff(
           () => processImage({
-            image: base64, // undefined for text-only
+            image: base64, // undefined for text-only or composite
+            images: base64Array, // array for composite (Single Job mode)
             instruction: item.instruction,
             model: currentModel,
             imageSize: item.imageSize || '1K',
+            mode: item.input.type === 'composite' ? 'singleJob' : 'batch',
           }),
           3, // maxRetries
           1000, // initialDelay
@@ -139,8 +170,7 @@ function App() {
         item.result = result;
         item.endTime = Date.now();
 
-        const displayName = item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`;
-        console.log('Completing item:', { inputName: displayName, status: item.status });
+        console.log('Completing item:', { inputName, status: item.status });
 
         // Update totals - safely handle potentially undefined usage
         try {
@@ -174,8 +204,8 @@ function App() {
   }, [batchProcessor]);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
-    const newInputs: InputItem[] = newFiles.map(file => ({
-      type: 'image',
+    const newInputs: BaseInputItem[] = newFiles.map(file => ({
+      type: 'image' as const,
       file,
       id: `${Date.now()}-${Math.random()}`,
     }));
@@ -183,8 +213,8 @@ function App() {
   }, []);
 
   const handlePromptsAdded = useCallback((prompts: string[]) => {
-    const newInputs: InputItem[] = prompts.map(prompt => ({
-      type: 'text',
+    const newInputs: BaseInputItem[] = prompts.map(prompt => ({
+      type: 'text' as const,
       prompt,
       id: `${Date.now()}-${Math.random()}`,
     }));
@@ -220,37 +250,64 @@ function App() {
     // Combine all global instructions
     const globalInstruction = instructions.join('. ');
 
-    // Create work items - for text prompts, combine the prompt with global instructions
-    const newItems = inputs.map(input => {
-      let finalInstruction: string;
+    let newItems;
 
-      if (input.type === 'text') {
-        // For text prompts: combine the prompt text with global instructions
-        finalInstruction = globalInstruction
-          ? `${input.prompt}. ${globalInstruction}`
-          : input.prompt;
-      } else {
-        // For images: just use global instructions
-        finalInstruction = globalInstruction;
-      }
+    if (processingMode === 'singleJob') {
+      // Single Job mode: combine all inputs into one composite work item
+      // Gather all text prompts to include in the instruction
+      const textPrompts = inputs
+        .filter((input): input is BaseInputItem & { type: 'text' } => input.type === 'text')
+        .map(input => input.prompt);
 
-      return {
-        input,
+      // Build the final instruction: text prompts + global instructions
+      const allInstructions = [...textPrompts, globalInstruction].filter(Boolean);
+      const finalInstruction = allInstructions.join('. ');
+
+      // Create composite input with all items (inputs are already BaseInputItem[])
+      const compositeInput: InputItem = {
+        type: 'composite',
+        items: inputs, // Already BaseInputItem[]
+        id: `composite-${Date.now()}`,
+      };
+
+      newItems = [{
+        input: compositeInput,
         instruction: finalInstruction,
         imageSize,
-      };
-    });
+      }];
+    } else {
+      // Batch mode: create work items for each input separately
+      newItems = inputs.map(input => {
+        let finalInstruction: string;
+
+        if (input.type === 'text') {
+          // For text prompts: combine the prompt text with global instructions
+          finalInstruction = globalInstruction
+            ? `${input.prompt}. ${globalInstruction}`
+            : input.prompt;
+        } else {
+          // For images: just use global instructions
+          finalInstruction = globalInstruction;
+        }
+
+        return {
+          input,
+          instruction: finalInstruction,
+          imageSize,
+        };
+      });
+    }
 
     batchProcessor.addItems(newItems);
     batchProcessor.start();
     setIsProcessing(true);
     setBatchStartTime(Date.now());
-  }, [inputs, instructions, batchProcessor]);
+  }, [inputs, instructions, batchProcessor, processingMode]);
 
   // Check if processing is complete
   useEffect(() => {
     const statusSummary = workItems.map(item => ({
-      name: item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`,
+      name: getInputDisplayName(item.input),
       status: item.status
     }));
     console.log('Processing check:', {
@@ -271,7 +328,7 @@ function App() {
       workItemsLength: workItems.length,
       shouldComplete: allDone && workItems.length > 0,
       detailedStatuses: workItems.map(item => ({
-        name: item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`,
+        name: getInputDisplayName(item.input),
         status: item.status,
         hasResult: !!item.result,
         hasImages: !!item.result?.images?.length
@@ -343,15 +400,24 @@ function App() {
 
     workItems.forEach((item) => {
       if (item.status === 'completed' && item.result?.images) {
-        const itemTitle = item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`;
-        const originalImage = item.input.type === 'image' ? inputToBase64Map.get(item.input.id) : '';
+        const itemTitle = getInputDisplayName(item.input);
+        // For composite inputs, get the first image's original; for regular images, use the input's original
+        let originalImage = '';
+        if (item.input.type === 'image') {
+          originalImage = inputToBase64Map.get(item.input.id) || '';
+        } else if (item.input.type === 'composite') {
+          const firstImage = item.input.items.find(i => i.type === 'image');
+          if (firstImage && firstImage.type === 'image') {
+            originalImage = inputToBase64Map.get(firstImage.id) || '';
+          }
+        }
         item.result.images.forEach((image) => {
           if (itemTitle === title && !foundClickedImage) {
             clickedImageGlobalIndex = allImages.length;
             foundClickedImage = true;
           }
           allImages.push(image);
-          allOriginalImages.push(originalImage || '');
+          allOriginalImages.push(originalImage);
         });
       }
     });
@@ -404,6 +470,8 @@ function App() {
             inputs={inputs}
             onRemoveInput={handleRemoveInput}
             onClearAll={handleClearAll}
+            processingMode={processingMode}
+            onProcessingModeChange={setProcessingMode}
           />
         </div>
 
@@ -426,7 +494,7 @@ function App() {
                       hasWork,
                       workItemsCount: workItems.length,
                       statuses: workItems.map(item => ({
-                        name: item.input.type === 'image' ? item.input.file.name : `Text: ${item.input.prompt.substring(0, 30)}...`,
+                        name: getInputDisplayName(item.input),
                         status: item.status
                       }))
                     });
@@ -521,15 +589,27 @@ function App() {
               </div>
             ) : (
               <div className="space-y-4 pb-24">
-                {workItems.map((item) => (
-                  <ResultCard
-                    key={item.id}
-                    item={item}
-                    originalImage={item.input.type === 'image' ? (inputToBase64Map.get(item.input.id) || '') : ''}
-                    onOpenLightbox={handleOpenLightbox}
-                    onRetry={handleRetryItem}
-                  />
-                ))}
+                {workItems.map((item) => {
+                  // Get original image for comparison
+                  let originalImage = '';
+                  if (item.input.type === 'image') {
+                    originalImage = inputToBase64Map.get(item.input.id) || '';
+                  } else if (item.input.type === 'composite') {
+                    const firstImage = item.input.items.find(i => i.type === 'image');
+                    if (firstImage && firstImage.type === 'image') {
+                      originalImage = inputToBase64Map.get(firstImage.id) || '';
+                    }
+                  }
+                  return (
+                    <ResultCard
+                      key={item.id}
+                      item={item}
+                      originalImage={originalImage}
+                      onOpenLightbox={handleOpenLightbox}
+                      onRetry={handleRetryItem}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>

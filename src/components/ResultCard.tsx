@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkItem } from '../lib/concurrency';
+import { WorkItem, getInputDisplayName } from '../lib/concurrency';
 import { base64ToBlob } from '../lib/base64';
 import { calculateTokenCost, formatUSD, calculateTimeSaved, formatTime } from '../lib/pricing';
 
@@ -17,12 +17,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   const [currentTime, setCurrentTime] = useState(Date.now());
 
   // Generate display name and filename based on input type
-  const displayName = item.input.type === 'image'
-    ? item.input.file.name
-    : `Text: ${item.input.prompt.substring(0, 30)}...`;
+  const displayName = getInputDisplayName(item.input);
 
   const fileBaseName = item.input.type === 'image'
     ? item.input.file.name.split('.')[0]
+    : item.input.type === 'composite'
+    ? 'combined_job'
     : 'text_prompt';
 
   // Update timer for processing items

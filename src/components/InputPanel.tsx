@@ -1,13 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { InputItem } from '../lib/concurrency';
+import { BaseInputItem } from '../lib/concurrency';
 import { formatFileSize } from '../lib/base64';
 
 interface InputPanelProps {
   onFilesAdded: (files: File[]) => void;
   onPromptsAdded: (prompts: string[]) => void;
-  inputs: InputItem[];
+  inputs: BaseInputItem[];
   onRemoveInput: (id: string) => void;
   onClearAll: () => void;
+  processingMode: 'batch' | 'singleJob';
+  onProcessingModeChange: (mode: 'batch' | 'singleJob') => void;
 }
 
 export const InputPanel: React.FC<InputPanelProps> = ({
@@ -16,6 +18,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   inputs,
   onRemoveInput,
   onClearAll,
+  processingMode,
+  onProcessingModeChange,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showPromptInput, setShowPromptInput] = useState(false);
@@ -180,6 +184,40 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Processing Mode Toggle */}
+      <div className="mt-4 flex-shrink-0">
+        <div className="flex items-center justify-between border border-black p-2">
+          <span className="text-xs font-bold">MODE:</span>
+          <div className="flex">
+            <button
+              onClick={() => onProcessingModeChange('batch')}
+              className={`px-3 py-1 text-xs font-bold border border-black transition-all ${
+                processingMode === 'batch'
+                  ? 'bg-neon border-neon'
+                  : 'bg-white hover:bg-neon/20'
+              }`}
+            >
+              BATCH
+            </button>
+            <button
+              onClick={() => onProcessingModeChange('singleJob')}
+              className={`px-3 py-1 text-xs font-bold border border-black border-l-0 transition-all ${
+                processingMode === 'singleJob'
+                  ? 'bg-neon border-neon'
+                  : 'bg-white hover:bg-neon/20'
+              }`}
+            >
+              SINGLE_JOB
+            </button>
+          </div>
+        </div>
+        <p className="text-xs font-light mt-1 text-center">
+          {processingMode === 'batch'
+            ? 'Each input processed separately'
+            : 'All inputs combined into one result'}
+        </p>
       </div>
 
       {/* Prompt Input Modal */}

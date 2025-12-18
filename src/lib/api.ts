@@ -1,9 +1,11 @@
 export interface ProcessImageRequest {
   image?: string; // Optional - omit for text-only generation
+  images?: string[]; // Multiple images for Single Job mode
   instruction: string;
   model?: string;
   stream?: boolean;
   imageSize?: '1K' | '2K' | '4K';
+  mode?: 'batch' | 'singleJob'; // Processing mode
 }
 
 export interface ProcessImageResponse {

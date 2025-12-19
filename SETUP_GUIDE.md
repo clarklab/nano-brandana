@@ -70,9 +70,9 @@ This creates:
 Create a `.env` file in your project root:
 
 ```bash
-# Frontend (Vite) - using SB_ to avoid Netlify's secret scanner
-VITE_SB_URL=https://xxxxx.supabase.co
-VITE_SB_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# Frontend (Vite)
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Backend (Netlify Functions)
 SUPABASE_URL=https://xxxxx.supabase.co
@@ -88,12 +88,23 @@ SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 | Key | Value | Notes |
 |-----|-------|-------|
-| `VITE_SB_URL` | `https://xxxxx.supabase.co` | Your project URL |
-| `VITE_SB_ANON_KEY` | `eyJ...` | The "anon public" key |
+| `VITE_SUPABASE_URL` | `https://xxxxx.supabase.co` | Your project URL |
+| `VITE_SUPABASE_ANON_KEY` | `eyJ...` | The "anon public" key |
 | `SUPABASE_URL` | `https://xxxxx.supabase.co` | Same URL (for backend) |
 | `SUPABASE_SERVICE_KEY` | `eyJ...` | The "service_role" key (**secret!**) |
 
-5. Redeploy your site for changes to take effect
+5. **Disable secret scanning** (see Step 5b below)
+6. Redeploy your site for changes to take effect
+
+### Step 5b: Disable Secret Scanning
+
+Netlify incorrectly flags these public keys as "exposed secrets". To fix:
+
+1. Go to **Site configuration** → **Build & deploy** → **Post processing**
+2. Find **"Secret scanning"** or **"Exposed secrets"**
+3. Either disable it entirely, or add these to the allowlist:
+   - `VITE_SUPABASE_ANON_KEY`
+   - `SUPABASE_URL`
 
 ---
 
@@ -140,9 +151,9 @@ SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ## Quick Reference: All Environment Variables
 
 ```bash
-# FRONTEND (safe to expose, using SB_ to avoid Netlify secret scanner)
-VITE_SB_URL=https://xxxxx.supabase.co
-VITE_SB_ANON_KEY=eyJ...
+# FRONTEND (public keys, safe to expose)
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
 
 # BACKEND (keep secret!)
 SUPABASE_URL=https://xxxxx.supabase.co

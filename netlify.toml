@@ -6,7 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Note: Frontend uses VITE_SB_URL and VITE_SB_ANON_KEY to avoid Netlify secret detection
+# Note: Disable secret scanning in Netlify UI for VITE_SUPABASE_* vars
 # These are public keys - security comes from Row Level Security (RLS)
 
 [functions]

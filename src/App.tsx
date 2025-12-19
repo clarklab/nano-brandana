@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
 import { InputPanel } from './components/InputPanel';
 import { Chat } from './components/Chat';
@@ -33,6 +33,13 @@ const getStaggerDelay = (batchSize: number) => {
 function App() {
   // Auth state
   const { user, profile, jobLogs, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, refreshJobLogs, updateTokenBalance } = useAuth();
+
+  // Ref to hold updateTokenBalance to avoid useMemo dependency issues
+  const updateTokenBalanceRef = useRef(updateTokenBalance);
+  useEffect(() => {
+    updateTokenBalanceRef.current = updateTokenBalance;
+  }, [updateTokenBalance]);
+
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
 
@@ -187,7 +194,7 @@ function App() {
           }
           // Update token balance in real-time if returned from API
           if (typeof result.tokens_remaining === 'number') {
-            updateTokenBalance(result.tokens_remaining);
+            updateTokenBalanceRef.current(result.tokens_remaining);
           }
         } catch (e) {
           // Ignore token counting errors
@@ -202,7 +209,7 @@ function App() {
         return item;
       }
     }, concurrency, staggerDelay);
-  }, [currentModel, inputToBase64Map, inputs.length, updateTokenBalance]);
+  }, [currentModel, inputToBase64Map, inputs.length]);
 
   const handleRetryItem = useCallback((itemId: string) => {
     console.log('Retrying item:', itemId);

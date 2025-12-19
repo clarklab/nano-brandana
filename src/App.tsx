@@ -506,14 +506,17 @@ function App() {
                 ) : user ? (
                   <>
                     {/* Token pill */}
-                    <div className="flex items-center gap-1.5 bg-neon/20 border border-neon px-2 py-1 rounded-full">
+                    <button
+                      onClick={() => setAccountModalOpen(true)}
+                      className="flex items-center gap-1.5 bg-neon/20 border border-neon px-2 py-1 rounded-full hover:bg-neon/30 transition-colors"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" fill="currentColor" className="w-3.5 h-3.5">
                         <path d="m600 24c-317.61 0-576 258.39-576 576s258.39 576 576 576 576-258.39 576-576-258.39-576-576-576zm-246.07 567.52 237.59-237.59c3.0586-3.0469 6.6367-3.5039 8.4844-3.5039s5.4258 0.45703 8.4844 3.5039l237.59 237.6c3.0586 3.0469 3.5156 6.625 3.5156 8.4844s-0.45703 5.4258-3.5156 8.4844l-237.59 237.57c-3.0586 3.0469-6.6367 3.5039-8.4844 3.5039s-5.4258-0.45703-8.4844-3.5039l-237.59-237.6c-3.0586-3.0469-3.5156-6.625-3.5156-8.4844 0-1.8555 0.45703-5.4102 3.5195-8.4688z"/>
                       </svg>
                       <span className="text-xs font-bold">
                         {profile?.tokens_remaining?.toLocaleString() || '0'}
                       </span>
-                    </div>
+                    </button>
                     {/* Menu hamburger */}
                     <button
                       onClick={() => setAccountModalOpen(true)}

@@ -22,6 +22,7 @@ export interface ProcessImageResponse {
   elapsed: number;
   model?: string;
   imageSize?: string;
+  tokens_remaining?: number;
 }
 
 export class APIError extends Error {

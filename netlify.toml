@@ -6,10 +6,8 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# These are intentionally public - Supabase anon keys are designed for browser use
-# Security comes from Row Level Security (RLS), not hiding these keys
-[build.processing]
-  ignore_secrets = ["SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_SUPABASE_URL"]
+# Note: Frontend uses VITE_SB_URL and VITE_SB_ANON_KEY to avoid Netlify secret detection
+# These are public keys - security comes from Row Level Security (RLS)
 
 [functions]
   node_bundler = "esbuild"

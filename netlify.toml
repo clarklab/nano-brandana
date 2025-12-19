@@ -6,6 +6,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Note: Disable secret scanning in Netlify UI for VITE_SUPABASE_* vars
+# These are public keys - security comes from Row Level Security (RLS)
+
 [functions]
   node_bundler = "esbuild"
 

@@ -8,6 +8,7 @@ import { Timer } from './components/Timer';
 import { Lightbox } from './components/Lightbox';
 import { IntroModal } from './components/IntroModal';
 import { AuthModal } from './components/AuthModal';
+import { AccountModal } from './components/AccountModal';
 import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
@@ -31,8 +32,9 @@ const getStaggerDelay = (batchSize: number) => {
 
 function App() {
   // Auth state
-  const { user, profile, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile } = useAuth();
+  const { user, profile, isConfigured: authConfigured, signOut, refreshProfile } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
 
   const [inputs, setInputs] = useState<BaseInputItem[]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
@@ -476,24 +478,26 @@ function App() {
             {/* Auth section */}
             {authConfigured && (
               <div className="flex items-center gap-2">
-                {authLoading ? (
-                  <span className="text-xs">...</span>
-                ) : user ? (
+                {user ? (
                   <>
-                    {/* Token display */}
-                    <div className="text-right">
-                      <div className="text-[10px] md:text-xs text-gray-500 truncate max-w-[100px] md:max-w-[150px]">
-                        {profile?.email || user.email}
-                      </div>
-                      <div className="text-xs md:text-sm font-bold text-neon-dark">
-                        {profile?.tokens_remaining?.toLocaleString() || '...'} tokens
-                      </div>
+                    {/* Token pill */}
+                    <div className="flex items-center gap-1.5 bg-neon/20 border border-neon px-2 py-1 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                        <path fillRule="evenodd" d="M10 1a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 1ZM5.05 3.05a.75.75 0 0 1 1.06 0l1.062 1.06A.75.75 0 1 1 6.11 5.173L5.05 4.11a.75.75 0 0 1 0-1.06ZM14.95 3.05a.75.75 0 0 1 0 1.06l-1.06 1.062a.75.75 0 0 1-1.062-1.061l1.061-1.06a.75.75 0 0 1 1.06 0ZM3 8a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 3 8ZM14.75 8a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1-.75-.75ZM7.172 13.828a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 0 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0ZM13.89 13.828a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM10 14a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 14ZM10 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs font-bold">
+                        {profile?.tokens_remaining?.toLocaleString() || '0'}
+                      </span>
                     </div>
+                    {/* Menu hamburger */}
                     <button
-                      onClick={signOut}
-                      className="text-xs border border-black px-2 py-1 hover:bg-gray-100 transition-colors"
+                      onClick={() => setAccountModalOpen(true)}
+                      className="p-1 hover:bg-gray-100 transition-colors rounded"
+                      aria-label="Account menu"
                     >
-                      LOGOUT
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75Zm0 5A.75.75 0 0 1 2.75 9h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 9.75Zm0 5a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                      </svg>
                     </button>
                   </>
                 ) : (
@@ -723,6 +727,14 @@ function App() {
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+      />
+
+      <AccountModal
+        isOpen={accountModalOpen}
+        onClose={() => setAccountModalOpen(false)}
+        profile={profile}
+        email={profile?.email || user?.email || ''}
+        onSignOut={signOut}
       />
     </div>
   );

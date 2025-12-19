@@ -1,15 +1,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, Profile, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, Profile, JobLog, isSupabaseConfigured } from '../lib/supabase';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  jobLogs: JobLog[];
   loading: boolean;
   isConfigured: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshJobLogs: () => Promise<void>;
   updateTokenBalance: (newBalance: number) => void;
 }
 
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [jobLogs, setJobLogs] = useState<JobLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Debug logging for state changes
@@ -99,6 +102,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokens_remaining: newBalance,
         tokens_used: prev.tokens_used + (prev.tokens_remaining - newBalance)
       } : null);
+    }
+  };
+
+  const fetchJobLogs = async (userId: string) => {
+    if (!isSupabaseConfigured) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('job_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('[fetchJobLogs] Error:', error);
+        return;
+      }
+
+      setJobLogs(data || []);
+    } catch (err) {
+      console.error('[fetchJobLogs] Catch error:', err);
+    }
+  };
+
+  const refreshJobLogs = async () => {
+    if (user) {
+      await fetchJobLogs(user.id);
     }
   };
 
@@ -218,10 +249,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user,
       profile,
+      jobLogs,
       loading,
       isConfigured: isSupabaseConfigured,
       signOut,
       refreshProfile,
+      refreshJobLogs,
       updateTokenBalance
     }}>
       {children}

@@ -77,3 +77,105 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION public.deduct_tokens TO authenticated;
 GRANT EXECUTE ON FUNCTION public.deduct_tokens TO service_role;
+
+-- ============================================
+-- JOB LOGS TABLE
+-- Tracks each processing request for analytics and user history
+-- ============================================
+
+CREATE TABLE public.job_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users ON DELETE SET NULL,
+  request_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+
+  -- Job configuration
+  mode TEXT NOT NULL CHECK (mode IN ('batch', 'singleJob')),
+  image_size TEXT CHECK (image_size IN ('1K', '2K', '4K')),
+  model TEXT,
+
+  -- Input metrics (no content stored)
+  images_submitted INTEGER NOT NULL DEFAULT 0,
+  instruction_length INTEGER,
+  total_input_bytes BIGINT,
+
+  -- Output metrics
+  images_returned INTEGER DEFAULT 0,
+
+  -- Token usage
+  prompt_tokens INTEGER,
+  completion_tokens INTEGER,
+  total_tokens INTEGER,
+
+  -- Timing
+  elapsed_ms INTEGER,
+
+  -- Status
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'error')),
+  error_code TEXT,
+  error_message TEXT,
+
+  -- Billing
+  tokens_charged INTEGER,
+  token_balance_after INTEGER
+);
+
+-- Indexes for common queries
+CREATE INDEX idx_job_logs_user_id ON public.job_logs(user_id);
+CREATE INDEX idx_job_logs_created_at ON public.job_logs(created_at DESC);
+CREATE INDEX idx_job_logs_user_created ON public.job_logs(user_id, created_at DESC);
+CREATE INDEX idx_job_logs_status ON public.job_logs(status) WHERE status != 'success';
+CREATE INDEX idx_job_logs_request_id ON public.job_logs(request_id);
+
+-- Enable RLS
+ALTER TABLE public.job_logs ENABLE ROW LEVEL SECURITY;
+
+-- Users can only view their own job logs
+CREATE POLICY "Users can view own job logs" ON public.job_logs
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Helper function for inserting job logs (called by service_role)
+CREATE OR REPLACE FUNCTION public.log_job(
+  p_user_id UUID,
+  p_request_id TEXT,
+  p_mode TEXT,
+  p_image_size TEXT,
+  p_model TEXT,
+  p_images_submitted INTEGER,
+  p_instruction_length INTEGER,
+  p_total_input_bytes BIGINT,
+  p_images_returned INTEGER,
+  p_prompt_tokens INTEGER,
+  p_completion_tokens INTEGER,
+  p_total_tokens INTEGER,
+  p_elapsed_ms INTEGER,
+  p_status TEXT,
+  p_error_code TEXT DEFAULT NULL,
+  p_error_message TEXT DEFAULT NULL,
+  p_tokens_charged INTEGER DEFAULT NULL,
+  p_token_balance_after INTEGER DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+  v_log_id UUID;
+BEGIN
+  INSERT INTO public.job_logs (
+    user_id, request_id, mode, image_size, model,
+    images_submitted, instruction_length, total_input_bytes,
+    images_returned, prompt_tokens, completion_tokens, total_tokens,
+    elapsed_ms, status, error_code, error_message,
+    tokens_charged, token_balance_after
+  ) VALUES (
+    p_user_id, p_request_id, p_mode, p_image_size, p_model,
+    p_images_submitted, p_instruction_length, p_total_input_bytes,
+    p_images_returned, p_prompt_tokens, p_completion_tokens, p_total_tokens,
+    p_elapsed_ms, p_status, p_error_code, p_error_message,
+    p_tokens_charged, p_token_balance_after
+  )
+  RETURNING id INTO v_log_id;
+
+  RETURN v_log_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.log_job TO service_role;

@@ -36,6 +36,11 @@ export class APIError extends Error {
   }
 }
 
+// Generate unique request ID for tracing across retries
+function generateRequestId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export async function processImage(
   request: ProcessImageRequest
 ): Promise<ProcessImageResponse> {
@@ -55,10 +60,16 @@ export async function processImage(
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
+  // Add requestId for server-side logging and tracing
+  const requestWithId = {
+    ...request,
+    requestId: generateRequestId(),
+  };
+
   const response = await fetch('/.netlify/functions/process-image', {
     method: 'POST',
     headers,
-    body: JSON.stringify(request),
+    body: JSON.stringify(requestWithId),
   });
 
   if (!response.ok) {

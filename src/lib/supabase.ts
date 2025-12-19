@@ -33,3 +33,27 @@ export interface Profile {
   last_login: string;
   created_at: string;
 }
+
+// Type for job logs
+export interface JobLog {
+  id: string;
+  user_id: string;
+  request_id: string;
+  created_at: string;
+  mode: 'batch' | 'singleJob';
+  image_size: '1K' | '2K' | '4K' | null;
+  model: string | null;
+  images_submitted: number;
+  instruction_length: number | null;
+  total_input_bytes: number | null;
+  images_returned: number;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  total_tokens: number | null;
+  elapsed_ms: number | null;
+  status: 'pending' | 'success' | 'error';
+  error_code: string | null;
+  error_message: string | null;
+  tokens_charged: number | null;
+  token_balance_after: number | null;
+}

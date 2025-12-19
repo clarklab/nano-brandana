@@ -32,7 +32,7 @@ const getStaggerDelay = (batchSize: number) => {
 
 function App() {
   // Auth state
-  const { user, profile, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, updateTokenBalance } = useAuth();
+  const { user, profile, jobLogs, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, refreshJobLogs, updateTokenBalance } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
 
@@ -745,8 +745,10 @@ function App() {
         isOpen={accountModalOpen}
         onClose={() => setAccountModalOpen(false)}
         profile={profile}
+        jobLogs={jobLogs}
         email={profile?.email || user?.email || ''}
         onSignOut={signOut}
+        onRefreshJobLogs={refreshJobLogs}
       />
     </div>
   );

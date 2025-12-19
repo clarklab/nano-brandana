@@ -1,14 +1,24 @@
-import { Profile } from '../lib/supabase';
+import { useEffect } from 'react';
+import { Profile, JobLog } from '../lib/supabase';
 
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: Profile | null;
+  jobLogs: JobLog[];
   email: string;
   onSignOut: () => void;
+  onRefreshJobLogs: () => void;
 }
 
-export function AccountModal({ isOpen, onClose, profile, email, onSignOut }: AccountModalProps) {
+export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignOut, onRefreshJobLogs }: AccountModalProps) {
+  // Refresh job logs when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      onRefreshJobLogs();
+    }
+  }, [isOpen, onRefreshJobLogs]);
+
   if (!isOpen) return null;
 
   const handleSignOut = () => {
@@ -27,9 +37,19 @@ export function AccountModal({ isOpen, onClose, profile, email, onSignOut }: Acc
     });
   };
 
+  const formatJobDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white border-2 border-black p-6 max-w-sm w-full relative">
+      <div className="bg-white border-2 border-black p-6 max-w-md w-full relative max-h-[90vh] overflow-y-auto">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -71,6 +91,40 @@ export function AccountModal({ isOpen, onClose, profile, email, onSignOut }: Acc
               {formatDate(profile?.last_login)}
             </p>
           </div>
+        </div>
+
+        {/* Job History */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <label className="text-xs font-bold text-gray-500">RECENT JOBS</label>
+          {jobLogs.length === 0 ? (
+            <p className="text-sm text-gray-400 mt-2">No jobs yet</p>
+          ) : (
+            <div className="mt-2 space-y-1 font-mono text-xs">
+              {jobLogs.map((job) => (
+                <div
+                  key={job.id}
+                  className={`flex items-center justify-between py-1 px-2 rounded ${
+                    job.status === 'error' ? 'bg-red-50' : 'bg-gray-50'
+                  }`}
+                >
+                  <span className="text-gray-500">{formatJobDate(job.created_at)}</span>
+                  <span>
+                    {job.images_submitted} img{job.images_submitted !== 1 ? 's' : ''} → {job.images_returned}
+                  </span>
+                  <span className="text-gray-600">
+                    {job.total_tokens?.toLocaleString() || 0} tok
+                  </span>
+                  <span className="w-4 text-center">
+                    {job.status === 'success' ? (
+                      <span className="text-green-600">✓</span>
+                    ) : (
+                      <span className="text-red-500" title={job.error_message || job.error_code || 'Error'}>✗</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Sign Out Button */}

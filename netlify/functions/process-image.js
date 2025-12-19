@@ -17,6 +17,44 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
 
 const isAuthEnabled = Boolean(supabaseAdmin);
 
+// Helper to log job to Supabase
+async function logJob(params) {
+  if (!supabaseAdmin) return null;
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc('log_job', {
+      p_user_id: params.userId,
+      p_request_id: params.requestId || `auto-${Date.now()}`,
+      p_mode: params.mode || 'batch',
+      p_image_size: params.imageSize || '1K',
+      p_model: params.model,
+      p_images_submitted: params.imagesSubmitted || 0,
+      p_instruction_length: params.instructionLength || 0,
+      p_total_input_bytes: params.totalInputBytes || 0,
+      p_images_returned: params.imagesReturned || 0,
+      p_prompt_tokens: params.promptTokens || null,
+      p_completion_tokens: params.completionTokens || null,
+      p_total_tokens: params.totalTokens || null,
+      p_elapsed_ms: params.elapsedMs || 0,
+      p_status: params.status,
+      p_error_code: params.errorCode || null,
+      p_error_message: params.errorMessage?.substring(0, 500) || null,
+      p_tokens_charged: params.tokensCharged || null,
+      p_token_balance_after: params.tokenBalanceAfter || null,
+    });
+
+    if (error) {
+      console.error('Job logging error:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Job logging failed:', err);
+    return null;
+  }
+}
+
 exports.handler = async (event) => {
   // Log environment variables (masked)
   console.log('Environment check:', {
@@ -94,6 +132,20 @@ exports.handler = async (event) => {
 
       // Check if user has enough tokens (minimum 500 to attempt)
       if (!profile || profile.tokens_remaining < 500) {
+        // Log insufficient tokens error
+        await logJob({
+          userId,
+          requestId: `auto-${Date.now()}`,
+          mode: 'batch',
+          imageSize: '1K',
+          model: IMAGE_MODEL_ID,
+          imagesSubmitted: 0,
+          status: 'error',
+          errorCode: '402',
+          errorMessage: 'Insufficient tokens',
+          tokenBalanceAfter: profile?.tokens_remaining || 0,
+        });
+
         return {
           statusCode: 402,
           body: JSON.stringify({
@@ -212,6 +264,28 @@ exports.handler = async (event) => {
         headers: Object.fromEntries(response.headers.entries()),
       });
 
+      const errorElapsed = Date.now() - startTime;
+
+      // Log error for all gateway failures
+      if (isAuthEnabled && userId) {
+        await logJob({
+          userId,
+          requestId: body.requestId,
+          mode,
+          imageSize,
+          model,
+          imagesSubmitted: allImages.length,
+          instructionLength: instruction?.length,
+          totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
+          imagesReturned: 0,
+          elapsedMs: errorElapsed,
+          status: 'error',
+          errorCode: String(response.status),
+          errorMessage: error.substring(0, 500),
+          tokenBalanceAfter: userProfile?.tokens_remaining,
+        });
+      }
+
       if (response.status === 403) {
         // Check if it's the free credits restriction error
         if (error.includes('Free credits temporarily have restricted access')) {
@@ -286,6 +360,28 @@ exports.handler = async (event) => {
         console.error('Token deduction failed:', err);
         // Don't fail the request, just log the error
       }
+    }
+
+    // Log successful job
+    if (isAuthEnabled && userId) {
+      await logJob({
+        userId,
+        requestId: body.requestId,
+        mode,
+        imageSize,
+        model,
+        imagesSubmitted: allImages.length,
+        instructionLength: instruction?.length,
+        totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
+        imagesReturned: generatedImages.length,
+        promptTokens: result.usage?.prompt_tokens,
+        completionTokens: result.usage?.completion_tokens,
+        totalTokens: result.usage?.total_tokens,
+        elapsedMs: elapsed,
+        status: 'success',
+        tokensCharged: tokensUsed,
+        tokenBalanceAfter: newTokenBalance,
+      });
     }
 
     return {

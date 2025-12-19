@@ -466,27 +466,13 @@ function App() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/brandana.webp" alt="Brandana" className="size-8 md:size-12" />
-            <div>
+            <div className="leading-tight">
               <h1 className="text-base md:text-xl font-bold">NANO-BRANDANA</h1>
-              <p className="text-xs md:text-sm">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
+              <p className="text-[10px] md:text-xs">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Model selector - hidden on mobile */}
-            <div className="hidden md:flex items-center gap-2">
-              <label className="text-sm">MODEL:</label>
-              <select
-                value={currentModel}
-                onChange={(e) => setCurrentModel(e.target.value)}
-                className="bg-white border border-black px-2 py-1 pr-6 text-xs md:text-sm focus:outline-none focus:border-neon appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-[position:calc(100%-8px)_center] bg-[length:8px_5px]"
-              >
-                <option value="google/gemini-3-pro-image">
-                  NANO-BANANA-PRO
-                </option>
-              </select>
-            </div>
-
             {/* Auth section */}
             {authConfigured && (
               <div className="flex items-center gap-2">

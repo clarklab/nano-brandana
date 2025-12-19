@@ -52,8 +52,8 @@ const QUICK_PRESETS = [
 export const Chat: React.FC<ChatProps> = ({
   onSendInstruction,
   isProcessing,
-  currentModel: _currentModel,
-  onModelChange: _onModelChange,
+  currentModel,
+  onModelChange,
   onRunBatch,
   canRunBatch,
   instructions = [],
@@ -267,10 +267,27 @@ export const Chat: React.FC<ChatProps> = ({
     ));
   };
 
+  // Get display name for model
+  const getModelDisplayName = (model: string) => {
+    if (model === 'google/gemini-3-pro-image') return 'Nano Banana Pro';
+    return model;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
-        <h2 className="text-lg font-bold mb-4">TASKS</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold">TASKS</h2>
+          <select
+            value={currentModel}
+            onChange={(e) => onModelChange(e.target.value)}
+            className="bg-transparent text-xs font-bold focus:outline-none cursor-pointer appearance-none pr-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-right"
+          >
+            <option value="google/gemini-3-pro-image">
+              {getModelDisplayName('google/gemini-3-pro-image')}
+            </option>
+          </select>
+        </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
           {QUICK_PRESETS.map((preset) => (

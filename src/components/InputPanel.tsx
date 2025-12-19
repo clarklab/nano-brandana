@@ -66,15 +66,33 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">INPUT</h2>
-        {inputs.length > 0 && (
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold">INPUT</h2>
+          {inputs.length > 0 && (
+            <button
+              onClick={onClearAll}
+              className="text-sm border border-black px-1 hover:bg-neon hover:border-neon transition-all"
+            >
+              CLEAR
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold">
+            {processingMode === 'batch' ? `Batch Images (${inputs.length})` : 'Single Image'}
+          </span>
           <button
-            onClick={onClearAll}
-            className="text-sm border border-black px-1 hover:bg-neon hover:border-neon transition-all"
+            onClick={() => onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch')}
+            className="relative w-9 h-5 border border-black rounded-full transition-colors"
+            style={{ backgroundColor: processingMode === 'batch' ? '#00FF00' : 'white' }}
           >
-            CLEAR
+            <span
+              className={`absolute top-0.5 w-3.5 h-3.5 bg-black rounded-full transition-all ${
+                processingMode === 'batch' ? 'left-4.5' : 'left-0.5'
+              }`}
+            />
           </button>
-        )}
+        </div>
       </div>
 
       <div
@@ -186,39 +204,6 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         )}
       </div>
 
-      {/* Processing Mode Toggle */}
-      <div className="mt-4 flex-shrink-0">
-        <div className="flex items-center justify-between border border-black p-2">
-          <span className="text-xs font-bold">MODE:</span>
-          <div className="flex">
-            <button
-              onClick={() => onProcessingModeChange('batch')}
-              className={`px-3 py-1 text-xs font-bold border border-black transition-all ${
-                processingMode === 'batch'
-                  ? 'bg-neon border-neon'
-                  : 'bg-white hover:bg-neon/20'
-              }`}
-            >
-              BATCH
-            </button>
-            <button
-              onClick={() => onProcessingModeChange('singleJob')}
-              className={`px-3 py-1 text-xs font-bold border border-black border-l-0 transition-all ${
-                processingMode === 'singleJob'
-                  ? 'bg-neon border-neon'
-                  : 'bg-white hover:bg-neon/20'
-              }`}
-            >
-              SINGLE_JOB
-            </button>
-          </div>
-        </div>
-        <p className="text-xs font-light mt-1 text-center">
-          {processingMode === 'batch'
-            ? 'Each input processed separately'
-            : 'All inputs combined into one result'}
-        </p>
-      </div>
 
       {/* Prompt Input Modal */}
       {showPromptInput && (

@@ -40,7 +40,9 @@ async function logJob(params) {
       p_error_code: params.errorCode || null,
       p_error_message: params.errorMessage?.substring(0, 500) || null,
       p_tokens_charged: params.tokensCharged || null,
+      p_token_balance_before: params.tokenBalanceBefore || null,
       p_token_balance_after: params.tokenBalanceAfter || null,
+      p_batch_id: params.batchId || null,
     });
 
     if (error) {
@@ -168,7 +170,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { image, images, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', mode = 'batch' } = body;
+    const { image, images, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', mode = 'batch', batchId } = body;
 
     // Validate input - instruction is always required, image is optional for text-to-image
     if (!instruction) {
@@ -271,6 +273,7 @@ exports.handler = async (event) => {
         await logJob({
           userId,
           requestId: body.requestId,
+          batchId,
           mode,
           imageSize,
           model,
@@ -282,6 +285,7 @@ exports.handler = async (event) => {
           status: 'error',
           errorCode: String(response.status),
           errorMessage: error.substring(0, 500),
+          tokenBalanceBefore: userProfile?.tokens_remaining,
           tokenBalanceAfter: userProfile?.tokens_remaining,
         });
       }
@@ -367,6 +371,7 @@ exports.handler = async (event) => {
       await logJob({
         userId,
         requestId: body.requestId,
+        batchId,
         mode,
         imageSize,
         model,
@@ -380,6 +385,7 @@ exports.handler = async (event) => {
         elapsedMs: elapsed,
         status: 'success',
         tokensCharged: tokensUsed,
+        tokenBalanceBefore: userProfile?.tokens_remaining,
         tokenBalanceAfter: newTokenBalance,
       });
     }

@@ -39,6 +39,7 @@ export interface JobLog {
   id: string;
   user_id: string;
   request_id: string;
+  batch_id: string | null;
   created_at: string;
   mode: 'batch' | 'singleJob';
   image_size: '1K' | '2K' | '4K' | null;
@@ -55,5 +56,6 @@ export interface JobLog {
   error_code: string | null;
   error_message: string | null;
   tokens_charged: number | null;
+  token_balance_before: number | null;
   token_balance_after: number | null;
 }

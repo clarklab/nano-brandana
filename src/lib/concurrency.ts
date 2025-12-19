@@ -16,6 +16,7 @@ export interface WorkItem {
   input: InputItem; // Changed from 'file: File' to support both types
   instruction: string;
   imageSize?: '1K' | '2K' | '4K';
+  batchId?: string; // Groups logs from a single batch run
   status: 'queued' | 'processing' | 'completed' | 'failed';
   result?: {
     images: string[];

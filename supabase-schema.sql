@@ -87,6 +87,7 @@ CREATE TABLE public.job_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users ON DELETE SET NULL,
   request_id TEXT NOT NULL,
+  batch_id TEXT,  -- Groups multiple logs from a single batch run
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
 
   -- Job configuration
@@ -117,6 +118,7 @@ CREATE TABLE public.job_logs (
 
   -- Billing
   tokens_charged INTEGER,
+  token_balance_before INTEGER,
   token_balance_after INTEGER
 );
 
@@ -126,6 +128,7 @@ CREATE INDEX idx_job_logs_created_at ON public.job_logs(created_at DESC);
 CREATE INDEX idx_job_logs_user_created ON public.job_logs(user_id, created_at DESC);
 CREATE INDEX idx_job_logs_status ON public.job_logs(status) WHERE status != 'success';
 CREATE INDEX idx_job_logs_request_id ON public.job_logs(request_id);
+CREATE INDEX idx_job_logs_batch_id ON public.job_logs(batch_id);
 
 -- Enable RLS
 ALTER TABLE public.job_logs ENABLE ROW LEVEL SECURITY;
@@ -153,24 +156,26 @@ CREATE OR REPLACE FUNCTION public.log_job(
   p_error_code TEXT DEFAULT NULL,
   p_error_message TEXT DEFAULT NULL,
   p_tokens_charged INTEGER DEFAULT NULL,
-  p_token_balance_after INTEGER DEFAULT NULL
+  p_token_balance_before INTEGER DEFAULT NULL,
+  p_token_balance_after INTEGER DEFAULT NULL,
+  p_batch_id TEXT DEFAULT NULL
 )
 RETURNS UUID AS $$
 DECLARE
   v_log_id UUID;
 BEGIN
   INSERT INTO public.job_logs (
-    user_id, request_id, mode, image_size, model,
+    user_id, request_id, batch_id, mode, image_size, model,
     images_submitted, instruction_length, total_input_bytes,
     images_returned, prompt_tokens, completion_tokens, total_tokens,
     elapsed_ms, status, error_code, error_message,
-    tokens_charged, token_balance_after
+    tokens_charged, token_balance_before, token_balance_after
   ) VALUES (
-    p_user_id, p_request_id, p_mode, p_image_size, p_model,
+    p_user_id, p_request_id, p_batch_id, p_mode, p_image_size, p_model,
     p_images_submitted, p_instruction_length, p_total_input_bytes,
     p_images_returned, p_prompt_tokens, p_completion_tokens, p_total_tokens,
     p_elapsed_ms, p_status, p_error_code, p_error_message,
-    p_tokens_charged, p_token_balance_after
+    p_tokens_charged, p_token_balance_before, p_token_balance_after
   )
   RETURNING id INTO v_log_id;
 

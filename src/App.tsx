@@ -148,6 +148,7 @@ function App() {
             model: currentModel,
             imageSize: item.imageSize || '1K',
             mode: item.input.type === 'composite' ? 'singleJob' : 'batch',
+            batchId: item.batchId,
           }),
           3, // maxRetries
           1000, // initialDelay
@@ -284,6 +285,9 @@ function App() {
     // Combine all global instructions
     const globalInstruction = instructions.join('. ');
 
+    // Generate a batch ID to group all items from this run
+    const batchId = `batch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
     let newItems;
 
     if (processingMode === 'singleJob') {
@@ -308,6 +312,7 @@ function App() {
         input: compositeInput,
         instruction: finalInstruction,
         imageSize,
+        batchId,
       }];
     } else {
       // Batch mode: create work items for each input separately
@@ -328,6 +333,7 @@ function App() {
           input,
           instruction: finalInstruction,
           imageSize,
+          batchId,
         };
       });
     }

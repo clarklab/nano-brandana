@@ -10,6 +10,7 @@ interface AuthContextType {
   isConfigured: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateTokenBalance: (newBalance: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateTokenBalance = (newBalance: number) => {
+    if (profile && typeof newBalance === 'number') {
+      setProfile(prev => prev ? {
+        ...prev,
+        tokens_remaining: newBalance,
+        tokens_used: prev.tokens_used + (prev.tokens_remaining - newBalance)
+      } : null);
+    }
+  };
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false);
@@ -67,7 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session retrieval error:', error);
+        // Clear potentially corrupted session state
+        supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
       console.log('Initial session:', session ? 'found' : 'none');
       setSession(session);
       setUser(session?.user ?? null);
@@ -75,12 +94,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchProfile(session.user.id, session.user.email);
       }
       setLoading(false);
+    }).catch((error) => {
+      console.error('Error getting session:', error);
+      // Clear potentially corrupted session state
+      supabase.auth.signOut();
+      setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session ? 'with session' : 'no session');
+
+        // Handle specific events
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -108,7 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isConfigured: isSupabaseConfigured,
       signOut,
-      refreshProfile
+      refreshProfile,
+      updateTokenBalance
     }}>
       {children}
     </AuthContext.Provider>

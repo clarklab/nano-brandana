@@ -32,7 +32,7 @@ const getStaggerDelay = (batchSize: number) => {
 
 function App() {
   // Auth state
-  const { user, profile, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, updateTokenBalance } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
 
@@ -185,6 +185,10 @@ function App() {
           if (result.usage?.total_tokens) {
             setTotalTokens(prev => prev + (result.usage?.total_tokens || 0));
           }
+          // Update token balance in real-time if returned from API
+          if (typeof result.tokens_remaining === 'number') {
+            updateTokenBalance(result.tokens_remaining);
+          }
         } catch (e) {
           // Ignore token counting errors
         }
@@ -198,7 +202,7 @@ function App() {
         return item;
       }
     }, concurrency, staggerDelay);
-  }, [currentModel, inputToBase64Map, inputs.length]);
+  }, [currentModel, inputToBase64Map, inputs.length, updateTokenBalance]);
 
   const handleRetryItem = useCallback((itemId: string) => {
     console.log('Retrying item:', itemId);

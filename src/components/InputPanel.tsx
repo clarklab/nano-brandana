@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { BaseInputItem } from '../lib/concurrency';
 import { formatFileSize } from '../lib/base64';
+import { useSounds } from '../lib/sounds';
 
 interface InputPanelProps {
   onFilesAdded: (files: File[]) => void;
@@ -24,6 +25,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showPromptInput, setShowPromptInput] = useState(false);
   const [promptText, setPromptText] = useState('');
+  const { toggle: playToggleSound, blip: playBlip } = useSounds();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -70,7 +72,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
           <h2 className="text-lg font-bold">INPUT</h2>
           {inputs.length > 0 && (
             <button
-              onClick={onClearAll}
+              onClick={() => {
+                playBlip();
+                onClearAll();
+              }}
               className="text-sm border border-black px-1 hover:bg-neon hover:border-neon transition-all"
             >
               CLEAR
@@ -82,14 +87,21 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             {processingMode === 'batch' ? `Batch Images (${inputs.length})` : 'Single Image'}
           </span>
           <button
-            onClick={() => onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch')}
-            className="relative w-9 h-5 border border-black rounded-full transition-colors"
+            onClick={() => {
+              playToggleSound();
+              onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch');
+            }}
+            className="relative w-9 h-5 border border-black rounded-full transition-colors duration-200"
             style={{ backgroundColor: processingMode === 'batch' ? '#00FF00' : 'white' }}
           >
             <span
-              className={`absolute top-0.5 w-3.5 h-3.5 bg-black rounded-full transition-all ${
+              className={`absolute top-0.5 w-3.5 h-3.5 bg-black rounded-full transition-all duration-200 ease-out ${
                 processingMode === 'batch' ? 'left-4.5' : 'left-0.5'
               }`}
+              style={{
+                transform: processingMode === 'batch' ? 'scale(1.1)' : 'scale(1)',
+                transition: 'left 0.2s ease-out, transform 0.15s ease-out'
+              }}
             />
           </button>
         </div>
@@ -130,7 +142,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 </span>
               </label>
               <button
-                onClick={() => setShowPromptInput(true)}
+                onClick={() => {
+                  playBlip();
+                  setShowPromptInput(true);
+                }}
                 className="border-2 border-black px-4 py-2 hover:bg-neon hover:border-neon transition-all font-bold"
               >
                 ADD_TEXT_PROMPT
@@ -172,7 +187,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                     </div>
                   )}
                   <button
-                    onClick={() => onRemoveInput(input.id)}
+                    onClick={() => {
+                      playBlip();
+                      onRemoveInput(input.id);
+                    }}
                     className="absolute top-1 right-1 w-6 h-6 border border-black bg-white hover:bg-neon transition-all text-xs font-bold"
                   >
                     ✕
@@ -194,7 +212,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 </div>
               </label>
               <button
-                onClick={() => setShowPromptInput(true)}
+                onClick={() => {
+                  playBlip();
+                  setShowPromptInput(true);
+                }}
                 className="w-full text-center py-2 border-2 border-dashed border-black opacity-50 hover:border-neon hover:bg-neon/10 hover:opacity-100 transition-all rounded-xl"
               >
                 <span className="text-sm font-bold">+ ADD_TEXT_PROMPT</span>
@@ -219,7 +240,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             />
             <div className="flex gap-2 mt-4">
               <button
-                onClick={handleAddPrompt}
+                onClick={() => {
+                  playBlip();
+                  handleAddPrompt();
+                }}
                 disabled={!promptText.trim()}
                 className="flex-1 py-2 border border-black font-bold text-sm hover:bg-neon transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -227,6 +251,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
               </button>
               <button
                 onClick={() => {
+                  playBlip();
                   setShowPromptInput(false);
                   setPromptText('');
                 }}

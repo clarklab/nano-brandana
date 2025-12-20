@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { InputItem } from '../lib/concurrency';
+import { useSounds } from '../lib/sounds';
 
 interface ChatProps {
   onSendInstruction: (instruction: string, displayText?: string) => void;
@@ -65,6 +66,7 @@ export const Chat: React.FC<ChatProps> = ({
   const runLabel = processingMode === 'batch' ? 'run the batch' : 'run the job';
   const runButtonLabel = processingMode === 'batch' ? 'RUN_BATCH' : 'RUN_JOB';
   const [instruction, setInstruction] = useState('');
+  const { blip: playBlip, bop: playBop, click: playClick } = useSounds();
   const [messages, setMessages] = useState<TypingMessage[]>([
     { type: 'assistant', text: 'Welcome to Nano Brandana, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
   ]);
@@ -280,7 +282,10 @@ export const Chat: React.FC<ChatProps> = ({
           <h2 className="text-lg font-bold">TASKS</h2>
           <select
             value={currentModel}
-            onChange={(e) => onModelChange(e.target.value)}
+            onChange={(e) => {
+              playBlip();
+              onModelChange(e.target.value);
+            }}
             className="bg-transparent text-xs font-bold focus:outline-none cursor-pointer appearance-none pr-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-right"
           >
             <option value="google/gemini-3-pro-image">
@@ -293,7 +298,10 @@ export const Chat: React.FC<ChatProps> = ({
           {QUICK_PRESETS.map((preset) => (
             <button
               key={preset.label}
-              onClick={() => handlePreset(preset.value)}
+              onClick={() => {
+                playClick();
+                handlePreset(preset.value);
+              }}
               className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all font-bold"
             >
               {preset.label.toUpperCase()}
@@ -306,7 +314,10 @@ export const Chat: React.FC<ChatProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold">INSTRUCTIONS:</span>
               <button
-                onClick={onClearInstructions}
+                onClick={() => {
+                  playBlip();
+                  onClearInstructions();
+                }}
                 className="text-xs border border-black px-1 hover:bg-neon hover:border-neon transition-all"
               >
                 CLEAR
@@ -366,7 +377,10 @@ export const Chat: React.FC<ChatProps> = ({
         {inputs.length > 0 && instructions.length > 0 && (
           <div className="relative">
             <button
-              onClick={() => onRunBatch('1K')}
+              onClick={() => {
+                playBop();
+                onRunBatch('1K');
+              }}
               disabled={isProcessing}
               className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all relative"
             >
@@ -375,13 +389,13 @@ export const Chat: React.FC<ChatProps> = ({
                 {!isProcessing && (
                   <span className="flex gap-1 text-xs opacity-60">
                     <span
-                      onClick={(e) => { e.stopPropagation(); onRunBatch('2K'); }}
+                      onClick={(e) => { e.stopPropagation(); playBop(); onRunBatch('2K'); }}
                       className="hover:opacity-100 hover:underline cursor-pointer px-1"
                     >
                       2k
                     </span>
                     <span
-                      onClick={(e) => { e.stopPropagation(); onRunBatch('4K'); }}
+                      onClick={(e) => { e.stopPropagation(); playBop(); onRunBatch('4K'); }}
                       className="hover:opacity-100 hover:underline cursor-pointer px-1"
                     >
                       4k
@@ -405,7 +419,10 @@ export const Chat: React.FC<ChatProps> = ({
             rows={3}
           />
           <button
-            onClick={handleSend}
+            onClick={() => {
+              playClick();
+              handleSend();
+            }}
             disabled={!instruction.trim() || isProcessing}
             className={`absolute bottom-3 right-2 p-1 border border-black hover:bg-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
               instruction.trim() && !isProcessing

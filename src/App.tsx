@@ -13,6 +13,7 @@ import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDispl
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 import { useAuth } from './contexts/AuthContext';
+import { useSounds } from './lib/sounds';
 
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
@@ -31,6 +32,9 @@ const getStaggerDelay = (batchSize: number) => {
 };
 
 function App() {
+  // Sounds
+  const { blip: playBlip, click: playClick } = useSounds();
+
   // Auth state
   const { user, profile, jobLogs, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, refreshJobLogs, updateTokenBalance } = useAuth();
 
@@ -479,9 +483,9 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-black font-mono">
+    <div className="h-[var(--vh-full)] flex flex-col bg-white text-black font-mono overflow-hidden">
       {/* Header */}
-      <header className="border-b-2 border-black p-4">
+      <header className="border-b-2 border-black p-4 flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/brandana.webp" alt="Brandana" className="size-8 md:size-12" />
@@ -507,7 +511,10 @@ function App() {
                   <>
                     {/* Token pill */}
                     <button
-                      onClick={() => setAccountModalOpen(true)}
+                      onClick={() => {
+                        playBlip();
+                        setAccountModalOpen(true);
+                      }}
                       className="flex items-center gap-1.5 bg-neon/20 border border-neon px-2 py-1 rounded-full hover:bg-neon/30 transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" fill="currentColor" className="w-3.5 h-3.5">
@@ -519,7 +526,10 @@ function App() {
                     </button>
                     {/* Menu hamburger */}
                     <button
-                      onClick={() => setAccountModalOpen(true)}
+                      onClick={() => {
+                        playBlip();
+                        setAccountModalOpen(true);
+                      }}
                       className="p-1 hover:bg-gray-100 transition-colors rounded"
                       aria-label="Account menu"
                     >
@@ -530,7 +540,10 @@ function App() {
                   </>
                 ) : (
                   <button
-                    onClick={() => setAuthModalOpen(true)}
+                    onClick={() => {
+                      playBlip();
+                      setAuthModalOpen(true);
+                    }}
                     className="text-xs border-2 border-black px-3 py-1 font-bold hover:bg-neon transition-colors"
                   >
                     SIGN IN
@@ -543,7 +556,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <div className="h-[calc(100vh-170px)] md:h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-3">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 pb-[calc(var(--tab-bar-height)+var(--safe-area-bottom))] md:pb-0">
         {/* Left: Input Panel */}
         <div className={`border-r-0 md:border-r border-black p-4 flex flex-col overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
           <InputPanel
@@ -613,6 +626,7 @@ function App() {
                 <div className="border-t border-black pt-4 mt-4 flex-shrink-0">
                   <button
                     onClick={() => {
+                      playBlip();
                       setWorkItems([]);
                       setDisplayInstructions([]);
                       setInstructions([]);
@@ -654,7 +668,10 @@ function App() {
             <h2 className="text-lg font-bold">RESULTS</h2>
             {hasResults && (
               <button
-                onClick={handleDownloadAll}
+                onClick={() => {
+                  playBlip();
+                  handleDownloadAll();
+                }}
                 className="text-sm border border-black px-2 py-1 hover:bg-neon hover:border-neon transition-colors"
               >
                 DOWNLOAD_ALL
@@ -671,7 +688,7 @@ function App() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 pb-24">
+              <div className="space-y-4">
                 {workItems.map((item) => {
                   // Get original image for comparison
                   let originalImage = '';
@@ -700,11 +717,14 @@ function App() {
       </div>
       
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black">
-        <div className="grid grid-cols-3">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black" style={{ paddingBottom: 'var(--safe-area-bottom)' }}>
+        <div className="grid grid-cols-3 h-[var(--tab-bar-height)]">
           <button
-            onClick={() => setActiveTab('input')}
-            className={`p-3 text-xs font-bold border-r border-black flex flex-col items-center gap-1 ${
+            onClick={() => {
+              playClick();
+              setActiveTab('input');
+            }}
+            className={`text-xs font-bold border-r border-black flex flex-col items-center justify-center gap-1 transition-colors ${
               activeTab === 'input' ? 'bg-neon' : 'hover:bg-neon/20'
             }`}
           >
@@ -714,8 +734,11 @@ function App() {
             IMAGES
           </button>
           <button
-            onClick={() => setActiveTab('tasks')}
-            className={`p-3 text-xs font-bold border-r border-black flex flex-col items-center gap-1 ${
+            onClick={() => {
+              playClick();
+              setActiveTab('tasks');
+            }}
+            className={`text-xs font-bold border-r border-black flex flex-col items-center justify-center gap-1 transition-colors ${
               activeTab === 'tasks' ? 'bg-neon' : 'hover:bg-neon/20'
             }`}
           >
@@ -725,8 +748,11 @@ function App() {
             TASKS
           </button>
           <button
-            onClick={() => setActiveTab('results')}
-            className={`p-3 text-xs font-bold flex flex-col items-center gap-1 ${
+            onClick={() => {
+              playClick();
+              setActiveTab('results');
+            }}
+            className={`text-xs font-bold flex flex-col items-center justify-center gap-1 transition-colors ${
               activeTab === 'results' ? 'bg-neon' : 'hover:bg-neon/20'
             }`}
           >

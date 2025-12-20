@@ -4,9 +4,36 @@
 @tailwind utilities;
 
 @layer base {
+  /* Use dvh (dynamic viewport height) which respects mobile browser toolbars */
+  :root {
+    /* Fallback for browsers that don't support dvh */
+    --vh-full: 100vh;
+    /* Header height on mobile (logo + padding) */
+    --header-height: 68px;
+    /* Mobile tab bar height */
+    --tab-bar-height: 64px;
+    /* Safe area for iOS home indicator */
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  @supports (height: 100dvh) {
+    :root {
+      --vh-full: 100dvh;
+    }
+  }
+
+  html, body, #root {
+    height: var(--vh-full);
+    overflow: hidden;
+  }
+
   body {
     @apply bg-white text-black font-mono;
     font-family: 'JetBrains Mono', monospace;
+    /* Prevent overscroll bounce on iOS */
+    overscroll-behavior: none;
+    /* Support iOS safe areas */
+    padding-bottom: var(--safe-area-bottom);
   }
 }
 

@@ -159,11 +159,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             return null;
           })()}
           
-          <div className="relative h-32 mb-2 group">
+          <div className="relative h-32 mb-2 group bg-gray-100 dark:bg-gray-900 border border-black dark:border-gray-600">
             <img
               src={showOriginal ? originalImage : item.result.images[selectedImageIndex]}
               alt={showOriginal ? 'Original' : 'Edited'}
-              className="w-full h-full object-cover border border-black dark:border-gray-600 cursor-pointer"
+              className="w-full h-full object-contain cursor-pointer"
               onClick={() => {
                 if (onOpenLightbox && item.result?.images && !showOriginal) {
                   onOpenLightbox(item.result.images, selectedImageIndex, displayName);
@@ -183,9 +183,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               onMouseDown={() => setShowOriginal(true)}
               onMouseUp={() => setShowOriginal(false)}
               onMouseLeave={() => setShowOriginal(false)}
-              onTouchStart={() => setShowOriginal(true)}
-              onTouchEnd={() => setShowOriginal(false)}
-              className="absolute top-1 left-1 px-1 py-0.5 bg-white dark:bg-gray-800 border border-black dark:border-gray-600 text-xs font-bold hover:bg-neon transition-colors w-[120px]"
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowOriginal(true);
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowOriginal(false);
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="absolute top-1 left-1 px-1 py-0.5 bg-white dark:bg-gray-800 border border-black dark:border-gray-600 text-xs font-bold hover:bg-neon transition-colors w-[120px] touch-none"
             >
               {showOriginal ? 'ORIG' : 'HOLD TO COMPARE'}
             </button>

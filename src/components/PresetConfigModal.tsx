@@ -553,7 +553,7 @@ export function PresetConfigModal({
                             {preset.icon && (
                               <span
                                 className="material-symbols-outlined text-gray-600"
-                                style={{ fontSize: '16px' }}
+                                style={{ fontSize: '16px', width: '16px', height: '16px' }}
                               >
                                 {preset.icon}
                               </span>

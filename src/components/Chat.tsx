@@ -263,7 +263,7 @@ export const Chat: React.FC<ChatProps> = ({
               {preset.icon && (
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '14px' }}
+                  style={{ fontSize: '14px', width: '14px', height: '14px' }}
                 >
                   {preset.icon}
                 </span>

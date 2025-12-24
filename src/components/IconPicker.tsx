@@ -171,11 +171,11 @@ export function IconPicker({ selectedIcon, onSelectIcon }: IconPickerProps) {
           <>
             <span
               className="material-symbols-outlined text-base"
-              style={{ fontSize: '18px' }}
+              style={{ fontSize: '18px', width: '18px', height: '18px' }}
             >
               {selectedIcon}
             </span>
-            <span className="text-sm flex-1">{selectedIcon}</span>
+            <span className="text-sm flex-1 truncate">{selectedIcon}</span>
           </>
         ) : (
           <span className="text-sm text-gray-400 flex-1">No icon selected</span>
@@ -234,7 +234,7 @@ export function IconPicker({ selectedIcon, onSelectIcon }: IconPickerProps) {
                   >
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: '20px' }}
+                      style={{ fontSize: '20px', width: '20px', height: '20px' }}
                     >
                       {icon.name}
                     </span>

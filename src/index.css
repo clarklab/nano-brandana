@@ -35,5 +35,20 @@
     /* Support iOS safe areas */
     padding-bottom: var(--safe-area-bottom);
   }
+
+  /* Material Symbols icon styling - hide text until font loads */
+  .material-symbols-outlined {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Hide text until font loads */
+    visibility: hidden;
+  }
+
+  /* Show icons once font is loaded */
+  .material-symbols-loaded .material-symbols-outlined {
+    visibility: visible;
+  }
 }
 

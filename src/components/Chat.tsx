@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { InputItem } from '../lib/concurrency';
 import { useSounds } from '../lib/sounds';
+import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, processConfirmationTemplate, validateInput } from '../hooks/useUserPresets';
+import { PresetConfigModal } from './PresetConfigModal';
 
 interface ChatProps {
   onSendInstruction: (instruction: string, displayText?: string) => void;
@@ -41,14 +43,8 @@ const TypingText: React.FC<{ text: string; onComplete: () => void; speed?: numbe
   return <>{displayText}</>;
 };
 
-const QUICK_PRESETS = [
-  { label: 'Remove BG', value: 'Remove the background and make it transparent' },
-  { label: 'Add Brand Color', value: '__ASK_BRAND_COLOR__' },
-  { label: 'Duplicate', value: '__ASK_DUPLICATE_COUNT__' },
-  { label: 'Upscale', value: 'Upscale the image and enhance details while maintaining the original quality and composition' },
-  { label: 'Transform', value: '__ASK_TRANSFORM_STYLE__' },
-  { label: 'Desaturate', value: 'Desaturate the image to make it more muted' },
-];
+// Preset tasks are now loaded from the useUserPresets hook
+// and can be customized by users via the PresetConfigModal
 
 export const Chat: React.FC<ChatProps> = ({
   onSendInstruction,
@@ -69,9 +65,22 @@ export const Chat: React.FC<ChatProps> = ({
   const [messages, setMessages] = useState<TypingMessage[]>([
     { type: 'assistant', text: 'Welcome to Nano Brandana, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
   ]);
-  const [waitingForBrandColor, setWaitingForBrandColor] = useState(false);
-  const [waitingForDuplicateCount, setWaitingForDuplicateCount] = useState(false);
-  const [waitingForTransformStyle, setWaitingForTransformStyle] = useState(false);
+
+  // Preset management using the new hook
+  const {
+    presets,
+    isLoading: presetsLoading,
+    savePreset,
+    deletePreset,
+    resetToDefaults,
+  } = useUserPresets();
+
+  // Currently waiting for user input for an "ask" type preset
+  const [waitingForPreset, setWaitingForPreset] = useState<RuntimePreset | null>(null);
+
+  // Preset config modal state
+  const [isPresetConfigOpen, setIsPresetConfigOpen] = useState(false);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -83,102 +92,61 @@ export const Chat: React.FC<ChatProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     if (instruction.trim() && !isProcessing) {
       const userMessage = instruction.trim();
       setMessages(prev => [...prev, { type: 'user', text: userMessage }]);
       setInstruction('');
-      
-      if (waitingForBrandColor) {
-        // Handle brand color response
-        const brandColorInstruction = `Identify the most suitable clothing item, accessory, object, or surface in the image and change it to ${userMessage} in a natural way that enhances the overall composition. Choose elements that would realistically be found in that color and avoid changing skin tones, faces, or core identifying features.`;
-        const displayText = `Add brand color ${userMessage}`;
-        onSendInstruction(brandColorInstruction, displayText);
-        setWaitingForBrandColor(false);
-        
-        setTimeout(() => {
-          setMessages(prev => [...prev, { 
-            type: 'assistant', 
-            text: `Perfect! I'll add ${userMessage} branding to your images by changing suitable objects to that color. Added to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
-            isTyping: true
-          }]);
-        }, 100);
-      } else if (waitingForDuplicateCount) {
-        // Handle duplicate count response
-        const count = parseInt(userMessage);
-        if (count && count > 0 && count <= 10) {
-          const cameraAngles = [
-            'from the back view',
-            'from a low angle looking up',
-            'from a high angle looking down',
-            'from the left side profile',
-            'from the right side profile',
-            'from a 45-degree angle',
-            'from closer proximity portrait',
-            'from further back with wider framing and lots of space'
-          ];
-          
-          // Always use angles for more interesting variations
-          const selectedAngles = cameraAngles.slice(0, Math.min(count, cameraAngles.length));
-          const angleList = selectedAngles.join(', ');
-          
-          // If requesting more angles than we have defined, add "and other creative angles"
-          const angleInstruction = count > cameraAngles.length 
-            ? `${angleList}, and ${count - cameraAngles.length} other creative angles`
-            : angleList;
-            
-          const duplicateInstruction = `Generate exactly ${count} variations of this scene from these angles: ${angleInstruction}. Keep the same subjects and scene. IMPORTANT: You must generate exactly ${count} images, no more, no less.`;
-          const displayText = `Make ${count} more photos from this scene`;
-          onSendInstruction(duplicateInstruction, displayText);
-          setWaitingForDuplicateCount(false);
-          
+
+      if (waitingForPreset) {
+        // Handle response to an "ask" type preset
+        const preset = waitingForPreset;
+
+        // Validate the input
+        const validationError = validateInput(preset, userMessage);
+        if (validationError) {
           setTimeout(() => {
-            setMessages(prev => [...prev, { 
-              type: 'assistant', 
-              text: `Great! I'll create ${count} additional realistic photo variations of each scene. Added to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
+            setMessages(prev => [...prev, {
+              type: 'assistant',
+              text: validationError,
               isTyping: true
             }]);
           }, 100);
-        } else {
-          setTimeout(() => {
-            setMessages(prev => [...prev, { 
-              type: 'assistant', 
-              text: 'Please enter a number between 1 and 10 for how many additional photos you want.',
-              isTyping: true
-            }]);
-          }, 100);
+          return;
         }
-      } else if (waitingForTransformStyle) {
-        // Handle transform style response
-        const transformInstruction = `Transform this image into ${userMessage} while maintaining the core composition, subjects, and scene. Apply the visual characteristics, textures, colors, and artistic techniques typical of ${userMessage}. Ensure the transformation feels authentic to the chosen style while preserving all important elements and details from the original image.`;
-        const displayText = `Transform to ${userMessage}`;
-        onSendInstruction(transformInstruction, displayText);
-        setWaitingForTransformStyle(false);
-        
+
+        // Process the prompt template with user input
+        const processedPrompt = processPromptTemplate(preset, userMessage);
+        const displayText = processDisplayTextTemplate(preset, userMessage);
+        const confirmation = processConfirmationTemplate(preset, userMessage);
+
+        onSendInstruction(processedPrompt, displayText);
+        setWaitingForPreset(null);
+
         setTimeout(() => {
-          setMessages(prev => [...prev, { 
-            type: 'assistant', 
-            text: `Excellent! I'll transform your images to ${userMessage}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
+          setMessages(prev => [...prev, {
+            type: 'assistant',
+            text: `${confirmation} Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
       } else {
         // Normal instruction
         onSendInstruction(userMessage);
-        
+
         // Add assistant confirmation message
         setTimeout(() => {
           const confirmations = ['Got it!', 'Will do!', 'Perfect!', 'On it!'];
           const randomConfirmation = confirmations[Math.floor(Math.random() * confirmations.length)];
-          setMessages(prev => [...prev, { 
-            type: 'assistant', 
+          setMessages(prev => [...prev, {
+            type: 'assistant',
             text: `${randomConfirmation} Added "${userMessage}" to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
             isTyping: true
           }]);
         }, 100);
       }
     }
-  };
+  }, [instruction, isProcessing, waitingForPreset, onSendInstruction, runLabel]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -187,39 +155,27 @@ export const Chat: React.FC<ChatProps> = ({
     }
   };
 
-  const handlePreset = (preset: string) => {
-    if (preset === '__ASK_BRAND_COLOR__') {
-      // Start brand color flow
-      setMessages(prev => [...prev, { 
-        type: 'assistant', 
-        text: 'What brand color would you like me to add? (e.g., "bright red", "navy blue", "forest green", "#FF5733")',
+  /**
+   * Handle clicking a preset button.
+   * For 'direct' presets: Puts the prompt in the textarea for user to review/edit.
+   * For 'ask' presets: Shows a follow-up question and waits for user input.
+   */
+  const handlePreset = useCallback((preset: RuntimePreset) => {
+    if (preset.presetType === 'ask' && preset.askMessage) {
+      // Start the ask flow for this preset
+      setMessages(prev => [...prev, {
+        type: 'assistant',
+        text: preset.askMessage!,
         isTyping: true
       }]);
-      setWaitingForBrandColor(true);
-      textareaRef.current?.focus();
-    } else if (preset === '__ASK_DUPLICATE_COUNT__') {
-      // Start duplicate flow
-      setMessages(prev => [...prev, { 
-        type: 'assistant', 
-        text: 'How many more photos do you want me to create from each scene? (Enter a number between 1-10)',
-        isTyping: true
-      }]);
-      setWaitingForDuplicateCount(true);
-      textareaRef.current?.focus();
-    } else if (preset === '__ASK_TRANSFORM_STYLE__') {
-      // Start transform flow
-      setMessages(prev => [...prev, { 
-        type: 'assistant', 
-        text: 'What style would you like me to transform your images to? (e.g., "claymation style", "comic book style", "watercolor painting", "vintage film photography", "oil painting")',
-        isTyping: true
-      }]);
-      setWaitingForTransformStyle(true);
+      setWaitingForPreset(preset);
       textareaRef.current?.focus();
     } else {
-      setInstruction(preset);
+      // Direct preset - put the prompt in the textarea
+      setInstruction(preset.prompt);
       textareaRef.current?.focus();
     }
-  };
+  }, []);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -294,18 +250,32 @@ export const Chat: React.FC<ChatProps> = ({
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {QUICK_PRESETS.map((preset) => (
+          {presets.map((preset) => (
             <button
-              key={preset.label}
+              key={preset.id}
               onClick={() => {
                 playClick();
-                handlePreset(preset.value);
+                handlePreset(preset);
               }}
-              className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all font-bold"
+              disabled={presetsLoading}
+              className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all font-bold disabled:opacity-50"
             >
               {preset.label.toUpperCase()}
             </button>
           ))}
+          {/* Gear icon to open preset configuration */}
+          <button
+            onClick={() => {
+              playBlip();
+              setIsPresetConfigOpen(true);
+            }}
+            className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all"
+            title="Configure presets"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M6.955 1.45A.5.5 0 0 1 7.452 1h1.096a.5.5 0 0 1 .497.45l.17 1.699c.484.12.94.312 1.356.562l1.321-1.081a.5.5 0 0 1 .67.033l.774.775a.5.5 0 0 1 .034.67l-1.08 1.32c.25.417.44.873.561 1.357l1.699.17a.5.5 0 0 1 .45.497v1.096a.5.5 0 0 1-.45.497l-1.699.17c-.12.484-.312.94-.562 1.356l1.082 1.322a.5.5 0 0 1-.034.67l-.774.774a.5.5 0 0 1-.67.033l-1.322-1.08c-.416.25-.872.44-1.356.561l-.17 1.699a.5.5 0 0 1-.497.45H7.452a.5.5 0 0 1-.497-.45l-.17-1.699a4.973 4.973 0 0 1-1.356-.562L4.108 13.37a.5.5 0 0 1-.67-.033l-.774-.775a.5.5 0 0 1-.034-.67l1.08-1.32a4.971 4.971 0 0 1-.561-1.357l-1.699-.17A.5.5 0 0 1 1 8.548V7.452a.5.5 0 0 1 .45-.497l1.699-.17c.12-.484.312-.94.562-1.356L2.629 4.107a.5.5 0 0 1 .034-.67l.774-.774a.5.5 0 0 1 .67-.033L5.43 3.71a4.97 4.97 0 0 1 1.356-.561l.17-1.699ZM8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
 
         {instructions.length > 0 && (
@@ -425,7 +395,7 @@ export const Chat: React.FC<ChatProps> = ({
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={waitingForBrandColor ? "ENTER_COLOR..." : waitingForDuplicateCount ? "ENTER_NUMBER..." : waitingForTransformStyle ? "ENTER_STYLE..." : "ENTER_INSTRUCTION..."}
+            placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "ENTER_NUMBER..." : waitingForPreset.validationType === 'color' ? "ENTER_COLOR..." : "ENTER_RESPONSE...") : "ENTER_INSTRUCTION..."}
             disabled={isProcessing}
             className="w-full px-2 py-2 border-2 border-black resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
             rows={3}
@@ -448,6 +418,17 @@ export const Chat: React.FC<ChatProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Preset Configuration Modal */}
+      <PresetConfigModal
+        isOpen={isPresetConfigOpen}
+        onClose={() => setIsPresetConfigOpen(false)}
+        presets={presets}
+        onSavePreset={savePreset}
+        onDeletePreset={deletePreset}
+        onResetToDefaults={resetToDefaults}
+        isLoading={presetsLoading}
+      />
     </div>
   );
 };

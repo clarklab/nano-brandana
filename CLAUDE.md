@@ -18,8 +18,9 @@ netlify dev
 # Build for production
 npm run build
 
-# Run tests (not yet configured)
-npm test
+# Run tests
+npm test         # Watch mode
+npm run test:run # Single run
 
 # Set up environment variables in Netlify
 netlify env:set AI_GATEWAY_API_KEY your-api-key
@@ -34,7 +35,8 @@ netlify env:set IMAGE_MODEL_ID google/gemini-3-pro-image
 - **Backend**: Netlify Functions (serverless Node.js)
 - **AI Service**: Vercel AI Gateway → Google Gemini 3 Pro Image (Nano Banana Pro)
 - **Deployment**: Netlify (with GitHub integration)
-- **State Management**: Client-side only (no database)
+- **State Management**: Client-side (React hooks) + Supabase for user data
+- **Database**: Supabase (auth, profiles, job logs, user presets)
 
 ### Project Structure (to be implemented)
 ```
@@ -53,8 +55,20 @@ netlify env:set IMAGE_MODEL_ID google/gemini-3-pro-image
     api.ts            # API client for Netlify Functions
     concurrency.ts    # p-limit based queue management
     base64.ts         # Image encoding/decoding utilities
+    supabase.ts       # Supabase client, types, and DEFAULT_PRESETS
+  /hooks/
+    useUserPresets.ts # Hook for user-editable presets
+  /contexts/
+    AuthContext.tsx   # Supabase auth context
   App.tsx             # Main application component
   main.tsx            # Application entry point
+
+/supabase/
+  /migrations/
+    001_user_presets.sql  # Database schema for presets
+
+/docs/
+  USER_PRESETS.md     # Documentation for preset system
 
 /public/              # Static assets
 index.html            # HTML entry point
@@ -89,6 +103,14 @@ tsconfig.json         # TypeScript configuration
    - Real-time progress updates with elapsed time per image
    - Download individual results or batch ZIP (using JSZip)
    - "AI aesthetic" UI with gradients, rounded corners, and shimmer effects
+
+5. **User-Editable Presets** (see `/docs/USER_PRESETS.md`)
+   - Preset buttons (REMOVE BG, ADD BRAND COLOR, etc.) are user-customizable
+   - Two types: 'direct' (immediate) and 'ask' (shows follow-up question)
+   - Template placeholders: `{{INPUT}}` for user responses, `{{ANGLES}}` for camera angles
+   - Stored in Supabase `user_presets` table per user
+   - Guests use `DEFAULT_PRESETS` from `src/lib/supabase.ts`
+   - Gear icon button opens `PresetConfigModal` for editing
 
 ### Critical Implementation Notes
 

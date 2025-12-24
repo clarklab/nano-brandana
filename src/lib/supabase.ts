@@ -59,3 +59,148 @@ export interface JobLog {
   token_balance_before: number | null;
   token_balance_after: number | null;
 }
+
+/**
+ * User-customizable task preset.
+ * Presets can be either 'direct' (immediately apply a prompt) or 'ask' (show a follow-up question).
+ *
+ * For 'ask' type presets:
+ * - ask_message: The question shown to the user
+ * - prompt: Template with {{INPUT}} placeholder for user's response
+ * - display_text_template: Template for the instruction list (e.g., "Add brand color {{INPUT}}")
+ * - validation_type: 'number' | 'text' | 'color' | null
+ */
+export interface UserPreset {
+  id: string;
+  user_id: string;
+  label: string;
+  display_order: number;
+  preset_type: 'direct' | 'ask';
+  prompt: string;
+  ask_message: string | null;
+  display_text_template: string | null;
+  response_confirmation: string | null;
+  validation_type: 'number' | 'text' | 'color' | null;
+  validation_min: number | null;
+  validation_max: number | null;
+  validation_error_message: string | null;
+  is_default: boolean;
+  is_hidden: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Default presets that all users start with.
+ * These match the original hardcoded QUICK_PRESETS but in the new configurable format.
+ *
+ * NOTE: When a user hasn't customized their presets, these defaults are used.
+ * Users can modify, reorder, hide, or add new presets via the PresetConfigModal.
+ */
+export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
+  {
+    label: 'Remove BG',
+    display_order: 0,
+    preset_type: 'direct',
+    prompt: 'Remove the background and make it transparent',
+    ask_message: null,
+    display_text_template: null,
+    response_confirmation: null,
+    validation_type: null,
+    validation_min: null,
+    validation_max: null,
+    validation_error_message: null,
+    is_default: true,
+    is_hidden: false,
+  },
+  {
+    label: 'Add Brand Color',
+    display_order: 1,
+    preset_type: 'ask',
+    prompt: 'Identify the most suitable clothing item, accessory, object, or surface in the image and change it to {{INPUT}} in a natural way that enhances the overall composition. Choose elements that would realistically be found in that color and avoid changing skin tones, faces, or core identifying features.',
+    ask_message: 'What brand color would you like me to add? (e.g., "bright red", "navy blue", "forest green", "#FF5733")',
+    display_text_template: 'Add brand color {{INPUT}}',
+    response_confirmation: "Perfect! I'll add {{INPUT}} branding to your images by changing suitable objects to that color. Added to the instruction list.",
+    validation_type: 'color',
+    validation_min: null,
+    validation_max: null,
+    validation_error_message: null,
+    is_default: true,
+    is_hidden: false,
+  },
+  {
+    label: 'Duplicate',
+    display_order: 2,
+    preset_type: 'ask',
+    prompt: 'Generate exactly {{INPUT}} variations of this scene from these angles: {{ANGLES}}. Keep the same subjects and scene. IMPORTANT: You must generate exactly {{INPUT}} images, no more, no less.',
+    ask_message: 'How many more photos do you want me to create from each scene? (Enter a number between 1-10)',
+    display_text_template: 'Make {{INPUT}} more photos from this scene',
+    response_confirmation: "Great! I'll create {{INPUT}} additional realistic photo variations of each scene. Added to the instruction list.",
+    validation_type: 'number',
+    validation_min: 1,
+    validation_max: 10,
+    validation_error_message: 'Please enter a number between 1 and 10 for how many additional photos you want.',
+    is_default: true,
+    is_hidden: false,
+  },
+  {
+    label: 'Upscale',
+    display_order: 3,
+    preset_type: 'direct',
+    prompt: 'Upscale the image and enhance details while maintaining the original quality and composition',
+    ask_message: null,
+    display_text_template: null,
+    response_confirmation: null,
+    validation_type: null,
+    validation_min: null,
+    validation_max: null,
+    validation_error_message: null,
+    is_default: true,
+    is_hidden: false,
+  },
+  {
+    label: 'Transform',
+    display_order: 4,
+    preset_type: 'ask',
+    prompt: 'Transform this image into {{INPUT}} while maintaining the core composition, subjects, and scene. Apply the visual characteristics, textures, colors, and artistic techniques typical of {{INPUT}}. Ensure the transformation feels authentic to the chosen style while preserving all important elements and details from the original image.',
+    ask_message: 'What style would you like me to transform your images to? (e.g., "claymation style", "comic book style", "watercolor painting", "vintage film photography", "oil painting")',
+    display_text_template: 'Transform to {{INPUT}}',
+    response_confirmation: "Excellent! I'll transform your images to {{INPUT}}. This will apply the visual style while keeping all your subjects and composition intact. Added to the instruction list.",
+    validation_type: 'text',
+    validation_min: null,
+    validation_max: null,
+    validation_error_message: null,
+    is_default: true,
+    is_hidden: false,
+  },
+  {
+    label: 'Desaturate',
+    display_order: 5,
+    preset_type: 'direct',
+    prompt: 'Desaturate the image to make it more muted',
+    ask_message: null,
+    display_text_template: null,
+    response_confirmation: null,
+    validation_type: null,
+    validation_min: null,
+    validation_max: null,
+    validation_error_message: null,
+    is_default: true,
+    is_hidden: false,
+  },
+];
+
+/**
+ * Camera angles used for the Duplicate preset.
+ * When a user requests N variations, the first N angles from this list are used.
+ */
+export const DUPLICATE_CAMERA_ANGLES = [
+  'from the back view',
+  'from a low angle looking up',
+  'from a high angle looking down',
+  'from the left side profile',
+  'from the right side profile',
+  'from a 45-degree angle',
+  'from closer proximity portrait',
+  'from further back with wider framing and lots of space',
+];

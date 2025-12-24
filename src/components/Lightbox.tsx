@@ -39,14 +39,14 @@ export const Lightbox: React.FC<LightboxProps> = ({
   }, [currentIndex]);
 
   // Calculate distance between two touch points
-  const getTouchDistance = (touches: TouchList): number => {
+  const getTouchDistance = (touches: TouchList | React.TouchList): number => {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
   // Calculate center point between two touches
-  const getTouchCenter = (touches: TouchList): { x: number, y: number } => {
+  const getTouchCenter = (touches: TouchList | React.TouchList): { x: number, y: number } => {
     return {
       x: (touches[0].clientX + touches[1].clientX) / 2,
       y: (touches[0].clientY + touches[1].clientY) / 2

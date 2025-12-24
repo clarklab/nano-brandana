@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 export interface RuntimePreset {
   id: string;
   label: string;
+  icon: string | null;
   displayOrder: number;
   presetType: 'direct' | 'ask';
   prompt: string;
@@ -30,6 +31,7 @@ function toRuntimePreset(preset: UserPreset | Omit<UserPreset, 'id' | 'user_id' 
   return {
     id,
     label: preset.label,
+    icon: preset.icon,
     displayOrder: preset.display_order,
     presetType: preset.preset_type,
     prompt: preset.prompt,
@@ -228,6 +230,7 @@ export function useUserPresets(): UseUserPresetsReturn {
     const dbPreset: Partial<UserPreset> = {
       user_id: user.id,
       label: preset.label,
+      icon: preset.icon ?? null,
       display_order: preset.displayOrder,
       preset_type: preset.presetType,
       prompt: preset.prompt,

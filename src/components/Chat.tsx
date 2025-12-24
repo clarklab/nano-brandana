@@ -64,7 +64,6 @@ export const Chat: React.FC<ChatProps> = ({
 }) => {
   // Dynamic labels based on processing mode
   const runLabel = processingMode === 'batch' ? 'run the batch' : 'run the job';
-  const runButtonLabel = processingMode === 'batch' ? 'RUN_BATCH' : 'RUN_JOB';
   const [instruction, setInstruction] = useState('');
   const { blip: playBlip, bop: playBop, click: playClick } = useSounds();
   const [messages, setMessages] = useState<TypingMessage[]>([
@@ -374,33 +373,46 @@ export const Chat: React.FC<ChatProps> = ({
       </div>
 
       <div className="space-y-2">
-        {inputs.length > 0 && instructions.length > 0 && (
+        {inputs.length > 0 && (
           <div className="relative">
             <button
               onClick={() => {
                 playBop();
                 onRunBatch('1K');
               }}
-              disabled={isProcessing}
-              className="w-full py-2 border-2 border-neon bg-neon text-black font-bold text-sm hover:bg-white hover:text-black transition-all relative"
+              disabled={isProcessing || !canRunBatch}
+              className={`w-full py-2 border-2 font-bold text-sm transition-all relative ${
+                canRunBatch
+                  ? 'border-neon bg-neon text-black hover:bg-white hover:text-black'
+                  : 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
             >
-              <div className="flex items-center justify-center gap-2">
-                <span>{isProcessing ? 'PROCESSING...' : `${runButtonLabel} [${inputs.length}]`}</span>
+              <div className="flex items-center justify-center gap-3">
+                <span>{isProcessing ? 'PROCESSING...' : `MAKE_IMAGES [${inputs.length}]`}</span>
                 {!isProcessing && (
-                  <span className="flex gap-1 text-xs opacity-60">
+                  <div className="flex border border-black/20 rounded overflow-hidden text-xs">
                     <span
-                      onClick={(e) => { e.stopPropagation(); playBop(); onRunBatch('2K'); }}
-                      className="hover:opacity-100 hover:underline cursor-pointer px-1"
+                      className="px-2 py-0.5 bg-black text-white font-bold"
                     >
-                      2k
+                      1K
                     </span>
                     <span
-                      onClick={(e) => { e.stopPropagation(); playBop(); onRunBatch('4K'); }}
-                      className="hover:opacity-100 hover:underline cursor-pointer px-1"
+                      onClick={(e) => { e.stopPropagation(); if (canRunBatch) { playBop(); onRunBatch('2K'); } }}
+                      className={`px-2 py-0.5 border-l border-black/20 font-bold ${
+                        canRunBatch ? 'hover:bg-black hover:text-white cursor-pointer' : ''
+                      }`}
                     >
-                      4k
+                      2K
                     </span>
-                  </span>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); if (canRunBatch) { playBop(); onRunBatch('4K'); } }}
+                      className={`px-2 py-0.5 border-l border-black/20 font-bold ${
+                        canRunBatch ? 'hover:bg-black hover:text-white cursor-pointer' : ''
+                      }`}
+                    >
+                      4K
+                    </span>
+                  </div>
                 )}
               </div>
             </button>

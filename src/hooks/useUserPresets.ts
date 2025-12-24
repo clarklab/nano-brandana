@@ -243,6 +243,12 @@ export function useUserPresets(): UseUserPresetsReturn {
     };
 
     if (isNew) {
+      // If user has no presets yet, initialize with defaults first
+      // This ensures adding a new preset doesn't replace all defaults
+      if (!dbPresets || dbPresets.length === 0) {
+        await initializeUserPresets(user.id);
+      }
+
       // Insert new preset
       const { error: insertError } = await supabase
         .from('user_presets')

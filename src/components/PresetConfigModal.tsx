@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RuntimePreset } from '../hooks/useUserPresets';
 import { useAuth } from '../contexts/AuthContext';
 import { useSounds } from '../lib/sounds';
+import { IconPicker } from './IconPicker';
 
 interface PresetConfigModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface PresetConfigModalProps {
 interface EditingPreset {
   id?: string;
   label: string;
+  icon: string | null;
   presetType: 'direct' | 'ask';
   prompt: string;
   askMessage: string;
@@ -31,6 +33,7 @@ interface EditingPreset {
 
 const emptyPreset: EditingPreset = {
   label: '',
+  icon: null,
   presetType: 'direct',
   prompt: '',
   askMessage: '',
@@ -48,6 +51,7 @@ function presetToEditing(preset: RuntimePreset): EditingPreset {
   return {
     id: preset.id,
     label: preset.label,
+    icon: preset.icon,
     presetType: preset.presetType,
     prompt: preset.prompt,
     askMessage: preset.askMessage || '',
@@ -153,6 +157,7 @@ export function PresetConfigModal({
       await onSavePreset({
         id: editingPreset.id,
         label: editingPreset.label.trim(),
+        icon: editingPreset.icon,
         presetType: editingPreset.presetType,
         prompt: editingPreset.prompt.trim(),
         askMessage: editingPreset.askMessage.trim() || null,
@@ -271,19 +276,30 @@ export function PresetConfigModal({
                 </button>
               </div>
 
-              {/* Label */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1">
-                  BUTTON LABEL *
-                </label>
-                <input
-                  type="text"
-                  value={editingPreset.label}
-                  onChange={(e) => setEditingPreset({ ...editingPreset, label: e.target.value })}
-                  placeholder="e.g., Remove BG"
-                  maxLength={50}
-                  className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm"
-                />
+              {/* Label and Icon row */}
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-gray-500 block mb-1">
+                    BUTTON LABEL *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingPreset.label}
+                    onChange={(e) => setEditingPreset({ ...editingPreset, label: e.target.value })}
+                    placeholder="e.g., Remove BG"
+                    maxLength={50}
+                    className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm"
+                  />
+                </div>
+                <div className="w-48">
+                  <label className="text-xs font-bold text-gray-500 block mb-1">
+                    ICON
+                  </label>
+                  <IconPicker
+                    selectedIcon={editingPreset.icon}
+                    onSelectIcon={(icon) => setEditingPreset({ ...editingPreset, icon })}
+                  />
+                </div>
               </div>
 
               {/* Type */}
@@ -534,6 +550,14 @@ export function PresetConfigModal({
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
+                            {preset.icon && (
+                              <span
+                                className="material-symbols-outlined text-gray-600"
+                                style={{ fontSize: '16px' }}
+                              >
+                                {preset.icon}
+                              </span>
+                            )}
                             <span className="font-bold text-sm">
                               {preset.label.toUpperCase()}
                             </span>

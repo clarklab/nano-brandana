@@ -74,6 +74,7 @@ export interface UserPreset {
   id: string;
   user_id: string;
   label: string;
+  icon: string | null;
   display_order: number;
   preset_type: 'direct' | 'ask';
   prompt: string;
@@ -100,6 +101,7 @@ export interface UserPreset {
 export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
   {
     label: 'Remove BG',
+    icon: 'hide_image',
     display_order: 0,
     preset_type: 'direct',
     prompt: 'Remove the background and make it transparent',
@@ -115,6 +117,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
   },
   {
     label: 'Add Brand Color',
+    icon: 'palette',
     display_order: 1,
     preset_type: 'ask',
     prompt: 'Identify the most suitable clothing item, accessory, object, or surface in the image and change it to {{INPUT}} in a natural way that enhances the overall composition. Choose elements that would realistically be found in that color and avoid changing skin tones, faces, or core identifying features.',
@@ -130,6 +133,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
   },
   {
     label: 'Duplicate',
+    icon: 'content_copy',
     display_order: 2,
     preset_type: 'ask',
     prompt: 'Generate exactly {{INPUT}} variations of this scene from these angles: {{ANGLES}}. Keep the same subjects and scene. IMPORTANT: You must generate exactly {{INPUT}} images, no more, no less.',
@@ -145,6 +149,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
   },
   {
     label: 'Upscale',
+    icon: 'zoom_in',
     display_order: 3,
     preset_type: 'direct',
     prompt: 'Upscale the image and enhance details while maintaining the original quality and composition',
@@ -160,6 +165,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
   },
   {
     label: 'Transform',
+    icon: 'auto_awesome',
     display_order: 4,
     preset_type: 'ask',
     prompt: 'Transform this image into {{INPUT}} while maintaining the core composition, subjects, and scene. Apply the visual characteristics, textures, colors, and artistic techniques typical of {{INPUT}}. Ensure the transformation feels authentic to the chosen style while preserving all important elements and details from the original image.',
@@ -175,6 +181,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
   },
   {
     label: 'Desaturate',
+    icon: 'filter_b_and_w',
     display_order: 5,
     preset_type: 'direct',
     prompt: 'Desaturate the image to make it more muted',

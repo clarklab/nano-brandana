@@ -258,8 +258,16 @@ export const Chat: React.FC<ChatProps> = ({
                 handlePreset(preset);
               }}
               disabled={presetsLoading}
-              className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all font-bold disabled:opacity-50"
+              className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all font-bold disabled:opacity-50 flex items-center gap-1"
             >
+              {preset.icon && (
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '14px' }}
+                >
+                  {preset.icon}
+                </span>
+              )}
               {preset.label.toUpperCase()}
             </button>
           ))}

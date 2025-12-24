@@ -483,9 +483,9 @@ function App() {
   }, []);
 
   return (
-    <div className="h-[var(--vh-full)] flex flex-col bg-white text-black font-mono overflow-hidden">
+    <div className="h-[var(--vh-full)] flex flex-col bg-white dark:bg-gray-900 text-black dark:text-gray-100 font-mono overflow-hidden">
       {/* Header */}
-      <header className="border-b-2 border-black p-4 flex-shrink-0">
+      <header className="border-b-2 border-black dark:border-gray-600 p-4 flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src="/brandana.webp" alt="Brandana" className="size-8 md:size-12" />
@@ -497,13 +497,13 @@ function App() {
 
           <div className="flex items-center gap-2 md:gap-4">
             {/* Auth section */}
-            {authConfigured && (
+            {authConfigured ? (
               <div className="flex items-center gap-2">
                 {authLoading ? (
                   // Show sign in button while loading (will update once session is checked)
                   <button
                     disabled
-                    className="text-xs border-2 border-black px-3 py-1 font-bold opacity-50"
+                    className="text-xs border-2 border-black dark:border-gray-600 px-3 py-1 font-bold opacity-50"
                   >
                     SIGN IN
                   </button>
@@ -530,7 +530,7 @@ function App() {
                         playBlip();
                         setAccountModalOpen(true);
                       }}
-                      className="p-1 hover:bg-gray-100 transition-colors rounded"
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded"
                       aria-label="Account menu"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -539,17 +539,46 @@ function App() {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => {
-                      playBlip();
-                      setAuthModalOpen(true);
-                    }}
-                    className="text-xs border-2 border-black px-3 py-1 font-bold hover:bg-neon transition-colors"
-                  >
-                    SIGN IN
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        playBlip();
+                        setAuthModalOpen(true);
+                      }}
+                      className="text-xs border-2 border-black dark:border-gray-600 px-3 py-1 font-bold hover:bg-neon transition-colors"
+                    >
+                      SIGN IN
+                    </button>
+                    {/* Menu hamburger for guests */}
+                    <button
+                      onClick={() => {
+                        playBlip();
+                        setAccountModalOpen(true);
+                      }}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded"
+                      aria-label="Settings menu"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75Zm0 5A.75.75 0 0 1 2.75 9h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 9.75Zm0 5a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </>
                 )}
               </div>
+            ) : (
+              /* Menu hamburger for when auth is not configured */
+              <button
+                onClick={() => {
+                  playBlip();
+                  setAccountModalOpen(true);
+                }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded"
+                aria-label="Settings menu"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75Zm0 5A.75.75 0 0 1 2.75 9h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 9.75Zm0 5a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                </svg>
+              </button>
             )}
           </div>
         </div>
@@ -558,7 +587,7 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 pb-[calc(var(--tab-bar-height)+var(--safe-area-bottom))] md:pb-0">
         {/* Left: Input Panel */}
-        <div className={`border-r-0 md:border-r border-black p-4 flex flex-col overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
+        <div className={`border-r-0 md:border-r border-black dark:border-gray-600 p-4 flex flex-col overflow-hidden ${activeTab === 'input' ? 'block' : 'hidden'} md:block`}>
           <InputPanel
             onFilesAdded={handleFilesAdded}
             onPromptsAdded={handlePromptsAdded}
@@ -571,7 +600,7 @@ function App() {
         </div>
 
         {/* Middle: Tasks/Progress */}
-        <div className={`border-r-0 md:border-r border-black p-4 flex flex-col overflow-hidden ${activeTab === 'tasks' ? 'block' : 'hidden'} md:block`}>
+        <div className={`border-r-0 md:border-r border-black dark:border-gray-600 p-4 flex flex-col overflow-hidden ${activeTab === 'tasks' ? 'block' : 'hidden'} md:block`}>
           {isProcessing || workItems.length > 0 ? (
             // Show progress/stats during and after processing
             <>
@@ -599,7 +628,7 @@ function App() {
                 />
                 
                 {displayInstructions.length > 0 && (
-                  <div className="border-2 border-black p-2">
+                  <div className="border-2 border-black dark:border-gray-600 p-2">
                     <div className="text-xs font-bold mb-2">COMPLETED TASKS:</div>
                     <div className="text-xs font-light space-y-1">
                       {displayInstructions.map((instruction, index) => (
@@ -623,7 +652,7 @@ function App() {
               </div>
               
               {!isProcessing && (
-                <div className="border-t border-black pt-4 mt-4 flex-shrink-0">
+                <div className="border-t border-black dark:border-gray-600 pt-4 mt-4 flex-shrink-0">
                   <button
                     onClick={() => {
                       playBlip();
@@ -631,7 +660,7 @@ function App() {
                       setDisplayInstructions([]);
                       setInstructions([]);
                     }}
-                    className="w-full py-2 border border-black font-bold text-sm hover:bg-neon transition-all"
+                    className="w-full py-2 border border-black dark:border-gray-600 font-bold text-sm hover:bg-neon transition-all"
                   >
                     NEW_BATCH
                   </button>
@@ -672,7 +701,7 @@ function App() {
                   playBlip();
                   handleDownloadAll();
                 }}
-                className="text-sm border border-black px-2 py-1 hover:bg-neon hover:border-neon transition-colors"
+                className="text-sm border border-black dark:border-gray-600 px-2 py-1 hover:bg-neon hover:border-neon transition-colors"
               >
                 DOWNLOAD_ALL
               </button>
@@ -717,18 +746,18 @@ function App() {
       </div>
       
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black" style={{ paddingBottom: 'var(--safe-area-bottom)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t-2 border-black dark:border-gray-600" style={{ paddingBottom: 'var(--safe-area-bottom)' }}>
         <div className="grid grid-cols-3 h-[var(--tab-bar-height)]">
           <button
             onClick={() => {
               playClick();
               setActiveTab('input');
             }}
-            className={`text-xs font-bold border-r border-black flex flex-col items-center justify-center gap-1 transition-colors ${
+            className={`text-xs font-bold border-r border-black dark:border-gray-600 flex flex-col items-center justify-center gap-1 transition-colors ${
               activeTab === 'input' ? 'bg-neon' : 'hover:bg-neon/20'
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#1f1f1f">
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
               <path d="M440-440v-80h80v80h-80Zm-80 80v-80h80v80h-80Zm160 0v-80h80v80h-80Zm80-80v-80h80v80h-80Zm-320 0v-80h80v80h-80Zm-80 320q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm80-80h80v-80h-80v80Zm160 0h80v-80h-80v80Zm320 0v-80 80Zm-560-80h80v-80h80v80h80v-80h80v80h80v-80h80v80h80v-80h-80v-80h80v-320H200v320h80v80h-80v80Zm0 80v-560 560Zm560-240v80-80ZM600-280v80h80v-80h-80Z"/>
             </svg>
             IMAGES
@@ -738,11 +767,11 @@ function App() {
               playClick();
               setActiveTab('tasks');
             }}
-            className={`text-xs font-bold border-r border-black flex flex-col items-center justify-center gap-1 transition-colors ${
+            className={`text-xs font-bold border-r border-black dark:border-gray-600 flex flex-col items-center justify-center gap-1 transition-colors ${
               activeTab === 'tasks' ? 'bg-neon' : 'hover:bg-neon/20'
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#1f1f1f">
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
               <path d="M620-163 450-333l56-56 114 114 226-226 56 56-282 282Zm220-397h-80v-200h-80v120H280v-120h-80v560h240v80H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v200ZM480-760q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z"/>
             </svg>
             TASKS
@@ -756,7 +785,7 @@ function App() {
               activeTab === 'results' ? 'bg-neon' : 'hover:bg-neon/20'
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#1f1f1f">
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
               <path d="m720-80 120-120-28-28-72 72v-164h-40v164l-72-72-28 28L720-80ZM480-800 243-663l237 137 237-137-237-137ZM120-321v-318q0-22 10.5-40t29.5-29l280-161q10-5 19.5-8t20.5-3q11 0 21 3t19 8l280 161q19 11 29.5 29t10.5 40v159h-80v-116L479-434 200-596v274l240 139v92L160-252q-19-11-29.5-29T120-321ZM720 0q-83 0-141.5-58.5T520-200q0-83 58.5-141.5T720-400q83 0 141.5 58.5T920-200q0 83-58.5 141.5T720 0ZM480-491Z"/>
             </svg>
             RESULTS

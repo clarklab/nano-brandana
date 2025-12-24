@@ -12,11 +12,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white border-2 border-black p-6 max-w-md w-full relative">
+      <div className="bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 p-6 max-w-md w-full relative">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-2xl leading-none hover:text-gray-600 transition-colors"
+          className="absolute top-3 right-3 text-2xl leading-none hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           aria-label="Close"
         >
           &times;
@@ -25,8 +25,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Header */}
         <div className="mb-4 pr-8">
           <h2 className="text-lg font-bold">SIGN IN TO CONTINUE</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Get <span className="font-bold text-black">100,000 free tokens</span> for image generation
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Get <span className="font-bold text-black dark:text-gray-100">100,000 free tokens</span> for image generation
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         />
 
         {/* Footer */}
-        <p className="text-xs text-center mt-4 text-gray-500">
+        <p className="text-xs text-center mt-4 text-gray-500 dark:text-gray-400">
           No password needed - we'll email you a secure link
         </p>
       </div>

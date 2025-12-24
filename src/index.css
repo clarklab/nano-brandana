@@ -35,5 +35,15 @@
     /* Support iOS safe areas */
     padding-bottom: var(--safe-area-bottom);
   }
+
+  /* Dark mode base styles */
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+
+  /* Smooth theme transition */
+  html {
+    transition: background-color 0.2s ease-in-out;
+  }
 }
 

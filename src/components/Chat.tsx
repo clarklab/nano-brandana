@@ -205,8 +205,8 @@ export const Chat: React.FC<ChatProps> = ({
               }
             }}
             className={`underline font-bold ${
-              canRunBatch 
-                ? 'text-black hover:bg-neon cursor-pointer' 
+              canRunBatch
+                ? 'text-black dark:text-gray-100 hover:bg-neon cursor-pointer'
                 : 'text-gray-400 cursor-not-allowed'
             }`}
           >
@@ -258,7 +258,7 @@ export const Chat: React.FC<ChatProps> = ({
                 handlePreset(preset);
               }}
               disabled={presetsLoading}
-              className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all font-bold disabled:opacity-50"
+              className="px-2 py-1 text-xs border border-black dark:border-gray-600 hover:bg-neon hover:border-neon transition-all font-bold disabled:opacity-50"
             >
               {preset.label.toUpperCase()}
             </button>
@@ -269,7 +269,7 @@ export const Chat: React.FC<ChatProps> = ({
               playBlip();
               setIsPresetConfigOpen(true);
             }}
-            className="px-2 py-1 text-xs border border-black hover:bg-neon hover:border-neon transition-all"
+            className="px-2 py-1 text-xs border border-black dark:border-gray-600 hover:bg-neon hover:border-neon transition-all"
             title="Configure presets"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
@@ -279,7 +279,7 @@ export const Chat: React.FC<ChatProps> = ({
         </div>
 
         {instructions.length > 0 && (
-          <div className="mb-4 p-2 border-2 border-black">
+          <div className="mb-4 p-2 border-2 border-black dark:border-gray-600">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold">INSTRUCTIONS:</span>
               <button
@@ -287,7 +287,7 @@ export const Chat: React.FC<ChatProps> = ({
                   playBlip();
                   onClearInstructions();
                 }}
-                className="text-xs border border-black px-1 hover:bg-neon hover:border-neon transition-all"
+                className="text-xs border border-black dark:border-gray-600 px-1 hover:bg-neon hover:border-neon transition-all"
               >
                 CLEAR
               </button>
@@ -318,8 +318,8 @@ export const Chat: React.FC<ChatProps> = ({
               <div
                 className={`max-w-[80%] p-2 text-xs ${
                   message.type === 'user'
-                    ? 'border border-black bg-black text-white font-bold'
-                    : 'bg-neon/10 text-black font-light'
+                    ? 'border border-black dark:border-gray-600 bg-black text-white font-bold'
+                    : 'bg-neon/10 dark:bg-neon/20 text-black dark:text-gray-100 font-light'
                 }`}
                 onClick={message.type === 'assistant' ? handleMessageClick : undefined}
               >
@@ -353,8 +353,8 @@ export const Chat: React.FC<ChatProps> = ({
               disabled={isProcessing || !canRunBatch}
               className={`w-full py-2 border-2 font-bold text-sm transition-all relative ${
                 canRunBatch
-                  ? 'border-neon bg-neon text-black hover:bg-white hover:text-black'
-                  : 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'border-neon bg-neon text-black hover:bg-white dark:hover:bg-gray-800 hover:text-black dark:hover:text-gray-100'
+                  : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
               }`}
             >
               <div className="flex items-center justify-center gap-3">
@@ -397,7 +397,7 @@ export const Chat: React.FC<ChatProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "ENTER_NUMBER..." : waitingForPreset.validationType === 'color' ? "ENTER_COLOR..." : "ENTER_RESPONSE...") : "ENTER_INSTRUCTION..."}
             disabled={isProcessing}
-            className="w-full px-2 py-2 border-2 border-black resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
+            className="w-full px-2 py-2 border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-900 resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
             rows={3}
           />
           <button
@@ -406,10 +406,10 @@ export const Chat: React.FC<ChatProps> = ({
               handleSend();
             }}
             disabled={!instruction.trim() || isProcessing}
-            className={`absolute bottom-3 right-2 p-1 border border-black hover:bg-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+            className={`absolute bottom-3 right-2 p-1 border border-black dark:border-gray-600 hover:bg-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
               instruction.trim() && !isProcessing
                 ? 'bg-black text-white'
-                : 'bg-white text-black'
+                : 'bg-white dark:bg-gray-800 text-black dark:text-gray-100'
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">

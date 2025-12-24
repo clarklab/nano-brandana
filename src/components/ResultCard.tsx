@@ -72,7 +72,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
     : null;
 
   return (
-    <div className="border-2 border-black p-2 hover:bg-gray-50 transition-colors">
+    <div className="border-2 border-black dark:border-gray-600 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold truncate flex-1 mr-2">{displayName}</h3>
         <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       </div>
 
       {item.status === 'processing' && (
-        <div className="h-32 border border-black flex items-center justify-center bg-gray-100">
+        <div className="h-32 border border-black dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
           <div className="flex flex-col items-center gap-2">
             <svg width="60" height="60" viewBox="0 0 50 50">
               <path 
@@ -163,7 +163,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             <img
               src={showOriginal ? originalImage : item.result.images[selectedImageIndex]}
               alt={showOriginal ? 'Original' : 'Edited'}
-              className="w-full h-full object-cover border border-black cursor-pointer"
+              className="w-full h-full object-cover border border-black dark:border-gray-600 cursor-pointer"
               onClick={() => {
                 if (onOpenLightbox && item.result?.images && !showOriginal) {
                   onOpenLightbox(item.result.images, selectedImageIndex, displayName);
@@ -185,7 +185,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               onMouseLeave={() => setShowOriginal(false)}
               onTouchStart={() => setShowOriginal(true)}
               onTouchEnd={() => setShowOriginal(false)}
-              className="absolute top-1 left-1 px-1 py-0.5 bg-white border border-black text-xs font-bold hover:bg-neon transition-colors w-[120px]"
+              className="absolute top-1 left-1 px-1 py-0.5 bg-white dark:bg-gray-800 border border-black dark:border-gray-600 text-xs font-bold hover:bg-neon transition-colors w-[120px]"
             >
               {showOriginal ? 'ORIG' : 'HOLD TO COMPARE'}
             </button>
@@ -199,8 +199,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   onClick={() => setSelectedImageIndex(index)}
                   className={`px-1 py-0.5 text-xs border transition-colors font-bold ${
                     selectedImageIndex === index
-                      ? 'border-black bg-neon text-black'
-                      : 'border-black bg-white hover:bg-gray-100'
+                      ? 'border-black dark:border-gray-600 bg-neon text-black'
+                      : 'border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
                   V{index + 1}
@@ -212,7 +212,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
           <div className="flex gap-1">
             <button
               onClick={() => downloadImage(item.result!.images[selectedImageIndex], selectedImageIndex)}
-              className="flex-1 px-2 py-1 border-2 border-black bg-neon text-black text-xs font-bold hover:bg-white transition-colors"
+              className="flex-1 px-2 py-1 border-2 border-black dark:border-gray-600 bg-neon text-black text-xs font-bold hover:bg-white dark:hover:bg-gray-800 transition-colors"
             >
               DOWNLOAD
             </button>
@@ -222,7 +222,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   onOpenLightbox(item.result.images, selectedImageIndex, displayName);
                 }
               }}
-              className="px-2 py-1 border border-black bg-white text-xs font-bold hover:bg-neon transition-colors"
+              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-bold hover:bg-neon transition-colors"
             >
               VIEW
             </button>
@@ -256,7 +256,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       )}
 
       {item.status === 'completed' && (!item.result?.images || item.result.images.length === 0) && (
-        <div className="h-32 border border-black flex items-center justify-center p-2 bg-yellow-100">
+        <div className="h-32 border border-black dark:border-gray-600 flex items-center justify-center p-2 bg-yellow-100 dark:bg-yellow-900/30">
           <div className="text-center">
             <div className="text-lg font-bold mb-1">⚠</div>
             <p className="text-xs font-bold">NO IMAGES RETURNED</p>
@@ -266,7 +266,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       )}
 
       {item.status === 'failed' && (
-        <div className="border border-black bg-gray-100">
+        <div className="border border-black dark:border-gray-600 bg-gray-100 dark:bg-gray-800">
           <div className="h-24 flex items-center justify-center p-2">
             <div className="text-center">
               <div className="text-lg font-bold mb-1">✗</div>
@@ -282,10 +282,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             </div>
           </div>
           {onRetry && (
-            <div className="border-t border-black p-2">
+            <div className="border-t border-black dark:border-gray-600 p-2">
               <button
                 onClick={() => onRetry(item.id)}
-                className="w-full px-2 py-1 border border-black bg-white text-xs font-bold hover:bg-neon transition-colors"
+                className="w-full px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-bold hover:bg-neon transition-colors"
               >
                 RETRY_IMAGE
               </button>
@@ -295,7 +295,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       )}
 
       {item.status === 'queued' && (
-        <div className="h-32 border border-black flex items-center justify-center bg-gray-100">
+        <div className="h-32 border border-black dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
           <div className="text-center">
             <div className="text-lg font-light mb-1">⧖</div>
             <p className="text-xs font-light">QUEUED</p>

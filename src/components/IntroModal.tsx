@@ -14,18 +14,18 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-neon z-50 flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-black max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
+    <div className="fixed inset-0 bg-neon dark:bg-neon/80 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 w-8 h-8 border border-black bg-white hover:bg-neon transition-all text-lg font-bold z-10"
+          className="absolute top-4 right-4 w-8 h-8 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-all text-lg font-bold z-10"
         >
           ✕
         </button>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-full">
           {/* Left Column - Intro (first on mobile) */}
-          <div className="p-8 flex flex-col justify-center border-r-0 md:border-r border-black order-1 md:order-1">
+          <div className="p-8 flex flex-col justify-center border-r-0 md:border-r border-black dark:border-gray-600 order-1 md:order-1">
             <div className="flex items-center gap-4 mb-8">
               <img src="/brandana.webp" alt="Brandana" className="w-16 h-16" />
               <div>

@@ -105,9 +105,20 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Create checkout session
+    // Get price amount based on package
+    const priceAmount = packageId === 'starter' ? 500 : 1700; // in cents: $5.00 or $17.00
+
+    // Create checkout session with inline pricing
+    // Polar SDK requires product prices to be specified explicitly
     const checkout = await polar.checkouts.create({
-      productId: productId,
+      products: [productId],
+      prices: {
+        [productId]: [{
+          amountType: 'fixed',
+          priceAmount: priceAmount,
+          priceCurrency: 'usd'
+        }]
+      },
       customerEmail: userEmail,
       successUrl: `${process.env.URL || 'http://localhost:8889'}?payment=success`,
       cancelUrl: `${process.env.URL || 'http://localhost:8889'}?payment=cancelled`,

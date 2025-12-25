@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface TokenPackage {
   id: 'starter' | 'pro';
@@ -43,13 +44,14 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
     setError(null);
 
     try {
-      // Get auth token from localStorage (set by Supabase)
-      const session = JSON.parse(localStorage.getItem('sb-' + import.meta.env.VITE_SUPABASE_URL.split('//')[1].split('.')[0] + '-auth-token') || '{}');
-      const accessToken = session?.access_token;
+      // Get current session from Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (!accessToken) {
+      if (sessionError || !session) {
         throw new Error('Not authenticated. Please sign in.');
       }
+
+      const accessToken = session.access_token;
 
       // Call create-checkout function
       const response = await fetch('/.netlify/functions/create-checkout', {

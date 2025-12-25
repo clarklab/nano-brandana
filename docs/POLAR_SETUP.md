@@ -93,11 +93,15 @@ You need to create two products in Polar representing your token packages.
    - **Currency:** `USD`
 4. Click **"Create Product"** or **"Save"**
 5. After creating, click on the product to view details
-6. **Copy the Product ID** - it looks like:
+6. **IMPORTANT:** You need the **PRICE ID**, not the product ID!
+   - Look for a section called **"Prices"** or **"Price"** within the product
+   - Click on the $5.00 price
+   - **Copy the Price ID** - it looks like:
    ```
-   prod_xxxxxxxxxxxxxxxxxxxxxxxx
+   price_xxxxxxxxxxxxxxxxxxxxxxxx
    ```
-7. **Save this Product ID** - you'll need it for environment variables
+   (NOT `prod_xxx...` - that's the product ID!)
+7. **Save this Price ID** - you'll need it for environment variables
 
 ### Step 6: Create "Pro Pack" Product
 
@@ -111,11 +115,15 @@ You need to create two products in Polar representing your token packages.
    - **Currency:** `USD`
 4. Click **"Create Product"** or **"Save"**
 5. After creating, click on the product to view details
-6. **Copy the Product ID** - it looks like:
+6. **IMPORTANT:** You need the **PRICE ID**, not the product ID!
+   - Look for a section called **"Prices"** or **"Price"** within the product
+   - Click on the $17.00 price
+   - **Copy the Price ID** - it looks like:
    ```
-   prod_yyyyyyyyyyyyyyyyyyyyyyyy
+   price_yyyyyyyyyyyyyyyyyyyyyyyy
    ```
-7. **Save this Product ID** - you'll need it for environment variables
+   (NOT `prod_yyy...` - that's the product ID!)
+7. **Save this Price ID** - you'll need it for environment variables
 
 ---
 
@@ -150,20 +158,20 @@ Add the following variables one by one:
 - **Scopes:** All scopes
 - Click **"Create variable"**
 
-#### Variable 3: POLAR_STARTER_PRODUCT_ID
-- **Key:** `POLAR_STARTER_PRODUCT_ID`
-- **Value:** (paste the Starter Pack product ID from Step 5)
+#### Variable 3: POLAR_STARTER_PRICE_ID
+- **Key:** `POLAR_STARTER_PRICE_ID`
+- **Value:** (paste the Starter Pack **PRICE ID** from Step 5)
   ```
-  prod_xxxxxxxxxxxxxxxxxxxxxxxx
+  price_xxxxxxxxxxxxxxxxxxxxxxxx
   ```
 - **Scopes:** All scopes
 - Click **"Create variable"**
 
-#### Variable 4: POLAR_PRO_PRODUCT_ID
-- **Key:** `POLAR_PRO_PRODUCT_ID`
-- **Value:** (paste the Pro Pack product ID from Step 6)
+#### Variable 4: POLAR_PRO_PRICE_ID
+- **Key:** `POLAR_PRO_PRICE_ID`
+- **Value:** (paste the Pro Pack **PRICE ID** from Step 6)
   ```
-  prod_yyyyyyyyyyyyyyyyyyyyyyyy
+  price_yyyyyyyyyyyyyyyyyyyyyyyy
   ```
 - **Scopes:** All scopes
 - Click **"Create variable"**
@@ -347,13 +355,13 @@ If you see errors, check the troubleshooting section below.
 4. Verify the database migration ran successfully (check if `add_tokens` function exists)
 5. Check webhook is delivering to correct URL in Polar dashboard
 
-### "Product ID not configured" Error
+### "Price ID not configured" Error
 
 **Problem:** Clicking "BUY NOW" shows this error
 
 **Solution:**
-1. Verify `POLAR_STARTER_PRODUCT_ID` and `POLAR_PRO_PRODUCT_ID` are set in Netlify
-2. Check product IDs match the products in Polar dashboard
+1. Verify `POLAR_STARTER_PRICE_ID` and `POLAR_PRO_PRICE_ID` are set in Netlify
+2. Check price IDs match the **PRICE IDs** (not product IDs) in Polar dashboard
 3. Make sure products are **"One-time"** type, not subscriptions
 4. Redeploy Netlify after adding env vars
 
@@ -387,8 +395,8 @@ Here's a complete list of all environment variables you need in Netlify:
 |---------------|-----------------|----------------|
 | `POLAR_ACCESS_TOKEN` | Polar → Settings → API Tokens | `polar_at_xxx...` |
 | `POLAR_WEBHOOK_SECRET` | Polar → Settings → Webhooks → Endpoint | `polar_whsec_xxx...` |
-| `POLAR_STARTER_PRODUCT_ID` | Polar → Products → Starter Pack | `prod_xxx...` |
-| `POLAR_PRO_PRODUCT_ID` | Polar → Products → Pro Pack | `prod_yyy...` |
+| `POLAR_STARTER_PRICE_ID` | Polar → Products → Starter Pack → Prices | `price_xxx...` |
+| `POLAR_PRO_PRICE_ID` | Polar → Products → Pro Pack → Prices | `price_yyy...` |
 | `POLAR_SERVER` | Manual | `production` or `sandbox` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API | `eyJhbG...` (long JWT) |
 | `VITE_SUPABASE_URL` | Already set | `https://xxx.supabase.co` |

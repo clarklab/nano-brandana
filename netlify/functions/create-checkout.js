@@ -89,25 +89,25 @@ export const handler = async (event, context) => {
       server: process.env.POLAR_SERVER || 'production' // 'sandbox' or 'production'
     });
 
-    // Determine which product ID to use based on package
-    const productId = packageId === 'starter'
-      ? process.env.POLAR_STARTER_PRODUCT_ID
-      : process.env.POLAR_PRO_PRODUCT_ID;
+    // Determine which price ID to use based on package
+    const priceId = packageId === 'starter'
+      ? process.env.POLAR_STARTER_PRICE_ID
+      : process.env.POLAR_PRO_PRICE_ID;
 
-    if (!productId) {
-      console.error(`Missing product ID for package: ${packageId}`);
+    if (!priceId) {
+      console.error(`Missing price ID for package: ${packageId}`);
       return {
         statusCode: 500,
         body: JSON.stringify({
           error: 'Payment system configuration error',
-          details: 'Product ID not configured'
+          details: 'Price ID not configured'
         })
       };
     }
 
     // Create checkout session
     const checkout = await polar.checkouts.create({
-      productId: productId,
+      productPriceId: priceId,
       customerEmail: userEmail,
       successUrl: `${process.env.URL || 'http://localhost:8889'}?payment=success`,
 

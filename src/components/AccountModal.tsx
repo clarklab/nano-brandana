@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Profile, JobLog } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
+import { BuyTokensModal } from './BuyTokensModal';
 
 interface BatchGroup {
   batchId: string | null;
@@ -24,6 +25,7 @@ interface AccountModalProps {
 
 export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignOut, onRefreshJobLogs }: AccountModalProps) {
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [isBuyTokensOpen, setIsBuyTokensOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   // Refresh job logs when modal opens
@@ -136,9 +138,17 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
 
             <div>
               <label className="text-xs font-bold text-gray-500 dark:text-gray-400">TOKENS REMAINING</label>
-              <p className="text-sm font-bold text-neon-text">
-                {profile?.tokens_remaining?.toLocaleString() || '0'}
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-sm font-bold text-neon-text">
+                  {profile?.tokens_remaining?.toLocaleString() || '0'}
+                </p>
+                <button
+                  onClick={() => setIsBuyTokensOpen(true)}
+                  className="px-3 py-1 text-xs font-bold border-2 border-neon bg-neon text-black hover:bg-neon-light transition-colors"
+                >
+                  BUY TOKENS
+                </button>
+              </div>
             </div>
 
             <div>
@@ -280,6 +290,12 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
           </button>
         )}
       </div>
+
+      {/* Buy Tokens Modal */}
+      <BuyTokensModal
+        isOpen={isBuyTokensOpen}
+        onClose={() => setIsBuyTokensOpen(false)}
+      />
     </div>
   );
 }

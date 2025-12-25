@@ -15,6 +15,12 @@
 [functions."process-image"]
   timeout = 26
 
+[functions."create-checkout"]
+  timeout = 10
+
+[functions."payment-webhook"]
+  timeout = 10
+
 [dev]
   command = "npm run dev"
   targetPort = 3000

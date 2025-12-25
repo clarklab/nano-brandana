@@ -92,11 +92,12 @@ You need to create two products in Polar representing your token packages.
    - **Amount:** `$5.00`
    - **Currency:** `USD`
 4. Click **"Create Product"** or **"Save"**
-5. After creating, click on the product to view details
+5. After creating, you'll see the product in your products list
 6. **Copy the Product ID** - it looks like:
    ```
    prod_xxxxxxxxxxxxxxxxxxxxxxxx
    ```
+   You can usually find this in the URL when viewing the product, or in the product details.
 7. **Save this Product ID** - you'll need it for environment variables
 
 ### Step 6: Create "Pro Pack" Product
@@ -110,11 +111,12 @@ You need to create two products in Polar representing your token packages.
    - **Amount:** `$17.00`
    - **Currency:** `USD`
 4. Click **"Create Product"** or **"Save"**
-5. After creating, click on the product to view details
+5. After creating, you'll see the product in your products list
 6. **Copy the Product ID** - it looks like:
    ```
    prod_yyyyyyyyyyyyyyyyyyyyyyyy
    ```
+   You can usually find this in the URL when viewing the product, or in the product details.
 7. **Save this Product ID** - you'll need it for environment variables
 
 ---

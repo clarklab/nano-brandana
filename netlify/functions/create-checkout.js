@@ -110,7 +110,7 @@ export const handler = async (event, context) => {
       productId: productId,
       customerEmail: userEmail,
       successUrl: `${process.env.URL || 'http://localhost:8889'}?payment=success`,
-
+      cancelUrl: `${process.env.URL || 'http://localhost:8889'}?payment=cancelled`,
       metadata: {
         user_id: user.id,
         package_id: packageId,

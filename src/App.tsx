@@ -74,6 +74,28 @@ function App() {
     }
   }, []);
 
+  // Handle payment success redirect - refresh profile to get updated token balance
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+
+    if (paymentStatus === 'success') {
+      console.log('Payment success detected, refreshing profile...');
+
+      // Refresh profile to get updated token balance
+      if (authConfigured) {
+        refreshProfile();
+      }
+
+      // Open account modal to show the updated balance
+      setAccountModalOpen(true);
+
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [authConfigured, refreshProfile]);
+
   // Create batch processor with dynamic settings
   const batchProcessor = React.useMemo(() => {
     const concurrency = getConcurrencyLimit(inputs.length);

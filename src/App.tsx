@@ -68,7 +68,7 @@ function App() {
 
   // Check if intro has been seen before
   useEffect(() => {
-    const hasSeenIntro = localStorage.getItem('nano-brandana-intro-seen');
+    const hasSeenIntro = localStorage.getItem('peel-intro-seen');
     if (!hasSeenIntro) {
       setIntroModalOpen(true);
     }
@@ -510,10 +510,10 @@ function App() {
       <header className="border-b-2 border-black dark:border-gray-600 p-4 flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/brandana.webp" alt="Brandana" className="size-8 md:size-12" />
+            <img src="/peel.svg" alt="Peel" className="size-8 md:size-12" />
             <div className="leading-tight">
-              <h1 className="text-base md:text-xl font-bold">NANO-BRANDANA</h1>
-              <p className="text-[10px] md:text-xs">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
+              <h1 className="text-base md:text-xl font-bold font-sans">Peel</h1>
+              <p className="text-[10px] md:text-xs">BATCH IMAGE EDITOR FOR BRANDS</p>
             </div>
           </div>
 
@@ -626,7 +626,7 @@ function App() {
           {isProcessing || workItems.length > 0 ? (
             // Show progress/stats during and after processing
             <>
-              <h2 className="text-lg font-bold mb-4">PROGRESS</h2>
+              <h2 className="text-lg font-bold font-sans mb-4">Progress</h2>
               <div className="space-y-4 flex-1">
                 <ProgressBar items={workItems} />
                 <Timer
@@ -668,7 +668,7 @@ function App() {
                     {workItems.filter(i => i.status === 'processing').length} PROCESSING
                   </div>
                   <p className="text-xs font-light mt-2 italic">
-                    Brandana says "Have a nice day!"
+                    Peel says "Have a nice day!"
                   </p>
                 </div>
               </div>
@@ -716,7 +716,7 @@ function App() {
         {/* Right: Results */}
         <div className={`p-4 flex flex-col overflow-hidden ${activeTab === 'results' ? 'block' : 'hidden'} md:block`}>
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
-            <h2 className="text-lg font-bold">RESULTS</h2>
+            <h2 className="text-lg font-bold font-sans">Results</h2>
             {hasResults && (
               <button
                 onClick={() => {
@@ -775,42 +775,42 @@ function App() {
               playClick();
               setActiveTab('input');
             }}
-            className={`text-xs font-bold border-r border-black dark:border-gray-600 flex flex-col items-center justify-center gap-1 transition-colors ${
-              activeTab === 'input' ? 'bg-neon' : 'hover:bg-neon/20'
+            className={`text-xs font-bold font-sans border-r border-black dark:border-gray-600 flex flex-col items-center justify-center gap-1 transition-colors ${
+              activeTab === 'input' ? 'bg-neon text-black' : 'hover:bg-neon/20'
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
               <path d="M440-440v-80h80v80h-80Zm-80 80v-80h80v80h-80Zm160 0v-80h80v80h-80Zm80-80v-80h80v80h-80Zm-320 0v-80h80v80h-80Zm-80 320q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm80-80h80v-80h-80v80Zm160 0h80v-80h-80v80Zm320 0v-80 80Zm-560-80h80v-80h80v80h80v-80h80v80h80v-80h80v80h80v-80h-80v-80h80v-320H200v320h80v80h-80v80Zm0 80v-560 560Zm560-240v80-80ZM600-280v80h80v-80h-80Z"/>
             </svg>
-            IMAGES
+            Images
           </button>
           <button
             onClick={() => {
               playClick();
               setActiveTab('tasks');
             }}
-            className={`text-xs font-bold border-r border-black dark:border-gray-600 flex flex-col items-center justify-center gap-1 transition-colors ${
-              activeTab === 'tasks' ? 'bg-neon' : 'hover:bg-neon/20'
+            className={`text-xs font-bold font-sans border-r border-black dark:border-gray-600 flex flex-col items-center justify-center gap-1 transition-colors ${
+              activeTab === 'tasks' ? 'bg-neon text-black' : 'hover:bg-neon/20'
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
               <path d="M620-163 450-333l56-56 114 114 226-226 56 56-282 282Zm220-397h-80v-200h-80v120H280v-120h-80v560h240v80H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v200ZM480-760q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z"/>
             </svg>
-            TASKS
+            Tasks
           </button>
           <button
             onClick={() => {
               playClick();
               setActiveTab('results');
             }}
-            className={`text-xs font-bold flex flex-col items-center justify-center gap-1 transition-colors ${
-              activeTab === 'results' ? 'bg-neon' : 'hover:bg-neon/20'
+            className={`text-xs font-bold font-sans flex flex-col items-center justify-center gap-1 transition-colors ${
+              activeTab === 'results' ? 'bg-neon text-black' : 'hover:bg-neon/20'
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
               <path d="m720-80 120-120-28-28-72 72v-164h-40v164l-72-72-28 28L720-80ZM480-800 243-663l237 137 237-137-237-137ZM120-321v-318q0-22 10.5-40t29.5-29l280-161q10-5 19.5-8t20.5-3q11 0 21 3t19 8l280 161q19 11 29.5 29t10.5 40v159h-80v-116L479-434 200-596v274l240 139v92L160-252q-19-11-29.5-29T120-321ZM720 0q-83 0-141.5-58.5T520-200q0-83 58.5-141.5T720-400q83 0 141.5 58.5T920-200q0 83-58.5 141.5T720 0ZM480-491Z"/>
             </svg>
-            RESULTS
+            Results
           </button>
         </div>
       </nav>

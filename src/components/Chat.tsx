@@ -63,7 +63,7 @@ export const Chat: React.FC<ChatProps> = ({
   const [instruction, setInstruction] = useState('');
   const { blip: playBlip, bop: playBop, click: playClick } = useSounds();
   const [messages, setMessages] = useState<TypingMessage[]>([
-    { type: 'assistant', text: 'Welcome to Nano Brandana, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
+    { type: 'assistant', text: 'Welcome to Peel, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
   ]);
 
   // Preset management using the new hook
@@ -234,7 +234,7 @@ export const Chat: React.FC<ChatProps> = ({
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">TASKS</h2>
+          <h2 className="text-lg font-bold font-sans">Tasks</h2>
           <select
             value={currentModel}
             onChange={(e) => {
@@ -317,10 +317,10 @@ export const Chat: React.FC<ChatProps> = ({
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {message.type === 'assistant' && (
-                <img 
-                  src="/brandana.webp" 
-                  alt="Brandana" 
-                  className="w-6 h-6 mr-2 mt-1 flex-shrink-0" 
+                <img
+                  src="/peel.svg"
+                  alt="Peel"
+                  className="w-6 h-6 mr-2 mt-1 flex-shrink-0"
                 />
               )}
               <div

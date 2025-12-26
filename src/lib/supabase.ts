@@ -13,7 +13,7 @@ export const supabase = createClient(
   {
     auth: {
       persistSession: true,
-      storageKey: 'nano-brandana-auth',
+      storageKey: 'peel-auth',
       storage: window.localStorage,
       autoRefreshToken: true,
       detectSessionInUrl: true,

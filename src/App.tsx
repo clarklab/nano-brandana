@@ -510,11 +510,8 @@ function App() {
       <header className="border-b-2 border-black dark:border-gray-600 p-4 flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/peel.svg" alt="Peel" className="size-8 md:size-12" />
-            <div className="leading-tight">
-              <h1 className="text-base md:text-xl font-bold font-sans">Peel</h1>
-              <p className="text-[10px] md:text-xs">BATCH IMAGE EDITOR FOR BRANDS</p>
-            </div>
+            <img src="/peel.svg" alt="Peel" className="size-6 md:size-8 dark:invert" />
+            <h1 className="text-xl md:text-2xl font-bold font-sans">Peel</h1>
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">

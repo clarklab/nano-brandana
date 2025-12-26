@@ -95,7 +95,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               <path 
                 d="M5,25 Q12.5,15 25,25 T45,25" 
                 fill="none" 
-                stroke="#00FF00" 
+                stroke="#EEB90A" 
                 strokeWidth="2" 
                 opacity="0.3"
               >
@@ -109,7 +109,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               <path 
                 d="M5,25 Q12.5,15 25,25 T45,25" 
                 fill="none" 
-                stroke="#00FF00" 
+                stroke="#EEB90A" 
                 strokeWidth="2" 
                 opacity="0.5"
               >
@@ -123,7 +123,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               <path 
                 d="M5,25 Q12.5,15 25,25 T45,25" 
                 fill="none" 
-                stroke="#00FF00" 
+                stroke="#EEB90A" 
                 strokeWidth="2" 
                 opacity="0.7"
               >

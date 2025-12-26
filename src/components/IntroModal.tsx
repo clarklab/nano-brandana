@@ -9,7 +9,7 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleClose = () => {
-    localStorage.setItem('nano-brandana-intro-seen', 'true');
+    localStorage.setItem('peel-intro-seen', 'true');
     onClose();
   };
 
@@ -27,10 +27,10 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
           {/* Left Column - Intro (first on mobile) */}
           <div className="p-8 flex flex-col justify-center border-r-0 md:border-r border-black dark:border-gray-600 order-1 md:order-1">
             <div className="flex items-center gap-4 mb-8">
-              <img src="/brandana.webp" alt="Brandana" className="w-16 h-16" />
+              <img src="/peel.svg" alt="Peel" className="w-16 h-16" />
               <div>
-                <h1 className="text-2xl font-bold">NANO-BRANDANA</h1>
-                <p className="text-sm font-light">BATCH IMAGE EDITOR AGENT FOR BRANDS</p>
+                <h1 className="text-2xl font-bold font-sans">Peel</h1>
+                <p className="text-sm font-light">BATCH IMAGE EDITOR FOR BRANDS</p>
               </div>
             </div>
             

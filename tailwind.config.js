@@ -8,11 +8,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'neon': '#00FF00',
-        'neon-text': '#00CC00', // Darker green for better text readability on white
+        'neon': '#EEB90A',
+        'neon-text': '#C99A00', // Darker gold for better text readability on white
       },
       fontFamily: {
         'mono': ['JetBrains Mono', 'monospace'],
+        'sans': ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
         'typing': 'typing 1.5s steps(3) infinite',

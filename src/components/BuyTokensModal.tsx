@@ -21,7 +21,7 @@ const PACKAGES: TokenPackage[] = [
     name: 'STARTER PACK',
     tokens: 100000,
     price: 5,
-    description: 'Perfect for trying out Nano Brandana',
+    description: 'Perfect for trying out Peel',
   },
   {
     id: 'pro',

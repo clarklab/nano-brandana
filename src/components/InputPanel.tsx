@@ -69,7 +69,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold">INPUT</h2>
+          <h2 className="text-lg font-bold font-sans">Input</h2>
           {inputs.length > 0 && (
             <button
               onClick={() => {
@@ -91,17 +91,14 @@ export const InputPanel: React.FC<InputPanelProps> = ({
               playToggleSound();
               onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch');
             }}
-            className="relative w-9 h-5 border border-black dark:border-gray-600 rounded-full transition-colors duration-200"
-            style={{ backgroundColor: processingMode === 'batch' ? '#00FF00' : undefined }}
+            className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+              processingMode === 'batch' ? 'bg-neon' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
           >
             <span
-              className={`absolute top-0.5 w-3.5 h-3.5 bg-black rounded-full transition-all duration-200 ease-out ${
+              className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all duration-200 ease-out ${
                 processingMode === 'batch' ? 'left-4.5' : 'left-0.5'
               }`}
-              style={{
-                transform: processingMode === 'batch' ? 'scale(1.1)' : 'scale(1)',
-                transition: 'left 0.2s ease-out, transform 0.15s ease-out'
-              }}
             />
           </button>
         </div>

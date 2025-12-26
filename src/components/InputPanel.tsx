@@ -91,13 +91,14 @@ export const InputPanel: React.FC<InputPanelProps> = ({
               playToggleSound();
               onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch');
             }}
-            className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+            className={`relative w-12 h-6 rounded-full transition-colors ${
               processingMode === 'batch' ? 'bg-neon' : 'bg-gray-300 dark:bg-gray-600'
             }`}
+            aria-label="Toggle batch mode"
           >
             <span
-              className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow transition-all duration-200 ease-out ${
-                processingMode === 'batch' ? 'left-4.5' : 'left-0.5'
+              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${
+                processingMode === 'batch' ? 'translate-x-6' : 'translate-x-0'
               }`}
             />
           </button>

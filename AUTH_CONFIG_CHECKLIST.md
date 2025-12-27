@@ -9,15 +9,15 @@ Use this checklist to verify your Supabase project is configured correctly for p
 **Path:** Supabase Dashboard → Authentication → Configuration
 
 #### Site URL
-- [ ] **Site URL** is set to your production domain (e.g., `https://yourapp.netlify.app`)
+- [ ] **Site URL** is set to `https://nano.wims.vc`
 - [ ] If testing locally, also add `http://localhost:8889` (Netlify dev default port)
 
 **Why this matters:** This is the default redirect URL for auth callbacks. If not set correctly, auth will fail.
 
 #### Redirect URLs (CRITICAL!)
 - [ ] **Redirect URLs** section includes:
-  - [ ] `https://yourapp.netlify.app` (production)
-  - [ ] `https://yourapp.netlify.app/**` (with wildcard for all paths)
+  - [ ] `https://nano.wims.vc` (production)
+  - [ ] `https://nano.wims.vc/**` (with wildcard for all paths)
   - [ ] `http://localhost:8889` (local development)
   - [ ] `http://localhost:8889/**` (local with wildcard)
 
@@ -94,8 +94,8 @@ Verify these 4 variables are set:
 - Click magic link → shows "Invalid link" error
 
 **Fix:**
-1. Check "Site URL" in Supabase matches your actual domain
-2. Check "Redirect URLs" includes your domain with `/**` wildcard
+1. Check "Site URL" in Supabase is set to `https://nano.wims.vc`
+2. Check "Redirect URLs" includes `https://nano.wims.vc/**` (with wildcard)
 3. Clear browser cache and cookies
 4. Request a new magic link
 

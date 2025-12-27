@@ -79,7 +79,7 @@ auth: {
 ### 6. ✅ Netlify SPA Redirects
 **File:** `public/_redirects`
 
-**Problem:** Missing! Without this file, Netlify might not properly serve the SPA when users click the magic link and get redirected back with auth tokens in the URL.
+**Problem:** Missing! Without this file, Netlify might not properly serve the SPA when users click the magic link and get redirected back to `https://nano.wims.vc/#access_token=...` with auth tokens in the URL.
 
 **Fix:**
 ```
@@ -118,8 +118,8 @@ auth: {
 ### Remaining Uncertainties (15%):
 
 1. **Supabase Project Configuration** (5% risk)
-   - Redirect URLs might not be whitelisted
-   - Site URL might be incorrect
+   - Redirect URLs might not include `https://nano.wims.vc/**`
+   - Site URL might not be set to `https://nano.wims.vc`
    - → **Action:** Use `AUTH_CONFIG_CHECKLIST.md` to verify
 
 2. **Browser-Specific Issues** (5% risk)

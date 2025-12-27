@@ -4,6 +4,7 @@ import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
 import { ThemeProvider } from './contexts/ThemeContext.tsx'
 import './index.css'
+import './lib/auth-debug' // Enable window.debugAuth() for debugging
 
 // Detect when Material Symbols font is loaded and add class to show icons
 if (document.fonts) {

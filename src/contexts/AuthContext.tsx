@@ -27,6 +27,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Debug logging for state changes
   console.log('[AuthProvider] Render - loading:', loading, 'user:', user?.email || 'null', 'session:', session ? 'exists' : 'null');
 
+  // Helper to clear corrupted auth state
+  const clearCorruptedAuthState = () => {
+    console.log('[clearCorruptedAuthState] Clearing potentially corrupted auth data');
+    try {
+      // Clear all Supabase auth-related items from localStorage
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('peel-auth') || key.startsWith('sb-') || key.includes('supabase'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => {
+        console.log('[clearCorruptedAuthState] Removing:', key);
+        localStorage.removeItem(key);
+      });
+    } catch (err) {
+      console.error('[clearCorruptedAuthState] Error:', err);
+    }
+  };
+
   const fetchProfile = async (userId: string, userEmail?: string) => {
     console.log('[fetchProfile] Starting for user:', userId);
     if (!isSupabaseConfigured) {
@@ -167,6 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error('[getSession] Error:', error);
+          // Clear corrupted state on error
+          clearCorruptedAuthState();
           setLoading(false);
           return;
         }
@@ -182,8 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         console.log('[getSession] Done, loading should now be false');
       } catch (error) {
-        console.error('[getSession] Catch error:', error);
+        console.error('[getSession] Catch error (timeout or other):', error);
         if (isMounted) {
+          // Clear potentially corrupted auth data on timeout
+          console.log('[getSession] Clearing auth state due to timeout/error');
+          clearCorruptedAuthState();
           setLoading(false);
         }
       }
@@ -203,13 +229,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Handle specific events
-        if (event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_IN') {
+          console.log('[onAuthStateChange] User signed in successfully');
+          setSession(session);
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            fetchProfile(session.user.id, session.user.email);
+            fetchJobLogs(session.user.id);
+          }
+          setLoading(false);
+          return;
+        } else if (event === 'TOKEN_REFRESHED') {
           console.log('[onAuthStateChange] Token refreshed successfully');
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+          return;
         } else if (event === 'SIGNED_OUT') {
           console.log('[onAuthStateChange] User signed out, clearing state');
+          clearCorruptedAuthState();
           setSession(null);
           setUser(null);
           setProfile(null);
+          setJobLogs([]);
+          setLoading(false);
+          return;
+        } else if (event === 'USER_UPDATED') {
+          console.log('[onAuthStateChange] User updated');
+          setSession(session);
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            fetchProfile(session.user.id, session.user.email);
+          }
           setLoading(false);
           return;
         }
@@ -240,8 +291,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
+    console.log('[signOut] Signing out user');
+    try {
+      await supabase.auth.signOut();
+      // Explicitly clear auth state
+      clearCorruptedAuthState();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setJobLogs([]);
+    } catch (error) {
+      console.error('[signOut] Error during sign out:', error);
+      // Force clear state even on error
+      clearCorruptedAuthState();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setJobLogs([]);
+    }
   };
 
   return (

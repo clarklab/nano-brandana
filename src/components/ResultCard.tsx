@@ -10,17 +10,6 @@ interface ResultCardProps {
   onRetry?: (itemId: string) => void;
 }
 
-// Helper to copy text to clipboard
-const copyTextToClipboard = async (text: string): Promise<boolean> => {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (err) {
-    console.error('Failed to copy text:', err);
-    return false;
-  }
-};
-
 // Helper to copy image to clipboard
 const copyImageToClipboard = async (imageData: string): Promise<boolean> => {
   try {
@@ -42,7 +31,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [timeSaved] = useState(() => calculateTimeSaved()); // Calculate once and persist
   const [currentTime, setCurrentTime] = useState(Date.now());
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
 
   // Generate display name and filename based on input type
@@ -100,15 +88,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
     ? ((currentTime - item.startTime) / 1000).toFixed(1)
     : null;
 
-  // Handle copy prompt
-  const handleCopyPrompt = async () => {
-    const success = await copyTextToClipboard(item.instruction);
-    if (success) {
-      setCopiedPrompt(true);
-      setTimeout(() => setCopiedPrompt(false), 2000);
-    }
-  };
-
   // Handle copy image
   const handleCopyImage = async () => {
     if (item.result?.images && item.result.images[selectedImageIndex]) {
@@ -132,18 +111,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold truncate flex-1 mr-2">{displayName}</h3>
         <div className="flex items-center gap-2">
-          {/* Copy prompt button - only show for text inputs */}
-          {item.input.type === 'text' && (
-            <button
-              onClick={handleCopyPrompt}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-              title="Copy prompt"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                {copiedPrompt ? 'check' : 'content_copy'}
-              </span>
-            </button>
-          )}
           <span className={`px-1 py-0.5 text-xs font-bold ${getStatusColor()}`}>
             {getStatusText()}
           </span>

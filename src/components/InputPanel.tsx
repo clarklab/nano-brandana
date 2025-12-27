@@ -25,7 +25,18 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showPromptInput, setShowPromptInput] = useState(false);
   const [promptText, setPromptText] = useState('');
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const { toggle: playToggleSound, blip: playBlip } = useSounds();
+
+  const handleCopyPrompt = useCallback(async (prompt: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedPromptId(id);
+      setTimeout(() => setCopiedPromptId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy prompt:', err);
+    }
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -182,6 +193,18 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         <p className="text-xs font-bold mb-1">TEXT PROMPT</p>
                         <p className="text-xs font-light line-clamp-2">{input.prompt}</p>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyPrompt(input.prompt, input.id);
+                        }}
+                        className="self-start p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Copy prompt"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          {copiedPromptId === input.id ? 'check' : 'content_copy'}
+                        </span>
+                      </button>
                     </div>
                   )}
                   <button

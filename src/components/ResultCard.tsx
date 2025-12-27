@@ -132,16 +132,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold truncate flex-1 mr-2">{displayName}</h3>
         <div className="flex items-center gap-2">
-          {/* Copy prompt button */}
-          <button
-            onClick={handleCopyPrompt}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-            title="Copy prompt"
-          >
-            <span className="material-symbols-outlined text-[16px]">
-              {copiedPrompt ? 'check' : 'content_copy'}
-            </span>
-          </button>
+          {/* Copy prompt button - only show for text inputs */}
+          {item.input.type === 'text' && (
+            <button
+              onClick={handleCopyPrompt}
+              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+              title="Copy prompt"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {copiedPrompt ? 'check' : 'content_copy'}
+              </span>
+            </button>
+          )}
           <span className={`px-1 py-0.5 text-xs font-bold ${getStatusColor()}`}>
             {getStatusText()}
           </span>

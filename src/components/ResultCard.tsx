@@ -10,11 +10,40 @@ interface ResultCardProps {
   onRetry?: (itemId: string) => void;
 }
 
+// Helper to copy text to clipboard
+const copyTextToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error('Failed to copy text:', err);
+    return false;
+  }
+};
+
+// Helper to copy image to clipboard
+const copyImageToClipboard = async (imageData: string): Promise<boolean> => {
+  try {
+    const blob = base64ToBlob(imageData);
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        [blob.type]: blob
+      })
+    ]);
+    return true;
+  } catch (err) {
+    console.error('Failed to copy image:', err);
+    return false;
+  }
+};
+
 export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onOpenLightbox, onRetry }) => {
   const [showOriginal, setShowOriginal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [timeSaved] = useState(() => calculateTimeSaved()); // Calculate once and persist
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedImage, setCopiedImage] = useState(false);
 
   // Generate display name and filename based on input type
   const displayName = getInputDisplayName(item.input);
@@ -71,11 +100,48 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
     ? ((currentTime - item.startTime) / 1000).toFixed(1)
     : null;
 
+  // Handle copy prompt
+  const handleCopyPrompt = async () => {
+    const success = await copyTextToClipboard(item.instruction);
+    if (success) {
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    }
+  };
+
+  // Handle copy image
+  const handleCopyImage = async () => {
+    if (item.result?.images && item.result.images[selectedImageIndex]) {
+      const success = await copyImageToClipboard(item.result.images[selectedImageIndex]);
+      if (success) {
+        setCopiedImage(true);
+        setTimeout(() => setCopiedImage(false), 2000);
+      }
+    }
+  };
+
+  // Handle redo image
+  const handleRedo = () => {
+    if (onRetry) {
+      onRetry(item.id);
+    }
+  };
+
   return (
     <div className="border-2 border-black dark:border-gray-600 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold truncate flex-1 mr-2">{displayName}</h3>
         <div className="flex items-center gap-2">
+          {/* Copy prompt button */}
+          <button
+            onClick={handleCopyPrompt}
+            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+            title="Copy prompt"
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {copiedPrompt ? 'check' : 'content_copy'}
+            </span>
+          </button>
           <span className={`px-1 py-0.5 text-xs font-bold ${getStatusColor()}`}>
             {getStatusText()}
           </span>
@@ -231,9 +297,26 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   onOpenLightbox(item.result.images, selectedImageIndex, displayName);
                 }
               }}
-              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-bold hover:bg-neon transition-colors"
+              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors"
+              title="View image"
             >
-              VIEW
+              <span className="material-symbols-outlined text-[16px]">zoom_in</span>
+            </button>
+            <button
+              onClick={handleCopyImage}
+              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors"
+              title="Copy image"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {copiedImage ? 'check' : 'content_copy'}
+              </span>
+            </button>
+            <button
+              onClick={handleRedo}
+              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors"
+              title="Redo image"
+            >
+              <span className="material-symbols-outlined text-[16px]">refresh</span>
             </button>
           </div>
 

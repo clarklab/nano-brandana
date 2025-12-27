@@ -1,11 +1,10 @@
 # Netlify redirects for SPA (Single Page Application)
 # This ensures all routes are handled by the React app, including auth callbacks
 
-# API routes - let them through to Netlify Functions
-/.netlify/* /.netlify/* 200
-
-# All other routes - serve the SPA (index.html)
+# All routes serve the SPA (index.html)
 # This is CRITICAL for Supabase auth callbacks to work
 # When a user clicks the magic link, Supabase redirects to your domain with auth tokens in the URL
 # Without this rule, Netlify would return 404 instead of serving the React app
+#
+# Note: Netlify Functions (/.netlify/*) are automatically handled by Netlify
 /* /index.html 200

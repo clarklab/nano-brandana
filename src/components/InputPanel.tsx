@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { BaseInputItem } from '../lib/concurrency';
 import { formatFileSize } from '../lib/base64';
 import { useSounds } from '../lib/sounds';
@@ -76,6 +76,48 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     }
   }, [promptText, onPromptsAdded]);
 
+  // Handle paste events for clipboard images
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      // Don't intercept paste if user is typing in a text input/textarea
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            // Create a file with a more descriptive name for pasted images
+            const extension = item.type.split('/')[1] || 'png';
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const namedFile = new File([file], `pasted-image-${timestamp}.${extension}`, {
+              type: file.type,
+            });
+            imageFiles.push(namedFile);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        onFilesAdded(imageFiles);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [onFilesAdded]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
@@ -135,7 +177,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 <path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82ZM441-280v-247L337-423l-56-57 200-200 200 200-57 56-103-103v247h-80Z"/>
               </svg>
             </div>
-            <p className="font-bold mb-2">DROP_IMAGES</p>
+            <p className="font-bold mb-2">DROP OR PASTE IMAGES</p>
             <p className="text-sm mb-4">OR</p>
             <div className="flex gap-2 flex-wrap justify-center">
               <label className="cursor-pointer">

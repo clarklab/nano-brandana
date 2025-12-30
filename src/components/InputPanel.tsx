@@ -219,34 +219,39 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         alt={input.file.name}
                         className="w-16 h-16 object-cover border border-black dark:border-gray-600"
                       />
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-6">
                         <p className="text-xs truncate font-bold">{input.file.name}</p>
                         <p className="text-xs font-light">{formatFileSize(input.file.size)}</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <div className="w-16 h-16 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="currentColor">
-                          <path d="M280-280h280v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Zm-80 480q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z"/>
-                        </svg>
+                    <div>
+                      <div className="flex gap-2 pr-6">
+                        <div className="w-16 h-16 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="currentColor">
+                            <path d="M280-280h280v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Zm-80 480q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold mb-1">TEXT PROMPT</p>
+                          <p className="text-xs font-light line-clamp-2">{input.prompt}</p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold mb-1">TEXT PROMPT</p>
-                        <p className="text-xs font-light line-clamp-2">{input.prompt}</p>
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyPrompt(input.prompt, input.id);
+                          }}
+                          className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors text-xs font-bold flex items-center gap-1"
+                          title="Copy prompt"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">
+                            {copiedPromptId === input.id ? 'check' : 'content_copy'}
+                          </span>
+                          <span>COPY</span>
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyPrompt(input.prompt, input.id);
-                        }}
-                        className="self-start p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                        title="Copy prompt"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          {copiedPromptId === input.id ? 'check' : 'content_copy'}
-                        </span>
-                      </button>
                     </div>
                   )}
                   <button

@@ -361,8 +361,10 @@ exports.handler = async (event) => {
     // Also check for images in the content
     const content = result.choices?.[0]?.message?.content;
 
-    // Get tokens used from response
-    const tokensUsed = result.usage?.total_tokens || 1500; // Fallback estimate
+    // Get tokens used from response - sum input + output tokens for accurate billing
+    const promptTokens = result.usage?.prompt_tokens || 0;
+    const completionTokens = result.usage?.completion_tokens || 0;
+    const tokensUsed = result.usage?.total_tokens || (promptTokens + completionTokens) || 1500; // Fallback estimate
 
     // DEDUCT TOKENS: If auth is enabled, deduct tokens from user's balance
     let newTokenBalance = null;

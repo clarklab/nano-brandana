@@ -64,7 +64,7 @@ export const Timer: React.FC<TimerProps> = ({
   // Calculate total cost and time saved from all completed work items
   const successfulItems = workItems.filter(item => item.status === 'completed');
   
-  const totalCost = successfulItems.reduce((sum, item) => {
+  const { totalCost, totalPromptTokens, totalCompletionTokens } = successfulItems.reduce((acc, item) => {
     if (item.result?.usage) {
       const cost = calculateTokenCost(
         item.result.usage.prompt_tokens || 0,
@@ -73,10 +73,14 @@ export const Timer: React.FC<TimerProps> = ({
         item.result.images?.length || 1,
         item.result.imageSize
       );
-      return sum + cost;
+      return {
+        totalCost: acc.totalCost + cost,
+        totalPromptTokens: acc.totalPromptTokens + (item.result.usage.prompt_tokens || 0),
+        totalCompletionTokens: acc.totalCompletionTokens + (item.result.usage.completion_tokens || 0),
+      };
     }
-    return sum;
-  }, 0);
+    return acc;
+  }, { totalCost: 0, totalPromptTokens: 0, totalCompletionTokens: 0 });
   
   // Estimate total time saved (10 minutes per successful image)
   const totalTimeSavedMinutes = successfulItems.length * 10;
@@ -115,6 +119,11 @@ export const Timer: React.FC<TimerProps> = ({
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 font-mono">
             {totalTokens.toLocaleString()}
           </div>
+          {(totalPromptTokens > 0 || totalCompletionTokens > 0) && (
+            <div className="text-2xs text-slate-400 dark:text-slate-500 mt-0.5" title="Input / Output breakdown">
+              {totalPromptTokens.toLocaleString()} in / {totalCompletionTokens.toLocaleString()} out
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-lg p-2.5">

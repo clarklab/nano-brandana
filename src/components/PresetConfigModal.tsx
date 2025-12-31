@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSounds } from '../lib/sounds';
 import { IconPicker } from './IconPicker';
 import { supabase } from '../lib/supabase';
-import { compressImage, validateImageFile, getDataUrlSize } from '../lib/imageCompression';
+import { compressImage, validateImageFile } from '../lib/imageCompression';
 
 interface PresetConfigModalProps {
   isOpen: boolean;
@@ -175,7 +175,7 @@ export function PresetConfigModal({
       }
 
       // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('preset-reference-images')
         .upload(filePath, blob, {
           contentType: 'image/jpeg',

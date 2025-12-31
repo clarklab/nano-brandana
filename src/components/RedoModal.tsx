@@ -121,7 +121,23 @@ export function RedoModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="text-lg font-semibold font-display">Redo Image</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold font-display">Redo Image</h2>
+            {/* Preset pill - show if a preset was used */}
+            {item.presetLabel && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
+                {item.presetIcon && (
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '12px', width: '12px', height: '12px' }}
+                  >
+                    {item.presetIcon}
+                  </span>
+                )}
+                {item.presetLabel}
+              </span>
+            )}
+          </div>
           <button
             onClick={handleClose}
             className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"

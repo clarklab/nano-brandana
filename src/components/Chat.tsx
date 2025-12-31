@@ -5,7 +5,7 @@ import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTex
 import { PresetConfigModal } from './PresetConfigModal';
 
 interface ChatProps {
-  onSendInstruction: (instruction: string, displayText?: string, referenceImageUrls?: string[]) => void;
+  onSendInstruction: (instruction: string, displayText?: string, referenceImageUrls?: string[], presetInfo?: { label: string; icon: string | null }) => void;
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
@@ -130,7 +130,7 @@ export const Chat: React.FC<ChatProps> = ({
           preset.refImage3Url
         ].filter((url): url is string => url !== null);
 
-        onSendInstruction(processedPrompt, displayText, referenceImageUrls.length > 0 ? referenceImageUrls : undefined);
+        onSendInstruction(processedPrompt, displayText, referenceImageUrls.length > 0 ? referenceImageUrls : undefined, { label: preset.label, icon: preset.icon });
         setWaitingForPreset(null);
 
         setTimeout(() => {
@@ -142,14 +142,15 @@ export const Chat: React.FC<ChatProps> = ({
         }, 100);
       } else {
         // Normal instruction or direct preset
-        // If currentPreset is set, include reference images
+        // If currentPreset is set, include reference images and preset info
         const referenceImageUrls = currentPreset ? [
           currentPreset.refImage1Url,
           currentPreset.refImage2Url,
           currentPreset.refImage3Url
         ].filter((url): url is string => url !== null) : [];
 
-        onSendInstruction(userMessage, undefined, referenceImageUrls.length > 0 ? referenceImageUrls : undefined);
+        const presetInfo = currentPreset ? { label: currentPreset.label, icon: currentPreset.icon } : undefined;
+        onSendInstruction(userMessage, undefined, referenceImageUrls.length > 0 ? referenceImageUrls : undefined, presetInfo);
         setCurrentPreset(null); // Clear current preset after use
 
         // Add assistant confirmation message

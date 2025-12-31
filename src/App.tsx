@@ -68,6 +68,7 @@ function App() {
   const [instructions, setInstructions] = useState<string[]>([]);
   const [displayInstructions, setDisplayInstructions] = useState<string[]>([]);
   const [instructionReferenceImages, setInstructionReferenceImages] = useState<Map<number, string[]>>(new Map());
+  const [instructionPresetInfo, setInstructionPresetInfo] = useState<{ label: string; icon: string | null } | null>(null);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentModel, setCurrentModel] = useState('google/gemini-3-pro-image');
@@ -361,7 +362,7 @@ function App() {
     setInputToBase64Map(new Map());
   }, []);
 
-  const handleSendInstruction = useCallback((inst: string, displayText?: string, referenceImageUrls?: string[]) => {
+  const handleSendInstruction = useCallback((inst: string, displayText?: string, referenceImageUrls?: string[], presetInfo?: { label: string; icon: string | null }) => {
     setInstructions(prev => {
       const newInstructions = [...prev, inst];
       // Store reference images for this instruction index
@@ -371,12 +372,17 @@ function App() {
       return newInstructions;
     });
     setDisplayInstructions(prev => [...prev, displayText || inst]);
+    // Store preset info if provided (use the most recent preset for the batch)
+    if (presetInfo) {
+      setInstructionPresetInfo(presetInfo);
+    }
   }, []);
 
   const handleClearInstructions = useCallback(() => {
     setInstructions([]);
     setDisplayInstructions([]);
     setInstructionReferenceImages(new Map());
+    setInstructionPresetInfo(null);
   }, []);
 
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
@@ -439,6 +445,8 @@ function App() {
         referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
         imageSize,
         batchId,
+        presetLabel: instructionPresetInfo?.label,
+        presetIcon: instructionPresetInfo?.icon ?? undefined,
       }];
     } else {
       // Batch mode: create work items for each input separately
@@ -461,6 +469,8 @@ function App() {
           referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
           imageSize,
           batchId,
+          presetLabel: instructionPresetInfo?.label,
+          presetIcon: instructionPresetInfo?.icon ?? undefined,
         };
       });
     }
@@ -469,7 +479,7 @@ function App() {
     batchProcessor.start();
     setIsProcessing(true);
     setBatchStartTime(Date.now());
-  }, [inputs, instructions, instructionReferenceImages, batchProcessor, processingMode, authConfigured, user, profile]);
+  }, [inputs, instructions, instructionReferenceImages, instructionPresetInfo, batchProcessor, processingMode, authConfigured, user, profile]);
 
   // Check if processing is complete
   useEffect(() => {

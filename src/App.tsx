@@ -545,6 +545,42 @@ function App() {
     setLightboxOpen(false);
   }, []);
 
+  // Update lightbox images reactively when new images come in while lightbox is open
+  useEffect(() => {
+    if (!lightboxOpen) return;
+
+    // Recollect all images from completed work items
+    const allImages: string[] = [];
+    const allOriginalImages: string[] = [];
+
+    workItems.forEach(item => {
+      if (item.status === 'completed' && item.result?.images && item.result.images.length > 0) {
+        // Get original image for this item
+        let originalImage = '';
+        if (item.input.type === 'image') {
+          originalImage = inputToBase64Map.get(item.input.file.name) || '';
+        } else if (item.input.type === 'composite') {
+          const imageItem = item.input.items.find(i => i.type === 'image');
+          if (imageItem && imageItem.type === 'image') {
+            originalImage = inputToBase64Map.get(imageItem.file.name) || '';
+          }
+        }
+
+        item.result.images.forEach(img => {
+          allImages.push(img);
+          allOriginalImages.push(originalImage);
+        });
+      }
+    });
+
+    // Update the images if they've changed
+    if (allImages.length !== lightboxImages.length) {
+      setLightboxImages(allImages);
+      setLightboxOriginalImages(allOriginalImages);
+      setLightboxTitle(`All Results (${allImages.length} images)`);
+    }
+  }, [lightboxOpen, workItems, inputToBase64Map, lightboxImages.length]);
+
   return (
     <div className="h-[var(--vh-full)] flex flex-col bg-surface dark:bg-surface-dark overflow-hidden">
       {/* Header */}

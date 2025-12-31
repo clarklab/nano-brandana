@@ -238,10 +238,31 @@ function App() {
     }, concurrency, staggerDelay);
   }, [currentModel, inputToBase64Map, inputs.length]);
 
-  const handleRetryItem = useCallback((itemId: string) => {
-    console.log('Retrying item:', itemId);
-    batchProcessor.retryItem(itemId);
-  }, [batchProcessor]);
+  const handleRedoItem = useCallback((itemId: string) => {
+    console.log('Redo requested for item:', itemId);
+
+    // Find the item in React state (which persists across batchProcessor recreations)
+    const sourceItem = workItems.find(item => item.id === itemId);
+    if (!sourceItem) {
+      console.error('Could not find item to redo:', itemId);
+      return;
+    }
+
+    if (sourceItem.status !== 'completed' && sourceItem.status !== 'failed') {
+      console.log('Item is not in a state that can be redone:', sourceItem.status);
+      return;
+    }
+
+    // Create a new work item from the source item data
+    const newId = batchProcessor.createRedoFromItem(sourceItem);
+    console.log('Created new redo item with ID:', newId);
+
+    // Set processing state
+    setIsProcessing(true);
+    if (!batchStartTime) {
+      setBatchStartTime(Date.now());
+    }
+  }, [batchProcessor, workItems, batchStartTime]);
 
   // Subscribe to updates
   useEffect(() => {
@@ -763,7 +784,7 @@ function App() {
                       item={item}
                       originalImage={originalImage}
                       onOpenLightbox={handleOpenLightbox}
-                      onRetry={handleRetryItem}
+                      onRetry={handleRedoItem}
                     />
                   );
                 })}

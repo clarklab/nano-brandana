@@ -236,13 +236,13 @@ export function IconPicker({ selectedIcon, onSelectIcon }: IconPickerProps) {
                 No icons found
               </div>
             ) : (
-              <div className="grid grid-cols-6 gap-1.5">
+              <div className="grid grid-cols-6 gap-1">
                 {filteredIcons.map((icon) => (
                   <button
                     key={icon.name}
                     type="button"
                     onClick={() => handleSelectIcon(icon.name)}
-                    className={`p-2 rounded-lg transition-all duration-150 flex items-center justify-center ${
+                    className={`w-9 h-9 rounded-lg transition-all duration-150 flex items-center justify-center ${
                       selectedIcon === icon.name
                         ? 'bg-neon/20 ring-2 ring-neon text-slate-900 dark:text-white'
                         : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
@@ -250,8 +250,8 @@ export function IconPicker({ selectedIcon, onSelectIcon }: IconPickerProps) {
                     title={icon.name}
                   >
                     <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: '22px', width: '22px', height: '22px' }}
+                      className="material-symbols-outlined leading-none"
+                      style={{ fontSize: '20px' }}
                     >
                       {icon.name}
                     </span>

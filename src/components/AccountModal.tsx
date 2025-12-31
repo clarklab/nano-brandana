@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Profile, JobLog } from '../lib/supabase';
+import { Profile, JobLog, DEFAULT_HOURLY_RATE } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { BuyTokensModal } from './BuyTokensModal';
 
 interface BatchGroup {
@@ -27,6 +28,43 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
   const [isBuyTokensOpen, setIsBuyTokensOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { updateHourlyRate } = useAuth();
+
+  // Hourly rate state
+  const [hourlyRateInput, setHourlyRateInput] = useState<string>('');
+  const [isSavingRate, setIsSavingRate] = useState(false);
+  const [rateSaveStatus, setRateSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+
+  // Initialize hourly rate input from profile
+  useEffect(() => {
+    if (profile?.hourly_rate !== undefined) {
+      setHourlyRateInput(profile.hourly_rate !== null ? String(profile.hourly_rate) : '');
+    }
+  }, [profile?.hourly_rate]);
+
+  // Handle hourly rate save
+  const handleSaveHourlyRate = async () => {
+    const rate = hourlyRateInput.trim() === '' ? null : parseFloat(hourlyRateInput);
+
+    // Validate
+    if (rate !== null && (isNaN(rate) || rate < 0 || rate > 10000)) {
+      setRateSaveStatus('error');
+      setTimeout(() => setRateSaveStatus('idle'), 2000);
+      return;
+    }
+
+    setIsSavingRate(true);
+    const success = await updateHourlyRate(rate);
+    setIsSavingRate(false);
+
+    if (success) {
+      setRateSaveStatus('saved');
+      setTimeout(() => setRateSaveStatus('idle'), 2000);
+    } else {
+      setRateSaveStatus('error');
+      setTimeout(() => setRateSaveStatus('idle'), 2000);
+    }
+  };
 
   // Refresh job logs when modal opens
   useEffect(() => {
@@ -203,6 +241,52 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
                 />
               </button>
             </div>
+
+            {/* Hourly Rate Setting - only for logged in users */}
+            {email && (
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.732 6.232a2.5 2.5 0 0 1 3.536 0 .75.75 0 1 0 1.06-1.06A4 4 0 0 0 6.5 8v.165c0 .364.034.728.1 1.085h-.35a.75.75 0 0 0 0 1.5h.737a5.25 5.25 0 0 0 .346.975H6.75a.75.75 0 0 0 0 1.5h2.14c.085.049.17.097.256.143a4.001 4.001 0 0 0 4.222-.428.75.75 0 1 0-.888-1.21 2.5 2.5 0 0 1-3.522-.478h1.793a.75.75 0 0 0 0-1.5h-2.35a3.741 3.741 0 0 1-.163-.975h2.763a.75.75 0 0 0 0-1.5h-2.5c0-.101.003-.2.01-.3A2.5 2.5 0 0 1 8.732 6.232Z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200 block mb-1">
+                      Hourly Rate (Estimate)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                        <input
+                          type="number"
+                          value={hourlyRateInput}
+                          onChange={(e) => setHourlyRateInput(e.target.value)}
+                          onBlur={handleSaveHourlyRate}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveHourlyRate()}
+                          placeholder={String(DEFAULT_HOURLY_RATE)}
+                          min="0"
+                          max="10000"
+                          step="1"
+                          className="w-full pl-7 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-neon/50 focus:border-neon"
+                        />
+                      </div>
+                      <span className="text-xs text-slate-400">/hr</span>
+                      {isSavingRate && (
+                        <div className="w-4 h-4 border-2 border-neon/30 border-t-neon rounded-full animate-spin" />
+                      )}
+                      {rateSaveStatus === 'saved' && (
+                        <span className="text-emerald-500 text-xs">Saved</span>
+                      )}
+                      {rateSaveStatus === 'error' && (
+                        <span className="text-red-500 text-xs">Error</span>
+                      )}
+                    </div>
+                    <p className="text-2xs text-slate-400 dark:text-slate-500 mt-1.5">
+                      Used to calculate the "money saved" metrics, that's all.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

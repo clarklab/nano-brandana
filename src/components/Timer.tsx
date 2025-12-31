@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { calculateTokenCost, formatUSD, formatTime as formatTimeSaved } from '../lib/pricing';
+import { calculateTokenCost, formatUSD, formatTime as formatTimeSaved, calculateMoneySaved, formatMoneySaved } from '../lib/pricing';
+import { DEFAULT_HOURLY_RATE } from '../lib/supabase';
 
 interface TimerProps {
   startTime: number | null;
@@ -7,6 +8,7 @@ interface TimerProps {
   totalElapsed: number;
   totalTokens: number;
   hasCompletedWork?: boolean;
+  hourlyRate?: number | null; // User's hourly rate for money saved calculation
   workItems?: Array<{
     status?: string;
     result?: {
@@ -21,12 +23,13 @@ interface TimerProps {
   }>;
 }
 
-export const Timer: React.FC<TimerProps> = ({ 
-  startTime, 
-  isRunning, 
+export const Timer: React.FC<TimerProps> = ({
+  startTime,
+  isRunning,
   totalElapsed,
   totalTokens,
   hasCompletedWork = false,
+  hourlyRate,
   workItems = []
 }) => {
   console.log('Timer render:', { isRunning, hasCompletedWork, startTime });
@@ -77,10 +80,15 @@ export const Timer: React.FC<TimerProps> = ({
   
   // Estimate total time saved (10 minutes per successful image)
   const totalTimeSavedMinutes = successfulItems.length * 10;
-  
+
+  // Calculate money saved based on hourly rate
+  const effectiveHourlyRate = hourlyRate ?? DEFAULT_HOURLY_RATE;
+  const totalMoneySaved = calculateMoneySaved(totalTimeSavedMinutes, effectiveHourlyRate);
+
   console.log('Timer metrics - successful items count:', successfulItems.length);
   console.log('Timer metrics - total time saved minutes:', totalTimeSavedMinutes);
   console.log('Timer metrics - formatted time:', formatTimeSaved(totalTimeSavedMinutes));
+  console.log('Timer metrics - money saved:', totalMoneySaved, 'at rate:', effectiveHourlyRate);
   console.log('Timer metrics - all statuses:', workItems.map(item => item.status));
 
   return (
@@ -117,21 +125,34 @@ export const Timer: React.FC<TimerProps> = ({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <div className="text-xs text-slate-500 dark:text-slate-400">
-          Time saved: <span className="font-medium text-emerald-600 dark:text-emerald-400">{totalTimeSavedMinutes > 0 ? formatTimeSaved(totalTimeSavedMinutes) : '0m'}</span>
+      <div className="mt-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            Time saved: <span className="font-medium text-emerald-600 dark:text-emerald-400">{totalTimeSavedMinutes > 0 ? formatTimeSaved(totalTimeSavedMinutes) : '0m'}</span>
+          </div>
+
+          {(isRunning || hasCompletedWork) && (
+            <div className="flex items-center gap-1.5">
+              {isRunning && !hasCompletedWork ? (
+                <div className="w-2 h-2 bg-neon rounded-full animate-pulse"></div>
+              ) : (
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              )}
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                {isRunning && !hasCompletedWork ? 'Active' : 'Complete'}
+              </span>
+            </div>
+          )}
         </div>
 
-        {(isRunning || hasCompletedWork) && (
-          <div className="flex items-center gap-1.5">
-            {isRunning && !hasCompletedWork ? (
-              <div className="w-2 h-2 bg-neon rounded-full animate-pulse"></div>
-            ) : (
-              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-            )}
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-              {isRunning && !hasCompletedWork ? 'Active' : 'Complete'}
-            </span>
+        {totalMoneySaved > 0 && (
+          <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2">
+            <div className="text-xs text-emerald-700 dark:text-emerald-300">
+              💰 Value saved
+            </div>
+            <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              {formatMoneySaved(totalMoneySaved)}
+            </div>
           </div>
         )}
       </div>

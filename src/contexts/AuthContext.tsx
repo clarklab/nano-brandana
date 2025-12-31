@@ -13,6 +13,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   refreshJobLogs: () => Promise<void>;
   updateTokenBalance: (newBalance: number) => void;
+  updateHourlyRate: (rate: number | null) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             tokens_used: 0,
             last_login: new Date().toISOString(),
             created_at: new Date().toISOString(),
+            hourly_rate: null,
           });
         }
         return;
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           tokens_used: 0,
           last_login: new Date().toISOString(),
           created_at: new Date().toISOString(),
+          hourly_rate: null,
         });
       }
     }
@@ -123,6 +126,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokens_remaining: newBalance,
         tokens_used: prev.tokens_used + (prev.tokens_remaining - newBalance)
       } : null);
+    }
+  };
+
+  const updateHourlyRate = async (rate: number | null): Promise<boolean> => {
+    if (!user || !isSupabaseConfigured) {
+      console.log('[updateHourlyRate] No user or Supabase not configured');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ hourly_rate: rate })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('[updateHourlyRate] Error:', error);
+        return false;
+      }
+
+      // Update local state
+      setProfile(prev => prev ? { ...prev, hourly_rate: rate } : null);
+      console.log('[updateHourlyRate] Success, new rate:', rate);
+      return true;
+    } catch (err) {
+      console.error('[updateHourlyRate] Catch error:', err);
+      return false;
     }
   };
 
@@ -322,7 +352,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       refreshProfile,
       refreshJobLogs,
-      updateTokenBalance
+      updateTokenBalance,
+      updateHourlyRate
     }}>
       {children}
     </AuthContext.Provider>

@@ -37,6 +37,8 @@ export interface BatchProcessor {
   start(): void;
   stop(): void;
   retryItem(itemId: string): void;
+  redoItem(itemId: string): string | null; // Creates a NEW item based on existing, returns new item ID
+  createRedoFromItem(sourceItem: WorkItem): string; // Creates a NEW item from provided item data
   getItems(): WorkItem[];
   onUpdate(callback: (items: WorkItem[]) => void): void;
   isProcessing(): boolean;
@@ -204,6 +206,67 @@ export function createBatchProcessor(
           processQueue();
         }
       }
+    },
+
+    redoItem(itemId: string): string | null {
+      const item = items.find(i => i.id === itemId);
+      if (item && (item.status === 'failed' || item.status === 'completed')) {
+        // Create a NEW item based on the existing one
+        const newId = `${Date.now()}-redo-${Math.random().toString(36).substring(2, 7)}`;
+        const newItem: WorkItem = {
+          id: newId,
+          input: item.input,
+          instruction: item.instruction,
+          imageSize: item.imageSize,
+          batchId: item.batchId,
+          status: 'queued',
+          retries: 0,
+        };
+
+        console.log('Creating redo item:', getInputDisplayName(item.input), 'new ID:', newId);
+
+        // Add new item to the list (after the original)
+        const originalIndex = items.indexOf(item);
+        items.splice(originalIndex + 1, 0, newItem);
+        notifyUpdate();
+
+        // Start processing if not already running
+        if (!processing) {
+          processing = true;
+          processQueue();
+        }
+
+        return newId;
+      }
+      return null;
+    },
+
+    // Create a redo from external item data (when internal items might be stale)
+    createRedoFromItem(sourceItem: WorkItem): string {
+      const newId = `${Date.now()}-redo-${Math.random().toString(36).substring(2, 7)}`;
+      const newItem: WorkItem = {
+        id: newId,
+        input: sourceItem.input,
+        instruction: sourceItem.instruction,
+        imageSize: sourceItem.imageSize,
+        batchId: sourceItem.batchId,
+        status: 'queued',
+        retries: 0,
+      };
+
+      console.log('Creating redo from external item:', getInputDisplayName(sourceItem.input), 'new ID:', newId);
+
+      // Add new item to the end of the list
+      items.push(newItem);
+      notifyUpdate();
+
+      // Start processing if not already running
+      if (!processing) {
+        processing = true;
+        processQueue();
+      }
+
+      return newId;
     },
 
     isProcessing() {

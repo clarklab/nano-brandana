@@ -15,6 +15,7 @@ export interface WorkItem {
   id: string;
   input: InputItem; // Changed from 'file: File' to support both types
   instruction: string;
+  referenceImageUrls?: string[]; // Reference images from presets (max 3)
   imageSize?: '1K' | '2K' | '4K';
   batchId?: string; // Groups logs from a single batch run
   status: 'queued' | 'processing' | 'completed' | 'failed';

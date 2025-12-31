@@ -51,6 +51,7 @@ function App() {
   const [inputs, setInputs] = useState<BaseInputItem[]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
   const [displayInstructions, setDisplayInstructions] = useState<string[]>([]);
+  const [instructionReferenceImages, setInstructionReferenceImages] = useState<Map<number, string[]>>(new Map());
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentModel, setCurrentModel] = useState('google/gemini-3-pro-image');
@@ -166,12 +167,39 @@ function App() {
         }
         // For text inputs, both base64 and base64Array remain undefined
 
+        // Fetch and convert reference images if present
+        let referenceImages: string[] | undefined;
+        if (item.referenceImageUrls && item.referenceImageUrls.length > 0) {
+          referenceImages = [];
+          for (const url of item.referenceImageUrls) {
+            try {
+              // Fetch the image from the URL
+              const response = await fetch(url);
+              const blob = await response.blob();
+
+              // Convert blob to base64
+              const base64Ref = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+
+              referenceImages.push(base64Ref);
+            } catch (err) {
+              console.error('Failed to fetch reference image:', url, err);
+              // Continue without this reference image rather than failing
+            }
+          }
+        }
+
         const inputName = getInputDisplayName(item.input);
-        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize, 'images:', base64Array?.length || (base64 ? 1 : 0));
+        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize, 'images:', base64Array?.length || (base64 ? 1 : 0), 'reference images:', referenceImages?.length || 0);
         const result = await retryWithBackoff(
           () => processImage({
             image: base64, // undefined for text-only or composite
             images: base64Array, // array for composite (Single Job mode)
+            referenceImages, // Reference images from presets
             instruction: item.instruction,
             model: currentModel,
             imageSize: item.imageSize || '1K',
@@ -317,14 +345,22 @@ function App() {
     setInputToBase64Map(new Map());
   }, []);
 
-  const handleSendInstruction = useCallback((inst: string, displayText?: string) => {
-    setInstructions(prev => [...prev, inst]);
+  const handleSendInstruction = useCallback((inst: string, displayText?: string, referenceImageUrls?: string[]) => {
+    setInstructions(prev => {
+      const newInstructions = [...prev, inst];
+      // Store reference images for this instruction index
+      if (referenceImageUrls && referenceImageUrls.length > 0) {
+        setInstructionReferenceImages(map => new Map(map).set(newInstructions.length - 1, referenceImageUrls));
+      }
+      return newInstructions;
+    });
     setDisplayInstructions(prev => [...prev, displayText || inst]);
   }, []);
 
   const handleClearInstructions = useCallback(() => {
     setInstructions([]);
     setDisplayInstructions([]);
+    setInstructionReferenceImages(new Map());
   }, []);
 
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
@@ -352,6 +388,12 @@ function App() {
     // Combine all global instructions
     const globalInstruction = instructions.join('. ');
 
+    // Collect all reference images from all instructions
+    const allReferenceImageUrls: string[] = [];
+    instructionReferenceImages.forEach((urls) => {
+      allReferenceImageUrls.push(...urls);
+    });
+
     // Generate a batch ID to group all items from this run
     const batchId = `batch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -378,6 +420,7 @@ function App() {
       newItems = [{
         input: compositeInput,
         instruction: finalInstruction,
+        referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
         imageSize,
         batchId,
       }];
@@ -399,6 +442,7 @@ function App() {
         return {
           input,
           instruction: finalInstruction,
+          referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
           imageSize,
           batchId,
         };
@@ -409,7 +453,7 @@ function App() {
     batchProcessor.start();
     setIsProcessing(true);
     setBatchStartTime(Date.now());
-  }, [inputs, instructions, batchProcessor, processingMode, authConfigured, user, profile]);
+  }, [inputs, instructions, instructionReferenceImages, batchProcessor, processingMode, authConfigured, user, profile]);
 
   // Check if processing is complete
   useEffect(() => {

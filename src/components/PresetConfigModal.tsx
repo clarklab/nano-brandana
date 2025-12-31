@@ -3,6 +3,8 @@ import { RuntimePreset } from '../hooks/useUserPresets';
 import { useAuth } from '../contexts/AuthContext';
 import { useSounds } from '../lib/sounds';
 import { IconPicker } from './IconPicker';
+import { supabase } from '../lib/supabase';
+import { compressImage, validateImageFile } from '../lib/imageCompression';
 
 interface PresetConfigModalProps {
   isOpen: boolean;
@@ -29,6 +31,9 @@ interface EditingPreset {
   validationErrorMessage: string;
   displayOrder: number;
   isDefault: boolean;
+  refImage1Url: string | null;
+  refImage2Url: string | null;
+  refImage3Url: string | null;
 }
 
 const emptyPreset: EditingPreset = {
@@ -45,6 +50,9 @@ const emptyPreset: EditingPreset = {
   validationErrorMessage: '',
   displayOrder: 0,
   isDefault: false,
+  refImage1Url: null,
+  refImage2Url: null,
+  refImage3Url: null,
 };
 
 function presetToEditing(preset: RuntimePreset): EditingPreset {
@@ -63,6 +71,9 @@ function presetToEditing(preset: RuntimePreset): EditingPreset {
     validationErrorMessage: preset.validationErrorMessage || '',
     displayOrder: preset.displayOrder,
     isDefault: preset.isDefault,
+    refImage1Url: preset.refImage1Url,
+    refImage2Url: preset.refImage2Url,
+    refImage3Url: preset.refImage3Url,
   };
 }
 
@@ -82,6 +93,7 @@ export function PresetConfigModal({
   const [editingPreset, setEditingPreset] = useState<EditingPreset | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingImageIndex, setUploadingImageIndex] = useState<number | null>(null);
 
   // Handle open/close animations
   useEffect(() => {
@@ -129,6 +141,111 @@ export function PresetConfigModal({
     setError(null);
   }, [playClick]);
 
+  const handleReferenceImageUpload = useCallback(async (file: File, index: number) => {
+    if (!editingPreset || !user) return;
+
+    // Validate file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid image file');
+      return;
+    }
+
+    setUploadingImageIndex(index);
+    setError(null);
+
+    try {
+      // Compress the image to max 1MB
+      const compressed = await compressImage(file);
+      console.log(`Compressed image ${index}: ${(compressed.sizeBytes / 1024).toFixed(1)}KB`);
+
+      // Convert data URL to Blob for upload
+      const response = await fetch(compressed.dataUrl);
+      const blob = await response.blob();
+
+      // Generate file path: {user_id}/{preset_id}/ref-{index}.jpg
+      const presetId = editingPreset.id || `temp-${Date.now()}`;
+      const filePath = `${user.id}/${presetId}/ref-${index}.jpg`;
+
+      // Delete old file if exists
+      const oldUrl = index === 0 ? editingPreset.refImage1Url : index === 1 ? editingPreset.refImage2Url : editingPreset.refImage3Url;
+      if (oldUrl) {
+        const oldPath = oldUrl.split('/').slice(-3).join('/'); // Extract path from URL
+        await supabase.storage.from('preset-reference-images').remove([oldPath]);
+      }
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('preset-reference-images')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('preset-reference-images')
+        .getPublicUrl(filePath);
+
+      // Update editing preset with new URL
+      if (index === 0) {
+        setEditingPreset({ ...editingPreset, refImage1Url: publicUrl });
+      } else if (index === 1) {
+        setEditingPreset({ ...editingPreset, refImage2Url: publicUrl });
+      } else {
+        setEditingPreset({ ...editingPreset, refImage3Url: publicUrl });
+      }
+
+      playBlip();
+    } catch (err) {
+      console.error('Reference image upload error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload reference image');
+    } finally {
+      setUploadingImageIndex(null);
+    }
+  }, [editingPreset, user, playBlip]);
+
+  const handleReferenceImageDelete = useCallback(async (index: number) => {
+    if (!editingPreset || !user) return;
+
+    const url = index === 0 ? editingPreset.refImage1Url : index === 1 ? editingPreset.refImage2Url : editingPreset.refImage3Url;
+    if (!url) return;
+
+    setError(null);
+
+    try {
+      // Extract file path from URL
+      const filePath = url.split('/').slice(-3).join('/');
+
+      // Delete from storage
+      const { error: deleteError } = await supabase.storage
+        .from('preset-reference-images')
+        .remove([filePath]);
+
+      if (deleteError) {
+        throw new Error(`Delete failed: ${deleteError.message}`);
+      }
+
+      // Update editing preset
+      if (index === 0) {
+        setEditingPreset({ ...editingPreset, refImage1Url: null });
+      } else if (index === 1) {
+        setEditingPreset({ ...editingPreset, refImage2Url: null });
+      } else {
+        setEditingPreset({ ...editingPreset, refImage3Url: null });
+      }
+
+      playClick();
+    } catch (err) {
+      console.error('Reference image delete error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete reference image');
+    }
+  }, [editingPreset, user, playClick]);
+
   const handleSave = useCallback(async () => {
     if (!editingPreset) return;
     if (!user) {
@@ -169,6 +286,9 @@ export function PresetConfigModal({
         validationErrorMessage: editingPreset.validationErrorMessage.trim() || null,
         displayOrder: editingPreset.displayOrder,
         isDefault: editingPreset.isDefault,
+        refImage1Url: editingPreset.refImage1Url,
+        refImage2Url: editingPreset.refImage2Url,
+        refImage3Url: editingPreset.refImage3Url,
       });
       playBlip();
       setEditingPreset(null);
@@ -500,6 +620,79 @@ export function PresetConfigModal({
                   </div>
                 </>
               )}
+
+              {/* Reference Images */}
+              <div className="bg-slate-50 dark:bg-slate-700/30 rounded-xl p-4 space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">
+                    Reference Images (Optional)
+                  </label>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Add up to 3 reference images that will be sent with every request using this preset.
+                    Great for consistent subjects like people, products, or locations.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[0, 1, 2].map((index) => {
+                    const url = index === 0 ? editingPreset.refImage1Url : index === 1 ? editingPreset.refImage2Url : editingPreset.refImage3Url;
+                    const isUploading = uploadingImageIndex === index;
+
+                    return (
+                      <div key={index} className="relative">
+                        {url ? (
+                          // Show existing image
+                          <div className="relative aspect-square rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-600 group">
+                            <img
+                              src={url}
+                              alt={`Reference ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              onClick={() => handleReferenceImageDelete(index)}
+                              disabled={isUploading}
+                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                              title="Delete"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          // Show upload zone
+                          <label className="relative aspect-square rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-neon dark:hover:border-neon transition-colors cursor-pointer flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-700/50">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleReferenceImageUpload(file, index);
+                                e.target.value = ''; // Reset input
+                              }}
+                              disabled={isUploading}
+                              className="hidden"
+                            />
+                            {isUploading ? (
+                              <div className="w-6 h-6 border-2 border-slate-300 border-t-neon rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-slate-400 dark:text-slate-500 mb-1">
+                                  <path fillRule="evenodd" d="M11.47 2.47a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06l-3.22-3.22V16.5a.75.75 0 0 1-1.5 0V4.81L8.03 8.03a.75.75 0 0 1-1.06-1.06l4.5-4.5ZM3 15.75a.75.75 0 0 1 .75.75v2.25a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5V16.5a.75.75 0 0 1 1.5 0v2.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V16.5a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">Upload</span>
+                              </>
+                            )}
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Images are automatically compressed to max 1MB each.
+                </p>
+              </div>
 
               {/* Error */}
               {error && (

@@ -168,17 +168,37 @@ export function useUserPresets(): UseUserPresetsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Build a map of default icons by label for fallback
+  const defaultIconsByLabel = useMemo(() => {
+    const map = new Map<string, string | null>();
+    DEFAULT_PRESETS.forEach(p => {
+      map.set(p.label.toLowerCase(), p.icon);
+    });
+    return map;
+  }, []);
+
   // Convert to runtime presets, filtering hidden ones and sorting by display_order
+  // Also fills in missing icons from defaults for backwards compatibility
   const presets = useMemo<RuntimePreset[]>(() => {
     if (dbPresets && dbPresets.length > 0) {
       return dbPresets
         .filter(p => !p.is_hidden)
         .sort((a, b) => a.display_order - b.display_order)
-        .map(p => toRuntimePreset(p));
+        .map(p => {
+          const runtime = toRuntimePreset(p);
+          // If icon is missing, try to get it from defaults by matching label
+          if (!runtime.icon) {
+            const defaultIcon = defaultIconsByLabel.get(p.label.toLowerCase());
+            if (defaultIcon) {
+              runtime.icon = defaultIcon;
+            }
+          }
+          return runtime;
+        });
     }
     // Fall back to defaults
     return DEFAULT_PRESETS.map((p, i) => toRuntimePreset(p, i));
-  }, [dbPresets]);
+  }, [dbPresets, defaultIconsByLabel]);
 
   // Fetch presets from database
   const fetchPresets = useCallback(async () => {

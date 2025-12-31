@@ -177,8 +177,22 @@ export const Chat: React.FC<ChatProps> = ({
    * Handle clicking a preset button.
    * For 'direct' presets: Puts the prompt in the textarea for user to review/edit.
    * For 'ask' presets: Shows a follow-up question and waits for user input.
+   * Clicking the same preset again toggles it off.
    */
   const handlePreset = useCallback((preset: RuntimePreset) => {
+    // Check if this preset is already active - if so, toggle it off
+    const isCurrentlyActive = currentPreset?.id === preset.id || waitingForPreset?.id === preset.id;
+
+    if (isCurrentlyActive) {
+      // Toggle off - clear the active state
+      setCurrentPreset(null);
+      setWaitingForPreset(null);
+      setInstruction(''); // Clear the textarea
+      playClick();
+      return;
+    }
+
+    // Activate the preset
     if (preset.presetType === 'ask' && preset.askMessage) {
       // Start the ask flow for this preset
       setMessages(prev => [...prev, {
@@ -187,14 +201,17 @@ export const Chat: React.FC<ChatProps> = ({
         isTyping: true
       }]);
       setWaitingForPreset(preset);
+      setCurrentPreset(null); // Clear any direct preset
       textareaRef.current?.focus();
     } else {
       // Direct preset - put the prompt in the textarea and remember the preset
       setInstruction(preset.prompt);
       setCurrentPreset(preset); // Remember this preset for reference images
+      setWaitingForPreset(null); // Clear any ask preset
       textareaRef.current?.focus();
     }
-  }, []);
+    playClick();
+  }, [currentPreset, waitingForPreset, playClick]);
 
   const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;

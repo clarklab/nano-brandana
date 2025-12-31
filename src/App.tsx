@@ -552,7 +552,7 @@ function App() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/peel.svg" alt="Peel" className="size-7 md:size-8 dark:invert" />
-            <h1 className="text-xl md:text-2xl font-bold font-display tracking-tight">Peel</h1>
+            <h1 className="text-xl md:text-2xl font-medium font-display tracking-tight">Peel</h1>
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">

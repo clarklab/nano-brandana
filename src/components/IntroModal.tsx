@@ -31,7 +31,7 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
             <div className="flex items-center gap-4 mb-8">
               <img src="/peel.svg" alt="Peel" className="w-14 h-14" />
               <div>
-                <h1 className="text-2xl font-bold font-display tracking-tight">Peel</h1>
+                <h1 className="text-2xl font-medium font-display tracking-tight">Peel</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Batch image editor for brands</p>
               </div>
             </div>

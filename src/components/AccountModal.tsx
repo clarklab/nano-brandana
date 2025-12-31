@@ -112,88 +112,93 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 p-6 max-w-md w-full relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated p-6 max-w-md w-full relative max-h-[90vh] overflow-y-auto animate-slide-up">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-2xl leading-none hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"
           aria-label="Close"
         >
-          &times;
+          <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" className="text-slate-500" fill="currentColor">
+            <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+          </svg>
         </button>
 
         {/* Header */}
         <div className="mb-6 pr-8">
-          <h2 className="text-lg font-bold">{email ? 'ACCOUNT' : 'SETTINGS'}</h2>
+          <h2 className="text-lg font-semibold font-display">{email ? 'Account' : 'Settings'}</h2>
         </div>
 
         {/* Account Details - only shown for logged in users */}
         {email && (
           <div className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400">EMAIL</label>
-              <p className="text-sm font-bold truncate">{email}</p>
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Email</label>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate mt-0.5">{email}</p>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400">TOKENS REMAINING</label>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-sm font-bold text-neon-text">
-                  {profile?.tokens_remaining?.toLocaleString() || '0'}
-                </p>
+            <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tokens Remaining</label>
+                  <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                    {profile?.tokens_remaining?.toLocaleString() || '0'}
+                  </p>
+                </div>
                 <button
                   onClick={() => setIsBuyTokensOpen(true)}
-                  className="px-3 py-1 text-xs font-bold border-2 border-neon bg-neon text-black hover:bg-neon-light transition-colors"
+                  className="btn-primary py-2 text-sm"
                 >
-                  BUY TOKENS
+                  Buy Tokens
                 </button>
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400">TOKENS USED</label>
-              <p className="text-sm font-bold">
-                {profile?.tokens_used?.toLocaleString() || '0'}
-              </p>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400">LAST LOGIN</label>
-              <p className="text-sm">
-                {formatDate(profile?.last_login)}
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3">
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tokens Used</label>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
+                  {profile?.tokens_used?.toLocaleString() || '0'}
+                </p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3">
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Last Login</label>
+                <p className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">
+                  {formatDate(profile?.last_login)}
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {/* Settings */}
-        <div className={`${email ? 'mt-6 pt-6 border-t border-gray-200 dark:border-gray-700' : ''}`}>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400">SETTINGS</label>
-          <div className="mt-2">
+        <div className={`${email ? 'mt-6 pt-6 border-t border-slate-100 dark:border-slate-700' : ''}`}>
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Settings</label>
+          <div className="mt-3">
             <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {theme === 'dark' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-500">
                     <path fillRule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clipRule="evenodd" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-500">
                     <path d="M10 2a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 2ZM10 15a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 15ZM10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM15.657 5.404a.75.75 0 1 0-1.06-1.06l-1.061 1.06a.75.75 0 0 0 1.06 1.061l1.06-1.06ZM6.464 14.596a.75.75 0 1 0-1.06-1.06l-1.06 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06ZM18 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 18 10ZM5 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 5 10ZM14.596 15.657a.75.75 0 0 0 1.06-1.06l-1.06-1.061a.75.75 0 1 0-1.061 1.06l1.06 1.06ZM5.404 6.464a.75.75 0 0 0 1.06-1.06l-1.06-1.06a.75.75 0 1 0-1.061 1.06l1.06 1.06Z" />
                   </svg>
                 )}
-                <span className="text-sm font-bold">DARK MODE</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Dark Mode</span>
               </div>
               <button
                 onClick={toggleTheme}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  theme === 'dark' ? 'bg-neon' : 'bg-gray-300 dark:bg-gray-600'
+                className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
+                  theme === 'dark' ? 'bg-neon shadow-glow' : 'bg-slate-200 dark:bg-slate-600'
                 }`}
                 aria-label="Toggle dark mode"
               >
                 <span
-                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${
-                    theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all duration-200 shadow-soft ${
+                    theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -203,12 +208,12 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
 
         {/* Job History - only shown for logged in users */}
         {email && (
-        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400">RECENT JOBS</label>
+        <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Recent Jobs</label>
           {jobLogs.length === 0 ? (
-            <p className="text-sm text-gray-400 mt-2">No jobs yet</p>
+            <p className="text-sm text-slate-400 mt-2">No jobs yet</p>
           ) : (
-            <div className="mt-2 space-y-1 font-mono text-xs">
+            <div className="mt-3 space-y-2 text-sm">
               {groupedJobs.map((group) => {
                 const isBatch = group.jobs.length > 1;
                 const batchKey = group.batchId || group.jobs[0].id;
@@ -218,52 +223,52 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
                   <div key={batchKey}>
                     {/* Summary row (for batches) or single job row */}
                     <div
-                      className={`flex items-center justify-between py-1 px-2 rounded ${
-                        group.hasError ? 'bg-red-50 dark:bg-red-900/30' : 'bg-gray-50 dark:bg-gray-700'
-                      } ${isBatch ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600' : ''}`}
+                      className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${
+                        group.hasError ? 'bg-red-50 dark:bg-red-900/20' : 'bg-slate-50 dark:bg-slate-700/50'
+                      } ${isBatch ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700' : ''}`}
                       onClick={() => isBatch && toggleBatch(batchKey)}
                     >
-                      <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 text-xs">
                         {isBatch && (
                           <span className="text-[10px]">{isExpanded ? '▼' : '▶'}</span>
                         )}
                         {formatJobDate(group.firstDate)}
                       </span>
-                      <span>
-                        {group.totalImages} img{group.totalImages !== 1 ? 's' : ''} → {group.totalReturned}
+                      <span className="text-slate-700 dark:text-slate-200 font-medium">
+                        {group.totalImages} → {group.totalReturned}
                       </span>
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {group.totalTokens.toLocaleString()} tok
+                      <span className="text-slate-500 dark:text-slate-400 text-xs font-mono">
+                        {group.totalTokens.toLocaleString()}
                       </span>
-                      <span className="w-4 text-center">
+                      <span className="w-5 text-center">
                         {group.hasError ? (
                           <span className="text-red-500">✗</span>
                         ) : (
-                          <span className="text-green-600 dark:text-green-400">✓</span>
+                          <span className="text-emerald-500">✓</span>
                         )}
                       </span>
                     </div>
 
                     {/* Expanded children for batches */}
                     {isBatch && isExpanded && (
-                      <div className="ml-4 border-l-2 border-gray-200 dark:border-gray-600 pl-2 space-y-1 mt-1">
+                      <div className="ml-4 border-l-2 border-slate-200 dark:border-slate-600 pl-3 space-y-1 mt-1">
                         {group.jobs.map((job) => (
                           <div
                             key={job.id}
-                            className={`flex items-center justify-between py-1 px-2 rounded text-[11px] ${
-                              job.status === 'error' ? 'bg-red-50/50 dark:bg-red-900/20' : 'bg-gray-50/50 dark:bg-gray-700/50'
+                            className={`flex items-center justify-between py-1.5 px-2 rounded text-xs ${
+                              job.status === 'error' ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-slate-50/50 dark:bg-slate-800/30'
                             }`}
                           >
-                            <span className="text-gray-400">└</span>
-                            <span>
+                            <span className="text-slate-300 dark:text-slate-600">└</span>
+                            <span className="text-slate-600 dark:text-slate-300">
                               {job.images_submitted} → {job.images_returned}
                             </span>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-slate-400 font-mono">
                               {job.total_tokens?.toLocaleString() || 0}
                             </span>
                             <span className="w-4 text-center">
                               {job.status === 'success' ? (
-                                <span className="text-green-500 dark:text-green-400">✓</span>
+                                <span className="text-emerald-500">✓</span>
                               ) : (
                                 <span className="text-red-400" title={job.error_message || job.error_code || 'Error'}>✗</span>
                               )}
@@ -284,9 +289,9 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
         {email && (
           <button
             onClick={handleSignOut}
-            className="w-full mt-6 py-2 border-2 border-black dark:border-gray-600 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+            className="btn-secondary w-full mt-6 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800"
           >
-            SIGN OUT
+            Sign Out
           </button>
         )}
       </div>

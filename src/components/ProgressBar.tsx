@@ -18,50 +18,50 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ items }) => {
   const processingPercent = (processing / total) * 100;
 
   return (
-    <div className="border-2 border-black dark:border-gray-600 p-2">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-xs font-bold">PROGRESS</h3>
-        <span className="text-xs font-light">
+    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400">Progress</h3>
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           {completed + failed} / {total}
         </span>
       </div>
 
-      <div className="relative h-2 bg-white dark:bg-gray-800 border border-black dark:border-gray-600">
+      <div className="relative h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
-          className="absolute h-full bg-neon transition-all duration-300"
+          className="absolute h-full bg-neon transition-all duration-300 rounded-full"
           style={{ width: `${completedPercent}%` }}
         />
         <div
-          className="absolute h-full bg-black transition-all duration-300"
-          style={{ 
+          className="absolute h-full bg-red-400 transition-all duration-300"
+          style={{
             width: `${failedPercent}%`,
             left: `${completedPercent}%`
           }}
         />
         <div
-          className="absolute h-full bg-gray-400 animate-pulse"
-          style={{ 
+          className="absolute h-full bg-amber-400 animate-pulse-soft"
+          style={{
             width: `${processingPercent}%`,
             left: `${completedPercent + failedPercent}%`
           }}
         />
       </div>
 
-      <div className="flex mt-2 text-xs gap-3">
-        <span className="flex items-center gap-1">
-          <div className="w-2 h-2 bg-neon border border-black dark:border-gray-600"></div>
-          {completed} OK
+      <div className="flex mt-3 text-xs gap-4">
+        <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+          <div className="w-2 h-2 bg-neon rounded-full"></div>
+          {completed} done
         </span>
         {failed > 0 && (
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-black"></div>
-            {failed} FAIL
+          <span className="flex items-center gap-1.5 text-red-500">
+            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+            {failed} failed
           </span>
         )}
         {processing > 0 && (
-          <span className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-gray-400"></div>
-            {processing} PROC
+          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+            {processing} working
           </span>
         )}
       </div>

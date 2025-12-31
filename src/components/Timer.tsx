@@ -84,52 +84,57 @@ export const Timer: React.FC<TimerProps> = ({
   console.log('Timer metrics - all statuses:', workItems.map(item => item.status));
 
   return (
-    <div className="border-2 border-black p-2">
-      <h3 className="text-xs font-bold mb-2">METRICS</h3>
-      
-      <div className="space-y-1 text-xs">
-        <div className="flex justify-between">
-          <span className="font-light">CURRENT:</span>
-          <span className="font-mono">
-            {isRunning && !hasCompletedWork ? formatTime(currentElapsed) : formatTime(currentElapsed)}
-          </span>
+    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+      <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">Metrics</h3>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-2.5">
+          <div className="text-2xs text-slate-400 dark:text-slate-500 mb-0.5">Current</div>
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 font-mono">
+            {formatTime(currentElapsed)}
+          </div>
         </div>
-        
-        <div className="flex justify-between">
-          <span className="font-light">TOTAL:</span>
-          <span className="font-mono">{formatTime(totalElapsed)}</span>
+
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-2.5">
+          <div className="text-2xs text-slate-400 dark:text-slate-500 mb-0.5">Total</div>
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 font-mono">
+            {formatTime(totalElapsed)}
+          </div>
         </div>
-        
-        <div className="flex justify-between">
-          <span className="font-light">TOKENS:</span>
-          <span className="font-mono">{totalTokens.toLocaleString()}</span>
+
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-2.5">
+          <div className="text-2xs text-slate-400 dark:text-slate-500 mb-0.5">Tokens</div>
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 font-mono">
+            {totalTokens.toLocaleString()}
+          </div>
         </div>
-        
-        <div className="flex justify-between">
-          <span className="font-light">COST:</span>
-          <span className="font-mono text-neon-text font-semibold">{formatUSD(totalCost)}</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span className="font-light">HUMAN TIME SAVED:</span>
-          <span className="font-mono text-gray-400 font-semibold">
-            {totalTimeSavedMinutes > 0 ? formatTimeSaved(totalTimeSavedMinutes) : '0m'}
-          </span>
+
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-2.5">
+          <div className="text-2xs text-slate-400 dark:text-slate-500 mb-0.5">Cost</div>
+          <div className="text-sm font-semibold text-amber-600 dark:text-amber-400 font-mono">
+            {formatUSD(totalCost)}
+          </div>
         </div>
       </div>
 
-      {(isRunning || hasCompletedWork) && (
-        <div className="mt-2 flex items-center gap-1">
-          {isRunning && !hasCompletedWork ? (
-            <div className="w-1 h-1 bg-neon animate-pulse"></div>
-          ) : (
-            <div className="w-1 h-1 bg-neon"></div>
-          )}
-          <span className="text-xs font-light">
-            {isRunning && !hasCompletedWork ? 'ACTIVE' : 'JOB COMPLETE'}
-          </span>
+      <div className="mt-3 flex items-center justify-between">
+        <div className="text-xs text-slate-500 dark:text-slate-400">
+          Time saved: <span className="font-medium text-emerald-600 dark:text-emerald-400">{totalTimeSavedMinutes > 0 ? formatTimeSaved(totalTimeSavedMinutes) : '0m'}</span>
         </div>
-      )}
+
+        {(isRunning || hasCompletedWork) && (
+          <div className="flex items-center gap-1.5">
+            {isRunning && !hasCompletedWork ? (
+              <div className="w-2 h-2 bg-neon rounded-full animate-pulse"></div>
+            ) : (
+              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            )}
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+              {isRunning && !hasCompletedWork ? 'Active' : 'Complete'}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

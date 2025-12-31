@@ -121,37 +121,37 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold font-sans">Input</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold font-display">Input</h2>
           {inputs.length > 0 && (
             <button
               onClick={() => {
                 playBlip();
                 onClearAll();
               }}
-              className="text-sm border border-black dark:border-gray-600 px-1 hover:bg-neon hover:border-neon transition-all"
+              className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
             >
-              CLEAR
+              Clear all
             </button>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold">
-            {processingMode === 'batch' ? `Batch Images (${inputs.length})` : 'Single Image'}
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            {processingMode === 'batch' ? `Batch (${inputs.length})` : 'Single'}
           </span>
           <button
             onClick={() => {
               playToggleSound();
               onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch');
             }}
-            className={`relative w-12 h-6 rounded-full transition-colors ${
-              processingMode === 'batch' ? 'bg-neon' : 'bg-gray-300 dark:bg-gray-600'
+            className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
+              processingMode === 'batch' ? 'bg-neon shadow-glow' : 'bg-slate-200 dark:bg-slate-700'
             }`}
             aria-label="Toggle batch mode"
           >
             <span
-              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${
-                processingMode === 'batch' ? 'translate-x-6' : 'translate-x-0'
+              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all duration-200 shadow-soft ${
+                processingMode === 'batch' ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>
@@ -163,22 +163,22 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          flex-1 border-2 transition-all rounded-xl min-h-0 overflow-hidden
+          flex-1 border-2 border-dashed transition-all duration-200 rounded-2xl min-h-0 overflow-hidden
           ${isDragging
-            ? 'border-neon bg-neon/10'
-            : 'border-black dark:border-gray-600 border-dashed opacity-50'
+            ? 'border-neon bg-neon/10 scale-[1.02]'
+            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
           }
         `}
       >
         {inputs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full p-8">
-            <div className="mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="currentColor">
+            <div className="w-16 h-16 mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" className="text-slate-400 dark:text-slate-500" fill="currentColor">
                 <path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82ZM441-280v-247L337-423l-56-57 200-200 200 200-57 56-103-103v247h-80Z"/>
               </svg>
             </div>
-            <p className="font-bold mb-2">DROP OR PASTE IMAGES</p>
-            <p className="text-sm mb-4">OR</p>
+            <p className="font-medium text-slate-700 dark:text-slate-200 mb-1">Drop or paste images</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 mb-4">or browse to upload</p>
             <div className="flex gap-2 flex-wrap justify-center">
               <label className="cursor-pointer">
                 <input
@@ -188,8 +188,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   onChange={handleFileInput}
                   className="hidden"
                 />
-                <span className="border-2 border-black dark:border-gray-600 px-4 py-2 hover:bg-neon hover:border-neon transition-all font-bold inline-block">
-                  BROWSE_IMAGES
+                <span className="btn-primary">
+                  Browse Images
                 </span>
               </label>
               <button
@@ -197,44 +197,44 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   playBlip();
                   setShowPromptInput(true);
                 }}
-                className="border-2 border-black dark:border-gray-600 px-4 py-2 hover:bg-neon hover:border-neon transition-all font-bold"
+                className="btn-secondary"
               >
-                ADD_TEXT_PROMPT
+                Add Text
               </button>
             </div>
-            <p className="text-xs mt-4 font-light">JPG/PNG/WEBP OR TEXT PROMPTS</p>
+            <p className="text-xs mt-4 text-slate-400 dark:text-slate-500">JPG, PNG, WEBP or text prompts</p>
           </div>
         ) : (
-          <div className="h-full overflow-y-auto p-2">
+          <div className="h-full overflow-y-auto p-3">
             <div className="grid grid-cols-1 gap-2">
               {inputs.map((input) => (
                 <div
                   key={input.id}
-                  className="relative group border border-black dark:border-gray-600 p-2 hover:bg-neon/10 transition-colors"
+                  className="relative group bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
                 >
                   {input.type === 'image' ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <img
                         src={URL.createObjectURL(input.file)}
                         alt={input.file.name}
-                        className="w-16 h-16 object-cover border border-black dark:border-gray-600"
+                        className="w-14 h-14 object-cover rounded-lg"
                       />
                       <div className="flex-1 min-w-0 pr-6">
-                        <p className="text-xs truncate font-bold">{input.file.name}</p>
-                        <p className="text-xs font-light">{formatFileSize(input.file.size)}</p>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{input.file.name}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{formatFileSize(input.file.size)}</p>
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <div className="flex gap-2 pr-6">
-                        <div className="w-16 h-16 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                          <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="currentColor">
+                      <div className="flex gap-3 pr-6">
+                        <div className="w-14 h-14 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" className="text-slate-400" fill="currentColor">
                             <path d="M280-280h280v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Zm-80 480q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z"/>
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold mb-1">TEXT PROMPT</p>
-                          <p className="text-xs font-light line-clamp-2">{input.prompt}</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-0.5">Text Prompt</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2">{input.prompt}</p>
                         </div>
                       </div>
                       <div className="mt-2 flex justify-end">
@@ -243,13 +243,13 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                             e.stopPropagation();
                             handleCopyPrompt(input.prompt, input.id);
                           }}
-                          className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors text-xs font-bold flex items-center gap-1"
+                          className="btn-ghost py-1 px-2 text-xs"
                           title="Copy prompt"
                         >
                           <span className="material-symbols-outlined text-[14px]">
                             {copiedPromptId === input.id ? 'check' : 'content_copy'}
                           </span>
-                          <span>COPY</span>
+                          <span>Copy</span>
                         </button>
                       </div>
                     </div>
@@ -259,9 +259,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                       playBlip();
                       onRemoveInput(input.id);
                     }}
-                    className="absolute top-1 right-1 w-6 h-6 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-all text-xs font-bold"
+                    className="absolute top-2 right-2 w-6 h-6 rounded-lg bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100"
                   >
-                    ✕
+                    <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor">
+                      <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                    </svg>
                   </button>
                 </div>
               ))}
@@ -275,8 +277,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   onChange={handleFileInput}
                   className="hidden"
                 />
-                <div className="text-center py-2 border-2 border-dashed border-black dark:border-gray-600 opacity-50 hover:border-neon hover:bg-neon/10 hover:opacity-100 transition-all rounded-xl">
-                  <span className="text-sm font-bold">+ ADD_MORE_IMAGES</span>
+                <div className="text-center py-2.5 border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-neon hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neon/5 transition-all duration-200 rounded-xl">
+                  <span className="text-sm font-medium">+ Add more images</span>
                 </div>
               </label>
               <button
@@ -284,9 +286,9 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   playBlip();
                   setShowPromptInput(true);
                 }}
-                className="w-full text-center py-2 border-2 border-dashed border-black dark:border-gray-600 opacity-50 hover:border-neon hover:bg-neon/10 hover:opacity-100 transition-all rounded-xl"
+                className="w-full text-center py-2.5 border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-neon hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neon/5 transition-all duration-200 rounded-xl"
               >
-                <span className="text-sm font-bold">+ ADD_TEXT_PROMPT</span>
+                <span className="text-sm font-medium">+ Add text prompt</span>
               </button>
             </div>
           </div>
@@ -296,26 +298,26 @@ export const InputPanel: React.FC<InputPanelProps> = ({
 
       {/* Prompt Input Modal */}
       {showPromptInput && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 max-w-md w-full p-4">
-            <h3 className="text-lg font-bold mb-4">ADD TEXT PROMPT</h3>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated max-w-md w-full p-5 animate-slide-up">
+            <h3 className="text-lg font-semibold font-display mb-4">Add Text Prompt</h3>
             <textarea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
               placeholder="Enter your text prompt for image generation..."
-              className="w-full border border-black dark:border-gray-600 bg-white dark:bg-gray-900 p-2 font-mono text-sm h-32 resize-none focus:outline-none focus:border-neon"
+              className="input h-32 resize-none text-sm"
               autoFocus
             />
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={() => {
                   playBlip();
                   handleAddPrompt();
                 }}
                 disabled={!promptText.trim()}
-                className="flex-1 py-2 border border-black dark:border-gray-600 font-bold text-sm hover:bg-neon transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ADD
+                Add Prompt
               </button>
               <button
                 onClick={() => {
@@ -323,9 +325,9 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   setShowPromptInput(false);
                   setPromptText('');
                 }}
-                className="flex-1 py-2 border border-black dark:border-gray-600 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
+                className="btn-secondary flex-1"
               >
-                CANCEL
+                Cancel
               </button>
             </div>
           </div>

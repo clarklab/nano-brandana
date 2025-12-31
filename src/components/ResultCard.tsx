@@ -54,19 +54,19 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
 
   const getStatusColor = () => {
     switch (item.status) {
-      case 'completed': return 'bg-neon text-black';
-      case 'failed': return 'bg-black text-white';
-      case 'processing': return 'bg-gray-400 text-black';
-      default: return 'bg-white text-black border border-black';
+      case 'completed': return 'badge-success';
+      case 'failed': return 'badge-error';
+      case 'processing': return 'badge-warning';
+      default: return 'badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
     }
   };
 
   const getStatusText = () => {
     switch (item.status) {
-      case 'completed': return 'OK';
-      case 'failed': return 'FAIL';
-      case 'processing': return 'PROC';
-      case 'queued': return 'WAIT';
+      case 'completed': return 'Done';
+      case 'failed': return 'Failed';
+      case 'processing': return 'Working';
+      case 'queued': return 'Queued';
     }
   };
 
@@ -107,70 +107,29 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   };
 
   return (
-    <div className="border-2 border-black dark:border-gray-600 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-bold truncate flex-1 mr-2">{displayName}</h3>
+    <div className="card-interactive p-3 animate-fade-in">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate flex-1 mr-2">{displayName}</h3>
         <div className="flex items-center gap-2">
-          <span className={`px-1 py-0.5 text-xs font-bold ${getStatusColor()}`}>
+          <span className={getStatusColor()}>
             {getStatusText()}
           </span>
           {elapsedTime && (
-            <span className="text-xs font-light">{elapsedTime}s</span>
+            <span className="text-xs text-slate-400">{elapsedTime}s</span>
           )}
           {processingTime && (
-            <span className="text-xs font-semibold text-neon-text">{processingTime}s</span>
+            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">{processingTime}s</span>
           )}
         </div>
       </div>
 
       {item.status === 'processing' && (
-        <div className="h-32 border border-black dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-          <div className="flex flex-col items-center gap-2">
-            <svg width="60" height="60" viewBox="0 0 50 50">
-              <path 
-                d="M5,25 Q12.5,15 25,25 T45,25" 
-                fill="none" 
-                stroke="#EEB90A" 
-                strokeWidth="2" 
-                opacity="0.3"
-              >
-                <animate 
-                  attributeName="d" 
-                  values="M5,25 Q12.5,15 25,25 T45,25; M5,25 Q12.5,35 25,25 T45,25; M5,25 Q12.5,15 25,25 T45,25" 
-                  dur="1.33s" 
-                  repeatCount="indefinite"
-                />
-              </path>
-              <path 
-                d="M5,25 Q12.5,15 25,25 T45,25" 
-                fill="none" 
-                stroke="#EEB90A" 
-                strokeWidth="2" 
-                opacity="0.5"
-              >
-                <animate 
-                  attributeName="d" 
-                  values="M5,25 Q12.5,15 25,25 T45,25; M5,25 Q12.5,35 25,25 T45,25; M5,25 Q12.5,15 25,25 T45,25" 
-                  dur="2s" 
-                  repeatCount="indefinite"
-                />
-              </path>
-              <path 
-                d="M5,25 Q12.5,15 25,25 T45,25" 
-                fill="none" 
-                stroke="#EEB90A" 
-                strokeWidth="2" 
-                opacity="0.7"
-              >
-                <animate 
-                  attributeName="d" 
-                  values="M5,25 Q12.5,15 25,25 T45,25; M5,25 Q12.5,35 25,25 T45,25; M5,25 Q12.5,15 25,25 T45,25" 
-                  dur="2.67s" 
-                  repeatCount="indefinite"
-                />
-              </path>
-            </svg>
-            <div className="text-xs font-light">PROCESSING...</div>
+        <div className="h-32 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800/50">
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full border-2 border-neon/30 border-t-neon animate-spin" />
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">Processing...</div>
           </div>
         </div>
       )}
@@ -185,16 +144,16 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               const actualCount = item.result.images.length;
               if (actualCount < expectedCount) {
                 return (
-                  <div className="mb-2 p-1 bg-yellow-100 border border-yellow-400 text-xs">
-                    ⚠️ Requested {expectedCount} variations but got {actualCount}
+                  <div className="mb-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-400">
+                    Requested {expectedCount} variations but got {actualCount}
                   </div>
                 );
               }
             }
             return null;
           })()}
-          
-          <div className="relative h-32 mb-2 group bg-gray-100 dark:bg-gray-900 border border-black dark:border-gray-600">
+
+          <div className="relative h-36 mb-3 group bg-slate-50 dark:bg-slate-800/50 rounded-xl overflow-hidden">
             <img
               src={showOriginal ? originalImage : item.result.images[selectedImageIndex]}
               alt={showOriginal ? 'Original' : 'Edited'}
@@ -206,9 +165,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               }}
               onError={(e) => {
                 console.error('Image failed to load:', displayName, selectedImageIndex);
-                // Add a visual indicator for broken images
                 (e.target as HTMLImageElement).style.backgroundColor = '#fee2e2';
-                (e.target as HTMLImageElement).style.border = '2px solid red';
               }}
               onLoad={() => {
                 console.log('Image loaded successfully:', displayName, selectedImageIndex);
@@ -229,22 +186,22 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                 setShowOriginal(false);
               }}
               onContextMenu={(e) => e.preventDefault()}
-              className="absolute top-1 left-1 px-1 py-0.5 bg-white dark:bg-gray-800 border border-black dark:border-gray-600 text-xs font-bold hover:bg-neon transition-colors w-[120px] touch-none"
+              className="absolute top-2 left-2 px-2 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-soft touch-none"
             >
-              {showOriginal ? 'ORIG' : 'HOLD TO COMPARE'}
+              {showOriginal ? 'Original' : 'Hold to compare'}
             </button>
           </div>
 
           {item.result.images.length > 1 && (
-            <div className="flex gap-1 mb-2 overflow-x-auto">
+            <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
               {item.result.images.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`px-1 py-0.5 text-xs border transition-colors font-bold ${
+                  className={`px-2.5 py-1 text-xs rounded-lg transition-all duration-200 font-medium ${
                     selectedImageIndex === index
-                      ? 'border-black dark:border-gray-600 bg-neon text-black'
-                      : 'border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ? 'bg-neon text-slate-900 shadow-soft'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
                   V{index + 1}
@@ -253,12 +210,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             </div>
           )}
 
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <button
               onClick={() => downloadImage(item.result!.images[selectedImageIndex], selectedImageIndex)}
-              className="flex-1 px-2 py-1 border-2 border-black dark:border-gray-600 bg-neon text-black text-xs font-bold hover:bg-white dark:hover:bg-gray-800 transition-colors"
+              className="btn-primary flex-1 py-2 text-xs"
             >
-              DOWNLOAD
+              Download
             </button>
             <button
               onClick={() => {
@@ -266,14 +223,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   onOpenLightbox(item.result.images, selectedImageIndex, displayName);
                 }
               }}
-              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors"
+              className="btn-secondary p-2"
               title="View image"
             >
               <span className="material-symbols-outlined text-[16px]">zoom_in</span>
             </button>
             <button
               onClick={handleCopyImage}
-              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors"
+              className="btn-secondary p-2"
               title="Copy image"
             >
               <span className="material-symbols-outlined text-[16px]">
@@ -282,7 +239,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             </button>
             <button
               onClick={handleRedo}
-              className="px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neon transition-colors"
+              className="btn-secondary p-2"
               title="Redo image"
             >
               <span className="material-symbols-outlined text-[16px]">refresh</span>
@@ -290,11 +247,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
           </div>
 
           {item.result.usage && (
-            <div className="mt-1 text-xs font-light">
-              <div className="flex justify-between">
-                <span>TOKENS: {item.result.usage.total_tokens || 0}</span>
-                <span className="text-neon-text font-semibold">
-                  COST: {formatUSD(calculateTokenCost(
+            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                <span>{item.result.usage.total_tokens || 0} tokens</span>
+                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                  {formatUSD(calculateTokenCost(
                     item.result.usage.prompt_tokens || 0,
                     item.result.usage.completion_tokens || 0,
                     'google/gemini-3-pro-image',
@@ -302,11 +259,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                     item.result.imageSize
                   ))}
                 </span>
-                <span className="text-gray-400 font-semibold">
-                  SAVED: {formatTime(timeSaved)}
+                <span className="text-slate-400">
+                  {formatTime(timeSaved)} saved
                 </span>
                 {item.result.imageSize && item.result.imageSize !== '1K' && (
-                  <span className="text-purple-600 font-bold">
+                  <span className="text-purple-500 font-medium">
                     {item.result.imageSize}
                   </span>
                 )}
@@ -317,38 +274,46 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       )}
 
       {item.status === 'completed' && (!item.result?.images || item.result.images.length === 0) && (
-        <div className="h-32 border border-black dark:border-gray-600 flex items-center justify-center p-2 bg-yellow-100 dark:bg-yellow-900/30">
+        <div className="h-32 rounded-xl flex items-center justify-center p-3 bg-amber-50 dark:bg-amber-900/20">
           <div className="text-center">
-            <div className="text-lg font-bold mb-1">⚠</div>
-            <p className="text-xs font-bold">NO IMAGES RETURNED</p>
-            <p className="text-xs font-light mt-1">API completed but no images received</p>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-amber-100 dark:bg-amber-800/30 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" className="text-amber-500" fill="currentColor">
+                <path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/>
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">No images returned</p>
+            <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-1">API completed but no images received</p>
           </div>
         </div>
       )}
 
       {item.status === 'failed' && (
-        <div className="border border-black dark:border-gray-600 bg-gray-100 dark:bg-gray-800">
-          <div className="h-24 flex items-center justify-center p-2">
+        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 overflow-hidden">
+          <div className="h-24 flex items-center justify-center p-3">
             <div className="text-center">
-              <div className="text-lg font-bold mb-1">✗</div>
-              <p className="text-xs font-bold">
-                {item.error?.includes('Internal Server Error') ? 'SERVER_ERROR' : 
-                 item.error?.includes('Rate limit') ? 'RATE_LIMITED' :
-                 item.error?.includes('validation failed') ? 'INVALID_RESULT' :
-                 item.error || 'FAILED'}
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-red-100 dark:bg-red-800/30 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" className="text-red-500" fill="currentColor">
+                  <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                {item.error?.includes('Internal Server Error') ? 'Server Error' :
+                 item.error?.includes('Rate limit') ? 'Rate Limited' :
+                 item.error?.includes('validation failed') ? 'Invalid Result' :
+                 item.error || 'Failed'}
               </p>
               {item.retries > 0 && (
-                <p className="text-xs font-light mt-1">RETRIED {item.retries}x</p>
+                <p className="text-xs text-red-500/70 mt-1">Retried {item.retries}x</p>
               )}
             </div>
           </div>
           {onRetry && (
-            <div className="border-t border-black dark:border-gray-600 p-2">
+            <div className="p-3 pt-0">
               <button
                 onClick={() => onRetry(item.id)}
-                className="w-full px-2 py-1 border border-black dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-bold hover:bg-neon transition-colors"
+                className="btn-secondary w-full text-sm"
               >
-                RETRY_IMAGE
+                Retry
               </button>
             </div>
           )}
@@ -356,10 +321,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
       )}
 
       {item.status === 'queued' && (
-        <div className="h-32 border border-black dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <div className="h-32 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800/50">
           <div className="text-center">
-            <div className="text-lg font-light mb-1">⧖</div>
-            <p className="text-xs font-light">QUEUED</p>
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" className="text-slate-400" fill="currentColor">
+                <path d="M320-160h320v-120q0-66-47-113t-113-47q-66 0-113 47t-47 113v120ZM160-80v-80h80v-120q0-61 28.5-114.5T348-480q-51-32-79.5-85.5T240-680v-120h-80v-80h640v80h-80v120q0 61-28.5 114.5T612-480q51 32 79.5 85.5T720-280v120h80v80H160Z"/>
+              </svg>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Queued</p>
           </div>
         </div>
       )}

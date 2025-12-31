@@ -195,28 +195,14 @@ export const Lightbox: React.FC<LightboxProps> = ({
             draggable={false}
           />
 
-          {/* Hold to Compare button - positioned over top-left of image */}
+          {/* Compare button - positioned over top-left of image */}
           {originalImages && originalImages[currentIndex] && (
             <button
-              onMouseDown={() => setShowOriginal(true)}
-              onMouseUp={() => setShowOriginal(false)}
-              onMouseLeave={() => setShowOriginal(false)}
-              onTouchStart={(e) => {
-                if (e.touches.length === 1 && !isPinching) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowOriginal(true);
-                }
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowOriginal(false);
-              }}
-              onContextMenu={(e) => e.preventDefault()}
-              className="absolute top-2 left-2 px-1 py-0.5 bg-white border border-black text-xs font-bold hover:bg-neon transition-colors w-[120px] touch-none z-10"
+              onClick={() => setShowOriginal(!showOriginal)}
+              className="absolute top-2 left-2 px-2 py-1 bg-white border border-black text-xs font-bold hover:bg-neon transition-colors flex items-center gap-1 z-10"
             >
-              {showOriginal ? 'ORIG' : 'HOLD TO COMPARE'}
+              <span className="material-symbols-outlined text-[14px]">compare_arrows</span>
+              {showOriginal ? 'Original' : 'Compare'}
             </button>
           )}
         </div>

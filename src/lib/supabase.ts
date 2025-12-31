@@ -38,7 +38,7 @@ export interface Profile {
 }
 
 // Default hourly rate for guests or users who haven't set one (USD)
-export const DEFAULT_HOURLY_RATE = 50;
+export const DEFAULT_HOURLY_RATE = 100;
 
 // Type for job logs
 export interface JobLog {

@@ -151,7 +151,7 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-50 md:p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-w-md md:rounded-2xl shadow-elevated p-6 relative overflow-y-auto animate-slide-up pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-h-[calc(100vh-2rem)] md:max-w-md md:rounded-2xl shadow-elevated p-6 relative overflow-y-auto animate-slide-up pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -297,7 +297,7 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
           {jobLogs.length === 0 ? (
             <p className="text-sm text-slate-400 mt-2">No jobs yet</p>
           ) : (
-            <div className="mt-3 space-y-2 text-sm">
+            <div className="mt-3 space-y-2 text-sm max-h-60 overflow-y-auto">
               {groupedJobs.map((group) => {
                 const isBatch = group.jobs.length > 1;
                 const batchKey = group.batchId || group.jobs[0].id;

@@ -11,22 +11,24 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 p-6 max-w-md w-full relative">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-50 md:p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-w-md md:rounded-2xl shadow-elevated p-6 md:p-8 relative overflow-y-auto animate-slide-up pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-2xl leading-none hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"
           aria-label="Close"
         >
-          &times;
+          <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" className="text-slate-500" fill="currentColor">
+            <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+          </svg>
         </button>
 
         {/* Header */}
-        <div className="mb-4 pr-8">
-          <h2 className="text-lg font-bold">SIGN IN TO CONTINUE</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Get <span className="font-bold text-black dark:text-gray-100">100,000 free tokens</span> for image generation
+        <div className="mb-6 pr-8">
+          <h2 className="text-lg font-semibold font-display">Sign In to Continue</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Get <span className="font-bold text-slate-900 dark:text-slate-100">100,000 free tokens</span> for image generation
           </p>
         </div>
 
@@ -90,7 +92,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         />
 
         {/* Footer */}
-        <p className="text-xs text-center mt-4 text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-center mt-6 text-slate-500 dark:text-slate-400">
           No password needed - we'll email you a secure link
         </p>
       </div>

@@ -108,14 +108,14 @@ export function RedoModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+      className={`fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4 ${
         isAnimating ? 'animate-fade-in' : 'animate-fade-out'
       }`}
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className={`bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-elevated relative flex flex-col ${
+        className={`bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-w-lg md:rounded-2xl shadow-elevated relative flex flex-col ${
           isAnimating ? 'animate-slide-up' : 'animate-slide-down'
         }`}
       >
@@ -134,7 +134,7 @@ export function RedoModal({
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto">
           {/* Image comparison section */}
           {isImagePrompt ? (
             // Image prompt: show original vs generated
@@ -266,7 +266,7 @@ export function RedoModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex gap-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-b-2xl">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex gap-3 bg-slate-50/50 dark:bg-slate-900/30 md:rounded-b-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button
             onClick={handleClose}
             className="btn-secondary flex-1"

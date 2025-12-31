@@ -94,29 +94,31 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 p-6 max-w-lg w-full relative">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-50 md:p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-w-lg md:rounded-2xl shadow-elevated p-6 md:p-8 relative overflow-y-auto animate-slide-up pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-2xl leading-none hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"
           aria-label="Close"
           disabled={loading !== null}
         >
-          &times;
+          <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" className="text-slate-500" fill="currentColor">
+            <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+          </svg>
         </button>
 
         {/* Header */}
         <div className="mb-6 pr-8">
-          <h2 className="text-lg font-bold">BUY TOKENS</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <h2 className="text-lg font-semibold font-display">Buy Tokens</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
             Purchase tokens to process more images
           </p>
         </div>
 
         {/* Error message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -126,23 +128,23 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
           {PACKAGES.map((pkg) => (
             <div
               key={pkg.id}
-              className={`relative border-2 ${
+              className={`relative rounded-xl border ${
                 pkg.popular
-                  ? 'border-neon dark:border-neon'
-                  : 'border-gray-200 dark:border-gray-600'
-              } p-4 transition-all hover:shadow-lg`}
+                  ? 'border-neon dark:border-neon shadow-glow'
+                  : 'border-slate-200 dark:border-slate-700'
+              } p-4 transition-all hover:shadow-elevated`}
             >
               {/* Popular badge */}
               {pkg.popular && (
-                <div className="absolute -top-2 left-4 bg-neon text-black text-xs font-bold px-2 py-0.5">
+                <div className="absolute -top-2 left-4 bg-neon text-slate-900 text-xs font-bold px-3 py-1 rounded-full shadow-soft">
                   BEST VALUE
                 </div>
               )}
 
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-bold text-sm">{pkg.name}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">{pkg.name}</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     {pkg.description}
                   </p>
 
@@ -151,8 +153,8 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
                       <span className="text-neon-text font-bold">
                         {formatTokens(pkg.tokens)} tokens
                       </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-600 dark:text-slate-400">
                         ~{estimateImages(pkg.tokens)} images
                       </span>
                     </div>
@@ -160,16 +162,16 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
                 </div>
 
                 <div className="ml-4 text-right">
-                  <div className="text-2xl font-bold">${pkg.price}</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">${pkg.price}</div>
                   <button
                     onClick={() => handlePurchase(pkg.id)}
                     disabled={loading !== null}
-                    className={`mt-2 px-4 py-2 font-bold text-sm border-2 transition-all ${
+                    className={`mt-2 px-4 py-2 font-bold text-sm rounded-lg transition-all ${
                       loading === pkg.id
-                        ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-wait'
+                        ? 'border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-wait'
                         : pkg.popular
-                        ? 'border-neon bg-neon text-black hover:bg-neon-light'
-                        : 'border-black dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'bg-neon text-slate-900 hover:bg-amber-400 shadow-soft'
+                        : 'border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
                     }`}
                   >
                     {loading === pkg.id ? 'LOADING...' : 'BUY NOW'}
@@ -181,7 +183,7 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
         </div>
 
         {/* Footer info */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
           <p>✓ Secure payment via Polar</p>
           <p className="mt-1">✓ Tokens added instantly after payment</p>
           <p className="mt-1">✓ Tokens never expire</p>

@@ -225,14 +225,14 @@ export function PresetConfigModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+      className={`fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4 ${
         isAnimating ? 'animate-fade-in' : 'animate-fade-out'
       }`}
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className={`bg-white dark:bg-slate-800 w-full h-full md:w-[90vw] md:h-[85vh] md:max-w-4xl md:rounded-2xl shadow-elevated relative flex flex-col ${
+        className={`bg-white dark:bg-slate-800 w-full h-full md:w-[90vw] md:h-[85vh] md:max-w-4xl md:rounded-2xl shadow-elevated relative flex flex-col pb-[env(safe-area-inset-bottom)] ${
           isAnimating ? 'animate-slide-up' : 'animate-slide-down'
         }`}
       >

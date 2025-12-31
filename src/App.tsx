@@ -920,54 +920,52 @@ function App() {
               playClick();
               setActiveTab('input');
             }}
-            className={`text-xs font-medium flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
+            className={`text-xs font-medium flex flex-col items-center justify-center transition-all duration-200 ${
               activeTab === 'input'
                 ? 'text-amber-600 dark:text-amber-400'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition-all duration-200 ${activeTab === 'input' ? 'bg-neon/20' : ''}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
+            <div className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${activeTab === 'input' ? 'bg-neon/20' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor">
                 <path d="M440-440v-80h80v80h-80Zm-80 80v-80h80v80h-80Zm160 0v-80h80v80h-80Zm80-80v-80h80v80h-80Zm-320 0v-80h80v80h-80Zm-80 320q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm80-80h80v-80h-80v80Zm160 0h80v-80h-80v80Zm320 0v-80 80Zm-560-80h80v-80h80v80h80v-80h80v80h80v-80h80v80h80v-80h-80v-80h80v-320H200v320h80v80h-80v80Zm0 80v-560 560Zm560-240v80-80ZM600-280v80h80v-80h-80Z"/>
               </svg>
+              <span>Upload</span>
             </div>
-            Images
           </button>
           <button
             onClick={() => {
               playClick();
               setActiveTab('tasks');
             }}
-            className={`text-xs font-medium flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
+            className={`text-xs font-medium flex flex-col items-center justify-center transition-all duration-200 ${
               activeTab === 'tasks'
                 ? 'text-amber-600 dark:text-amber-400'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition-all duration-200 ${activeTab === 'tasks' ? 'bg-neon/20' : ''}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
-                <path d="M620-163 450-333l56-56 114 114 226-226 56 56-282 282Zm220-397h-80v-200h-80v120H280v-120h-80v560h240v80H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v200ZM480-760q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z"/>
-              </svg>
+            <div className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${activeTab === 'tasks' ? 'bg-neon/20' : ''}`}>
+              <img src="/peel.svg" alt="" className={`w-[22px] h-[22px] ${activeTab === 'tasks' ? '' : 'opacity-60'} dark:invert`} />
+              <span>Tasks</span>
             </div>
-            Tasks
           </button>
           <button
             onClick={() => {
               playClick();
               setActiveTab('results');
             }}
-            className={`text-xs font-medium flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
+            className={`text-xs font-medium flex flex-col items-center justify-center transition-all duration-200 ${
               activeTab === 'results'
                 ? 'text-amber-600 dark:text-amber-400'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition-all duration-200 ${activeTab === 'results' ? 'bg-neon/20' : ''}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
-                <path d="m720-80 120-120-28-28-72 72v-164h-40v164l-72-72-28 28L720-80ZM480-800 243-663l237 137 237-137-237-137ZM120-321v-318q0-22 10.5-40t29.5-29l280-161q10-5 19.5-8t20.5-3q11 0 21 3t19 8l280 161q19 11 29.5 29t10.5 40v159h-80v-116L479-434 200-596v274l240 139v92L160-252q-19-11-29.5-29T120-321ZM720 0q-83 0-141.5-58.5T520-200q0-83 58.5-141.5T720-400q83 0 141.5 58.5T920-200q0 83-58.5 141.5T720 0ZM480-491Z"/>
+            <div className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${activeTab === 'results' ? 'bg-neon/20' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor">
+                <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-120H640q-30 38-71.5 59T480-240q-47 0-88.5-21T320-320H200v120Zm280-120q38 0 69-22t43-58h168v-360H200v360h168q12 36 43 58t69 22ZM200-200h560-560Z"/>
               </svg>
+              <span>Output</span>
             </div>
-            Results
           </button>
         </div>
       </nav>

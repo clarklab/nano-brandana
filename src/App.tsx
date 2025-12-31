@@ -261,10 +261,15 @@ function App() {
 
         console.log('Completing item:', { inputName, status: item.status });
 
-        // Update totals - safely handle potentially undefined usage
+        // Update totals - sum input + output tokens for accurate billing
         try {
-          if (result.usage?.total_tokens) {
-            setTotalTokens(prev => prev + (result.usage?.total_tokens || 0));
+          if (result.usage) {
+            const promptTokens = result.usage.prompt_tokens || 0;
+            const completionTokens = result.usage.completion_tokens || 0;
+            const totalTokens = result.usage.total_tokens || (promptTokens + completionTokens);
+            if (totalTokens > 0) {
+              setTotalTokens(prev => prev + totalTokens);
+            }
           }
           // Update token balance in real-time if returned from API
           if (typeof result.tokens_remaining === 'number') {

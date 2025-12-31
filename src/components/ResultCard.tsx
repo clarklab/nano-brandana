@@ -239,7 +239,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
           {item.result.usage && (
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                <span>{item.result.usage.total_tokens || 0} tokens</span>
+                <span title="Input + Output tokens">{(item.result.usage.total_tokens || ((item.result.usage.prompt_tokens || 0) + (item.result.usage.completion_tokens || 0))).toLocaleString()} tokens</span>
+                {(item.result.usage.prompt_tokens || item.result.usage.completion_tokens) && (
+                  <span className="text-slate-400" title="Input / Output breakdown">({(item.result.usage.prompt_tokens || 0).toLocaleString()} in / {(item.result.usage.completion_tokens || 0).toLocaleString()} out)</span>
+                )}
                 <span className="text-amber-600 dark:text-amber-400 font-medium">
                   {formatUSD(calculateTokenCost(
                     item.result.usage.prompt_tokens || 0,
@@ -298,6 +301,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               {item.retries > 0 && (
                 <p className="text-xs text-red-500/70 mt-1">Retried {item.retries}x</p>
               )}
+              <p className="text-2xs text-red-400/50 dark:text-red-500/40 mt-1">(No tokens used)</p>
             </div>
           </div>
           {onRetry && (

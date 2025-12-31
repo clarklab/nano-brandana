@@ -136,8 +136,15 @@ export const InputPanel: React.FC<InputPanelProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            {processingMode === 'batch' ? `Batch (${inputs.length})` : 'Single'}
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            {processingMode === 'batch' ? (
+              <>
+                Batch
+                <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
+                  {inputs.length}
+                </span>
+              </>
+            ) : 'Single'}
           </span>
           <button
             onClick={() => {

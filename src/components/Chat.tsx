@@ -234,14 +234,14 @@ export const Chat: React.FC<ChatProps> = ({
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold font-sans">Tasks</h2>
+          <h2 className="text-lg font-semibold font-display">Tasks</h2>
           <select
             value={currentModel}
             onChange={(e) => {
               playBlip();
               onModelChange(e.target.value);
             }}
-            className="bg-transparent text-xs font-bold focus:outline-none cursor-pointer appearance-none pr-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI1IiB2aWV3Qm94PSIwIDAgOCA1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDFMNCA0TDcgMSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+')] bg-no-repeat bg-right"
+            className="bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-neon/30 cursor-pointer"
           >
             <option value="google/gemini-3-pro-image">
               {getModelDisplayName('google/gemini-3-pro-image')}
@@ -258,17 +258,17 @@ export const Chat: React.FC<ChatProps> = ({
                 handlePreset(preset);
               }}
               disabled={presetsLoading}
-              className="px-2 py-1 text-xs border border-black dark:border-gray-600 hover:bg-neon hover:border-neon transition-all font-bold disabled:opacity-50 flex items-center gap-1"
+              className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-neon/10 hover:border-neon/50 transition-all duration-200 font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50 flex items-center gap-1.5"
             >
               {preset.icon && (
                 <span
-                  className="material-symbols-outlined"
+                  className="material-symbols-outlined text-slate-400"
                   style={{ fontSize: '14px', width: '14px', height: '14px' }}
                 >
                   {preset.icon}
                 </span>
               )}
-              {preset.label.toUpperCase()}
+              {preset.label}
             </button>
           ))}
           {/* Gear icon to open preset configuration */}
@@ -277,7 +277,7 @@ export const Chat: React.FC<ChatProps> = ({
               playBlip();
               setIsPresetConfigOpen(true);
             }}
-            className="px-2 py-1 text-xs border border-black dark:border-gray-600 hover:bg-neon hover:border-neon transition-all"
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
             title="Configure presets"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
@@ -287,34 +287,37 @@ export const Chat: React.FC<ChatProps> = ({
         </div>
 
         {instructions.length > 0 && (
-          <div className="mb-4 p-2 border-2 border-black dark:border-gray-600">
+          <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold">INSTRUCTIONS:</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Instructions</span>
               <button
                 onClick={() => {
                   playBlip();
                   onClearInstructions();
                 }}
-                className="text-xs border border-black dark:border-gray-600 px-1 hover:bg-neon hover:border-neon transition-all"
+                className="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
               >
-                CLEAR
+                Clear
               </button>
             </div>
-            <div className="text-xs font-light space-y-1">
+            <div className="text-sm text-slate-700 dark:text-slate-200 space-y-1">
               {instructions.map((instruction, index) => (
-                <div key={index}>- {instruction}</div>
+                <div key={index} className="flex items-start gap-2">
+                  <span className="text-neon mt-0.5">•</span>
+                  <span>{instruction}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex-1 p-2 overflow-y-auto mb-4">
-        <div className="space-y-2">
+      <div className="flex-1 overflow-y-auto mb-4">
+        <div className="space-y-3 p-1">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
             >
               {message.type === 'assistant' && (
                 <img
@@ -324,18 +327,18 @@ export const Chat: React.FC<ChatProps> = ({
                 />
               )}
               <div
-                className={`max-w-[80%] p-2 text-xs ${
+                className={`max-w-[85%] px-3 py-2 text-sm rounded-2xl ${
                   message.type === 'user'
-                    ? 'border border-black dark:border-gray-600 bg-black text-white font-bold'
-                    : 'bg-neon/10 dark:bg-neon/20 text-black dark:text-gray-100 font-light'
+                    ? 'bg-slate-800 dark:bg-slate-700 text-white rounded-br-md'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-md'
                 }`}
                 onClick={message.type === 'assistant' ? handleMessageClick : undefined}
               >
                 {message.type === 'assistant' ? (
                   message.isTyping ? (
-                    <TypingText 
-                      text={message.text} 
-                      onComplete={() => handleTypingComplete(index)} 
+                    <TypingText
+                      text={message.text}
+                      onComplete={() => handleTypingComplete(index)}
                     />
                   ) : (
                     renderMessage(message.text)
@@ -350,7 +353,7 @@ export const Chat: React.FC<ChatProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {inputs.length > 0 && (
           <div className="relative">
             <button
@@ -359,33 +362,33 @@ export const Chat: React.FC<ChatProps> = ({
                 onRunBatch('1K');
               }}
               disabled={isProcessing || !canRunBatch}
-              className={`w-full py-2 border-2 font-bold text-sm transition-all relative ${
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 relative ${
                 canRunBatch
-                  ? 'border-neon bg-neon text-black hover:bg-white dark:hover:bg-gray-800 hover:text-black dark:hover:text-gray-100'
-                  : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                  ? 'bg-neon text-slate-900 hover:bg-amber-400 shadow-soft hover:shadow-glow active:scale-[0.98]'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
               }`}
             >
               <div className="flex items-center justify-center gap-3">
-                <span>{isProcessing ? 'PROCESSING...' : `MAKE_IMAGES [${inputs.length}]`}</span>
+                <span>{isProcessing ? 'Processing...' : `Generate Images (${inputs.length})`}</span>
                 {!isProcessing && (
-                  <div className="flex border border-black/20 rounded overflow-hidden text-xs">
+                  <div className="flex bg-black/10 rounded-lg overflow-hidden text-xs">
                     <span
-                      className="px-2 py-0.5 bg-black text-white font-bold"
+                      className="px-2 py-1 bg-slate-900 text-white font-semibold"
                     >
                       1K
                     </span>
                     <span
                       onClick={(e) => { e.stopPropagation(); if (canRunBatch) { playBop(); onRunBatch('2K'); } }}
-                      className={`px-2 py-0.5 border-l border-black/20 font-bold ${
-                        canRunBatch ? 'hover:bg-black hover:text-white cursor-pointer' : ''
+                      className={`px-2 py-1 font-semibold ${
+                        canRunBatch ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
                       }`}
                     >
                       2K
                     </span>
                     <span
                       onClick={(e) => { e.stopPropagation(); if (canRunBatch) { playBop(); onRunBatch('4K'); } }}
-                      className={`px-2 py-0.5 border-l border-black/20 font-bold ${
-                        canRunBatch ? 'hover:bg-black hover:text-white cursor-pointer' : ''
+                      className={`px-2 py-1 font-semibold ${
+                        canRunBatch ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
                       }`}
                     >
                       4K
@@ -396,16 +399,16 @@ export const Chat: React.FC<ChatProps> = ({
             </button>
           </div>
         )}
-        
-        <div className="relative leading-none">
+
+        <div className="relative">
           <textarea
             ref={textareaRef}
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "ENTER_NUMBER..." : waitingForPreset.validationType === 'color' ? "ENTER_COLOR..." : "ENTER_RESPONSE...") : "ENTER_INSTRUCTION..."}
+            placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "Enter number..." : waitingForPreset.validationType === 'color' ? "Enter color..." : "Enter response...") : "Enter instruction..."}
             disabled={isProcessing}
-            className="w-full px-2 py-2 border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-900 resize-none focus:border-neon focus:outline-none disabled:opacity-50 text-xs font-mono h-20"
+            className="input resize-none h-20 pr-12 text-sm"
             rows={3}
           />
           <button
@@ -414,10 +417,10 @@ export const Chat: React.FC<ChatProps> = ({
               handleSend();
             }}
             disabled={!instruction.trim() || isProcessing}
-            className={`absolute bottom-3 right-2 p-1 border border-black dark:border-gray-600 hover:bg-neon disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+            className={`absolute bottom-3 right-3 p-2 rounded-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
               instruction.trim() && !isProcessing
-                ? 'bg-black text-white'
-                : 'bg-white dark:bg-gray-800 text-black dark:text-gray-100'
+                ? 'bg-neon text-slate-900 hover:bg-amber-400 shadow-soft'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">

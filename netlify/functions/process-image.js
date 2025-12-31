@@ -170,7 +170,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { image, images, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', mode = 'batch', batchId } = body;
+    const { image, images, referenceImages, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', mode = 'batch', batchId } = body;
 
     // Validate input - instruction is always required, image is optional for text-to-image
     if (!instruction) {
@@ -182,6 +182,9 @@ exports.handler = async (event) => {
 
     // Get all images to process (single image or multiple images array)
     const allImages = images || (image ? [image] : []);
+
+    // Get reference images from presets (max 3)
+    const refImages = referenceImages || [];
 
     // Check image sizes if images are provided
     for (let i = 0; i < allImages.length; i++) {
@@ -195,6 +198,18 @@ exports.handler = async (event) => {
       }
     }
 
+    // Check reference image sizes
+    for (let i = 0; i < refImages.length; i++) {
+      const img = refImages[i];
+      const imageFileSize = img.length * 0.75;
+      if (imageFileSize > MAX_IMAGE_SIZE) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Reference image ${i + 1} too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
+        };
+      }
+    }
+
     const startTime = Date.now();
 
     // Prepare request
@@ -203,8 +218,13 @@ exports.handler = async (event) => {
     // Build content array based on whether we have images
     const messageContent = [{ type: 'text', text: instruction }];
 
-    // Add all images to the message content
+    // Add all main images to the message content
     for (const img of allImages) {
+      messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
+    }
+
+    // Add all reference images AFTER main images
+    for (const img of refImages) {
       messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
     }
 
@@ -235,7 +255,9 @@ exports.handler = async (event) => {
       imageSize,
       mode,
       imageCount: allImages.length,
+      referenceImageCount: refImages.length,
       totalImageLength: allImages.reduce((sum, img) => sum + img.length, 0),
+      totalReferenceImageLength: refImages.reduce((sum, img) => sum + img.length, 0),
       instructionLength: instruction?.length,
       authHeader: `Bearer ${AI_GATEWAY_API_KEY?.substring(0, 15)}...`,
     });

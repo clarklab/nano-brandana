@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 export interface ProcessImageRequest {
   image?: string; // Optional - omit for text-only generation
   images?: string[]; // Multiple images for Single Job mode
+  referenceImages?: string[]; // Reference images from presets (max 3)
   instruction: string;
   model?: string;
   stream?: boolean;

@@ -5,7 +5,7 @@ import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTex
 import { PresetConfigModal } from './PresetConfigModal';
 
 interface ChatProps {
-  onSendInstruction: (instruction: string, displayText?: string) => void;
+  onSendInstruction: (instruction: string, displayText?: string, referenceImageUrls?: string[]) => void;
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
@@ -78,6 +78,9 @@ export const Chat: React.FC<ChatProps> = ({
   // Currently waiting for user input for an "ask" type preset
   const [waitingForPreset, setWaitingForPreset] = useState<RuntimePreset | null>(null);
 
+  // Track the currently selected preset for direct presets (to include reference images)
+  const [currentPreset, setCurrentPreset] = useState<RuntimePreset | null>(null);
+
   // Preset config modal state
   const [isPresetConfigOpen, setIsPresetConfigOpen] = useState(false);
 
@@ -120,7 +123,14 @@ export const Chat: React.FC<ChatProps> = ({
         const displayText = processDisplayTextTemplate(preset, userMessage);
         const confirmation = processConfirmationTemplate(preset, userMessage);
 
-        onSendInstruction(processedPrompt, displayText);
+        // Collect reference image URLs from the preset
+        const referenceImageUrls = [
+          preset.refImage1Url,
+          preset.refImage2Url,
+          preset.refImage3Url
+        ].filter((url): url is string => url !== null);
+
+        onSendInstruction(processedPrompt, displayText, referenceImageUrls.length > 0 ? referenceImageUrls : undefined);
         setWaitingForPreset(null);
 
         setTimeout(() => {
@@ -131,8 +141,16 @@ export const Chat: React.FC<ChatProps> = ({
           }]);
         }, 100);
       } else {
-        // Normal instruction
-        onSendInstruction(userMessage);
+        // Normal instruction or direct preset
+        // If currentPreset is set, include reference images
+        const referenceImageUrls = currentPreset ? [
+          currentPreset.refImage1Url,
+          currentPreset.refImage2Url,
+          currentPreset.refImage3Url
+        ].filter((url): url is string => url !== null) : [];
+
+        onSendInstruction(userMessage, undefined, referenceImageUrls.length > 0 ? referenceImageUrls : undefined);
+        setCurrentPreset(null); // Clear current preset after use
 
         // Add assistant confirmation message
         setTimeout(() => {
@@ -146,7 +164,7 @@ export const Chat: React.FC<ChatProps> = ({
         }, 100);
       }
     }
-  }, [instruction, isProcessing, waitingForPreset, onSendInstruction, runLabel]);
+  }, [instruction, isProcessing, waitingForPreset, currentPreset, onSendInstruction, runLabel]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -171,8 +189,9 @@ export const Chat: React.FC<ChatProps> = ({
       setWaitingForPreset(preset);
       textareaRef.current?.focus();
     } else {
-      // Direct preset - put the prompt in the textarea
+      // Direct preset - put the prompt in the textarea and remember the preset
       setInstruction(preset.prompt);
+      setCurrentPreset(preset); // Remember this preset for reference images
       textareaRef.current?.focus();
     }
   }, []);

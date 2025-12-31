@@ -75,6 +75,10 @@ export interface JobLog {
  * - prompt: Template with {{INPUT}} placeholder for user's response
  * - display_text_template: Template for the instruction list (e.g., "Add brand color {{INPUT}}")
  * - validation_type: 'number' | 'text' | 'color' | null
+ *
+ * Reference images (up to 3):
+ * - ref_image_1_url, ref_image_2_url, ref_image_3_url: URLs to reference images in Supabase Storage
+ * - These images are sent along with the main image to the AI for context
  */
 export interface UserPreset {
   id: string;
@@ -93,6 +97,9 @@ export interface UserPreset {
   validation_error_message: string | null;
   is_default: boolean;
   is_hidden: boolean;
+  ref_image_1_url: string | null;
+  ref_image_2_url: string | null;
+  ref_image_3_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -120,6 +127,9 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    ref_image_1_url: null,
+    ref_image_2_url: null,
+    ref_image_3_url: null,
   },
   {
     label: 'Add Brand Color',
@@ -136,6 +146,9 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    ref_image_1_url: null,
+    ref_image_2_url: null,
+    ref_image_3_url: null,
   },
   {
     label: 'Duplicate',
@@ -152,6 +165,9 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: 'Please enter a number between 1 and 10 for how many additional photos you want.',
     is_default: true,
     is_hidden: false,
+    ref_image_1_url: null,
+    ref_image_2_url: null,
+    ref_image_3_url: null,
   },
   {
     label: 'Upscale',
@@ -168,6 +184,9 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    ref_image_1_url: null,
+    ref_image_2_url: null,
+    ref_image_3_url: null,
   },
   {
     label: 'Transform',
@@ -184,6 +203,9 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    ref_image_1_url: null,
+    ref_image_2_url: null,
+    ref_image_3_url: null,
   },
   {
     label: 'Desaturate',
@@ -200,6 +222,9 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    ref_image_1_url: null,
+    ref_image_2_url: null,
+    ref_image_3_url: null,
   },
 ];
 

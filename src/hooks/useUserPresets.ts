@@ -21,6 +21,9 @@ export interface RuntimePreset {
   validationMax: number | null;
   validationErrorMessage: string | null;
   isDefault: boolean;
+  refImage1Url: string | null;
+  refImage2Url: string | null;
+  refImage3Url: string | null;
 }
 
 /**
@@ -43,6 +46,9 @@ function toRuntimePreset(preset: UserPreset | Omit<UserPreset, 'id' | 'user_id' 
     validationMax: preset.validation_max,
     validationErrorMessage: preset.validation_error_message,
     isDefault: preset.is_default,
+    refImage1Url: preset.ref_image_1_url,
+    refImage2Url: preset.ref_image_2_url,
+    refImage3Url: preset.ref_image_3_url,
   };
 }
 
@@ -263,6 +269,9 @@ export function useUserPresets(): UseUserPresetsReturn {
       validation_error_message: preset.validationErrorMessage,
       is_default: preset.isDefault ?? false,
       is_hidden: false,
+      ref_image_1_url: preset.refImage1Url ?? null,
+      ref_image_2_url: preset.refImage2Url ?? null,
+      ref_image_3_url: preset.refImage3Url ?? null,
     };
 
     if (isNew) {

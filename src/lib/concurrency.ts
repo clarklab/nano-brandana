@@ -39,6 +39,8 @@ export interface BatchProcessor {
   retryItem(itemId: string): void;
   redoItem(itemId: string): string | null; // Creates a NEW item based on existing, returns new item ID
   createRedoFromItem(sourceItem: WorkItem): string; // Creates a NEW item from provided item data
+  createRedoFromItemWithInstruction(sourceItem: WorkItem, instruction: string): string; // Creates a NEW item with custom instruction
+  replaceAndRedoItem(sourceItem: WorkItem, instruction: string): void; // Replaces existing item and reprocesses
   getItems(): WorkItem[];
   onUpdate(callback: (items: WorkItem[]) => void): void;
   isProcessing(): boolean;
@@ -267,6 +269,59 @@ export function createBatchProcessor(
       }
 
       return newId;
+    },
+
+    // Create a redo from external item data with custom instruction
+    createRedoFromItemWithInstruction(sourceItem: WorkItem, instruction: string): string {
+      const newId = `${Date.now()}-redo-${Math.random().toString(36).substring(2, 7)}`;
+      const newItem: WorkItem = {
+        id: newId,
+        input: sourceItem.input,
+        instruction: instruction,
+        imageSize: sourceItem.imageSize,
+        batchId: sourceItem.batchId,
+        status: 'queued',
+        retries: 0,
+      };
+
+      console.log('Creating redo with custom instruction:', getInputDisplayName(sourceItem.input), 'new ID:', newId);
+
+      // Add new item to the end of the list
+      items.push(newItem);
+      notifyUpdate();
+
+      // Start processing if not already running
+      if (!processing) {
+        processing = true;
+        processQueue();
+      }
+
+      return newId;
+    },
+
+    // Replace existing item in-place and reprocess
+    replaceAndRedoItem(sourceItem: WorkItem, instruction: string): void {
+      const item = items.find(i => i.id === sourceItem.id);
+      if (item && (item.status === 'failed' || item.status === 'completed')) {
+        console.log('Replacing and redoing item:', getInputDisplayName(item.input));
+
+        // Update the item in-place
+        item.instruction = instruction;
+        item.status = 'queued';
+        item.error = undefined;
+        item.result = undefined;
+        item.startTime = undefined;
+        item.endTime = undefined;
+        item.retries = 0;
+
+        notifyUpdate();
+
+        // Start processing if not already running
+        if (!processing) {
+          processing = true;
+          processQueue();
+        }
+      }
     },
 
     isProcessing() {

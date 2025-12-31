@@ -301,6 +301,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               {item.retries > 0 && (
                 <p className="text-xs text-red-500/70 mt-1">Retried {item.retries}x</p>
               )}
+              <p className="text-2xs text-red-400/50 dark:text-red-500/40 mt-1">(No tokens used)</p>
             </div>
           </div>
           {onRetry && (

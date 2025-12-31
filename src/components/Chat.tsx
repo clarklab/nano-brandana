@@ -269,27 +269,39 @@ export const Chat: React.FC<ChatProps> = ({
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {presets.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => {
-                playClick();
-                handlePreset(preset);
-              }}
-              disabled={presetsLoading}
-              className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-neon/10 hover:border-neon/50 transition-all duration-200 font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {preset.icon && (
-                <span
-                  className="material-symbols-outlined text-slate-400"
-                  style={{ fontSize: '14px', width: '14px', height: '14px' }}
-                >
-                  {preset.icon}
-                </span>
-              )}
-              {preset.label}
-            </button>
-          ))}
+          {presets.map((preset) => {
+            const isActive = currentPreset?.id === preset.id || waitingForPreset?.id === preset.id;
+            const hasReferenceImages = !!(preset.refImage1Url || preset.refImage2Url || preset.refImage3Url);
+
+            return (
+              <button
+                key={preset.id}
+                onClick={() => {
+                  playClick();
+                  handlePreset(preset);
+                }}
+                disabled={presetsLoading}
+                className={`px-3 py-1.5 text-xs border rounded-xl transition-all duration-200 font-medium flex items-center gap-1.5 disabled:opacity-50 ${
+                  isActive
+                    ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-900 dark:text-yellow-200 shadow-sm'
+                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-neon/10 hover:border-neon/50'
+                }`}
+              >
+                {preset.icon && (
+                  <span
+                    className={`material-symbols-outlined ${isActive ? 'text-yellow-600 dark:text-yellow-400' : 'text-slate-400'}`}
+                    style={{ fontSize: '14px', width: '14px', height: '14px' }}
+                  >
+                    {preset.icon}
+                  </span>
+                )}
+                {preset.label}
+                {hasReferenceImages && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-yellow-600 dark:bg-yellow-400' : 'bg-neon'}`} title="Has reference images" />
+                )}
+              </button>
+            );
+          })}
           {/* Gear icon to open preset configuration */}
           <button
             onClick={() => {

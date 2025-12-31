@@ -19,6 +19,22 @@ import { useSounds } from './lib/sounds';
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
 
+// Format token count for display (cosmetic only)
+// Under 100k: show real number (e.g., 45,678)
+// Under 1M: show as 126k, 724k, etc.
+// Over 1M: show as 1.4m, 2.3m, etc.
+const formatTokenCount = (count: number): string => {
+  if (count < 100_000) {
+    return count.toLocaleString();
+  } else if (count < 1_000_000) {
+    const k = Math.floor(count / 1000);
+    return `${k}k`;
+  } else {
+    const m = count / 1_000_000;
+    return `${m.toFixed(1)}m`;
+  }
+};
+
 // Dynamic concurrency based on batch size to reduce server load
 const getConcurrencyLimit = (batchSize: number) => {
   if (batchSize >= 10) return 1; // Large batches: sequential processing
@@ -661,7 +677,7 @@ function App() {
                         <path d="m600 24c-317.61 0-576 258.39-576 576s258.39 576 576 576 576-258.39 576-576-258.39-576-576-576zm-246.07 567.52 237.59-237.59c3.0586-3.0469 6.6367-3.5039 8.4844-3.5039s5.4258 0.45703 8.4844 3.5039l237.59 237.6c3.0586 3.0469 3.5156 6.625 3.5156 8.4844s-0.45703 5.4258-3.5156 8.4844l-237.59 237.57c-3.0586 3.0469-6.6367 3.5039-8.4844 3.5039s-5.4258-0.45703-8.4844-3.5039l-237.59-237.6c-3.0586-3.0469-3.5156-6.625-3.5156-8.4844 0-1.8555 0.45703-5.4102 3.5195-8.4688z"/>
                       </svg>
                       <span className="text-sm font-semibold text-amber-700 dark:text-amber-500">
-                        {profile?.tokens_remaining?.toLocaleString() || '0'}
+                        {formatTokenCount(profile?.tokens_remaining || 0)}
                       </span>
                     </button>
                     {/* Menu hamburger */}

@@ -172,23 +172,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               }}
             />
             <button
-              onMouseDown={() => setShowOriginal(true)}
-              onMouseUp={() => setShowOriginal(false)}
-              onMouseLeave={() => setShowOriginal(false)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowOriginal(true);
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowOriginal(false);
-              }}
-              onContextMenu={(e) => e.preventDefault()}
-              className="absolute top-2 left-2 px-2 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-soft touch-none"
+              onClick={() => setShowOriginal(!showOriginal)}
+              className="absolute top-2 left-2 px-2 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-soft flex items-center gap-1"
             >
-              {showOriginal ? 'Original' : 'Hold to compare'}
+              <span className="material-symbols-outlined text-[14px]">compare_arrows</span>
+              {showOriginal ? 'Original' : 'Compare'}
             </button>
           </div>
 

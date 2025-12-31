@@ -108,26 +108,27 @@ export function RedoModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
-        isAnimating ? 'bg-black/60' : 'bg-black/0'
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+        isAnimating ? 'animate-fade-in' : 'animate-fade-out'
       }`}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className={`bg-white dark:bg-slate-800 w-full max-w-lg mx-4 rounded-2xl shadow-2xl relative flex flex-col transition-all duration-300 transform ${
-          isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        className={`bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-elevated relative flex flex-col ${
+          isAnimating ? 'animate-slide-up' : 'animate-slide-down'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold">Redo Image</h2>
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="text-lg font-semibold font-display">Redo Image</h2>
           <button
             onClick={handleClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+            <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" className="text-slate-500" fill="currentColor">
+              <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
             </svg>
           </button>
         </div>
@@ -265,7 +266,7 @@ export function RedoModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex gap-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-b-2xl">
           <button
             onClick={handleClose}
             className="btn-secondary flex-1"

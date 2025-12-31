@@ -225,62 +225,70 @@ export function PresetConfigModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
-        isAnimating ? 'bg-black/60' : 'bg-black/0'
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+        isAnimating ? 'animate-fade-in' : 'animate-fade-out'
       }`}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className={`bg-white border-2 border-black w-full h-full md:w-[90vw] md:h-[90vh] md:max-w-4xl relative flex flex-col transition-all duration-300 transform ${
-          isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        className={`bg-white dark:bg-slate-800 w-full h-full md:w-[90vw] md:h-[85vh] md:max-w-4xl md:rounded-2xl shadow-elevated relative flex flex-col ${
+          isAnimating ? 'animate-slide-up' : 'animate-slide-down'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b-2 border-black">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
           <div>
-            <h2 className="text-lg font-bold">TASK PRESETS</h2>
-            <p className="text-xs text-gray-500 mt-1">
+            <h2 className="text-lg font-semibold font-display">Task Presets</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               Customize the quick action buttons for your workflow
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-3xl leading-none hover:text-gray-600 transition-colors p-2"
+            className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"
             aria-label="Close"
           >
-            &times;
+            <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" className="text-slate-500" fill="currentColor">
+              <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+            </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-5">
           {!user ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">Sign in to customize your presets</p>
-              <p className="text-xs text-gray-400">
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-slate-400">
+                  <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">Sign in to customize your presets</p>
+              <p className="text-sm text-slate-400 dark:text-slate-500">
                 Your presets will be saved to your account and synced across devices.
               </p>
             </div>
           ) : editingPreset ? (
             /* Edit Form */
-            <div className="max-w-2xl mx-auto space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold">
-                  {editingPreset.id ? 'EDIT PRESET' : 'NEW PRESET'}
+            <div className="max-w-2xl mx-auto space-y-5">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200">
+                  {editingPreset.id ? 'Edit Preset' : 'New Preset'}
                 </h3>
                 <button
                   onClick={handleCancelEdit}
-                  className="text-xs border border-black px-3 py-1 hover:bg-gray-100 transition-all"
+                  className="btn-secondary text-sm py-1.5 px-3"
                 >
-                  CANCEL
+                  Cancel
                 </button>
               </div>
 
               {/* Label and Icon row */}
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="text-xs font-bold text-gray-500 block mb-1">
-                    BUTTON LABEL *
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                    Button Label *
                   </label>
                   <input
                     type="text"
@@ -288,12 +296,12 @@ export function PresetConfigModal({
                     onChange={(e) => setEditingPreset({ ...editingPreset, label: e.target.value })}
                     placeholder="e.g., Remove BG"
                     maxLength={50}
-                    className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm"
+                    className="input py-2"
                   />
                 </div>
                 <div className="w-48">
-                  <label className="text-xs font-bold text-gray-500 block mb-1">
-                    ICON
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                    Icon
                   </label>
                   <IconPicker
                     selectedIcon={editingPreset.icon}
@@ -304,41 +312,43 @@ export function PresetConfigModal({
 
               {/* Type */}
               <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1">
-                  PRESET TYPE
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
+                  Preset Type
                 </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="flex gap-3 flex-wrap">
+                  <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-neon transition-colors flex-1 min-w-[200px]">
                     <input
                       type="radio"
                       name="presetType"
                       checked={editingPreset.presetType === 'direct'}
                       onChange={() => setEditingPreset({ ...editingPreset, presetType: 'direct' })}
-                      className="accent-black"
+                      className="accent-neon"
                     />
-                    <span className="text-sm">
-                      <strong>Direct</strong> - Applies prompt immediately
-                    </span>
+                    <div>
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Direct</span>
+                      <p className="text-xs text-slate-400">Applies prompt immediately</p>
+                    </div>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-neon transition-colors flex-1 min-w-[200px]">
                     <input
                       type="radio"
                       name="presetType"
                       checked={editingPreset.presetType === 'ask'}
                       onChange={() => setEditingPreset({ ...editingPreset, presetType: 'ask' })}
-                      className="accent-black"
+                      className="accent-neon"
                     />
-                    <span className="text-sm">
-                      <strong>Ask</strong> - Shows follow-up question first
-                    </span>
+                    <div>
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Ask</span>
+                      <p className="text-xs text-slate-400">Shows follow-up question first</p>
+                    </div>
                   </label>
                 </div>
               </div>
 
               {/* Prompt */}
               <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1">
-                  PROMPT / INSTRUCTION *
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                  Prompt / Instruction *
                 </label>
                 <textarea
                   value={editingPreset.prompt}
@@ -349,12 +359,12 @@ export function PresetConfigModal({
                       : 'The instruction to send to the AI'
                   }
                   rows={4}
-                  className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm font-mono resize-none"
+                  className="input font-mono text-sm resize-none"
                 />
                 {editingPreset.presetType === 'ask' && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Use <code className="bg-gray-100 px-1">{'{{INPUT}}'}</code> as placeholder for user's response.
-                    For duplicates, use <code className="bg-gray-100 px-1">{'{{ANGLES}}'}</code> for camera angles.
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+                    Use <code className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{'{{INPUT}}'}</code> as placeholder for user's response.
+                    For duplicates, use <code className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{'{{ANGLES}}'}</code> for camera angles.
                   </p>
                 )}
               </div>
@@ -363,90 +373,90 @@ export function PresetConfigModal({
               {editingPreset.presetType === 'ask' && (
                 <>
                   <div>
-                    <label className="text-xs font-bold text-gray-500 block mb-1">
-                      QUESTION TO ASK USER *
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Question to Ask User *
                     </label>
                     <textarea
                       value={editingPreset.askMessage}
                       onChange={(e) => setEditingPreset({ ...editingPreset, askMessage: e.target.value })}
                       placeholder='e.g., "What color would you like? (e.g., red, blue, #FF5733)"'
                       rows={2}
-                      className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm resize-none"
+                      className="input text-sm resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-gray-500 block mb-1">
-                      DISPLAY TEXT TEMPLATE
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Display Text Template
                     </label>
                     <input
                       type="text"
                       value={editingPreset.displayTextTemplate}
                       onChange={(e) => setEditingPreset({ ...editingPreset, displayTextTemplate: e.target.value })}
                       placeholder='e.g., "Add brand color {{INPUT}}"'
-                      className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm"
+                      className="input py-2"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Shown in the instruction list. Uses <code className="bg-gray-100 px-1">{'{{INPUT}}'}</code> placeholder.
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+                      Shown in the instruction list. Uses <code className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{'{{INPUT}}'}</code> placeholder.
                     </p>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-gray-500 block mb-1">
-                      CONFIRMATION MESSAGE
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Confirmation Message
                     </label>
                     <textarea
                       value={editingPreset.responseConfirmation}
                       onChange={(e) => setEditingPreset({ ...editingPreset, responseConfirmation: e.target.value })}
                       placeholder="e.g., Great! I'll add {{INPUT}} to your images."
                       rows={2}
-                      className="w-full px-3 py-2 border-2 border-black focus:border-neon focus:outline-none text-sm resize-none"
+                      className="input text-sm resize-none"
                     />
                   </div>
 
                   {/* Validation */}
-                  <div className="border border-gray-200 p-3 rounded space-y-3">
-                    <label className="text-xs font-bold text-gray-500 block">
-                      INPUT VALIDATION (Optional)
+                  <div className="bg-slate-50 dark:bg-slate-700/30 rounded-xl p-4 space-y-4">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block">
+                      Input Validation (Optional)
                     </label>
-                    <div className="flex gap-4 flex-wrap">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="flex gap-3 flex-wrap">
+                      <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-neon transition-colors">
                         <input
                           type="radio"
                           name="validationType"
                           checked={editingPreset.validationType === ''}
                           onChange={() => setEditingPreset({ ...editingPreset, validationType: '' })}
-                          className="accent-black"
+                          className="accent-neon"
                         />
                         <span className="text-sm">None</span>
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-neon transition-colors">
                         <input
                           type="radio"
                           name="validationType"
                           checked={editingPreset.validationType === 'text'}
                           onChange={() => setEditingPreset({ ...editingPreset, validationType: 'text' })}
-                          className="accent-black"
+                          className="accent-neon"
                         />
                         <span className="text-sm">Text</span>
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-neon transition-colors">
                         <input
                           type="radio"
                           name="validationType"
                           checked={editingPreset.validationType === 'number'}
                           onChange={() => setEditingPreset({ ...editingPreset, validationType: 'number' })}
-                          className="accent-black"
+                          className="accent-neon"
                         />
                         <span className="text-sm">Number</span>
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-neon transition-colors">
                         <input
                           type="radio"
                           name="validationType"
                           checked={editingPreset.validationType === 'color'}
                           onChange={() => setEditingPreset({ ...editingPreset, validationType: 'color' })}
-                          className="accent-black"
+                          className="accent-neon"
                         />
                         <span className="text-sm">Color</span>
                       </label>
@@ -455,21 +465,21 @@ export function PresetConfigModal({
                     {editingPreset.validationType === 'number' && (
                       <div className="flex gap-4">
                         <div className="flex-1">
-                          <label className="text-xs text-gray-500 block mb-1">Min</label>
+                          <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Min</label>
                           <input
                             type="number"
                             value={editingPreset.validationMin}
                             onChange={(e) => setEditingPreset({ ...editingPreset, validationMin: e.target.value })}
-                            className="w-full px-2 py-1 border border-gray-300 text-sm"
+                            className="input py-1.5 text-sm"
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="text-xs text-gray-500 block mb-1">Max</label>
+                          <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Max</label>
                           <input
                             type="number"
                             value={editingPreset.validationMax}
                             onChange={(e) => setEditingPreset({ ...editingPreset, validationMax: e.target.value })}
-                            className="w-full px-2 py-1 border border-gray-300 text-sm"
+                            className="input py-1.5 text-sm"
                           />
                         </div>
                       </div>
@@ -477,13 +487,13 @@ export function PresetConfigModal({
 
                     {editingPreset.validationType && (
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Custom Error Message</label>
+                        <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Custom Error Message</label>
                         <input
                           type="text"
                           value={editingPreset.validationErrorMessage}
                           onChange={(e) => setEditingPreset({ ...editingPreset, validationErrorMessage: e.target.value })}
                           placeholder="Shown when validation fails"
-                          className="w-full px-2 py-1 border border-gray-300 text-sm"
+                          className="input py-1.5 text-sm"
                         />
                       </div>
                     )}
@@ -493,7 +503,7 @@ export function PresetConfigModal({
 
               {/* Error */}
               {error && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-200 p-2">
+                <div className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
                   {error}
                 </div>
               )}
@@ -502,96 +512,99 @@ export function PresetConfigModal({
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full py-2 border-2 border-black bg-neon font-bold text-sm hover:bg-neon/80 transition-all disabled:opacity-50"
+                className="btn-primary w-full"
               >
-                {isSaving ? 'SAVING...' : 'SAVE PRESET'}
+                {isSaving ? 'Saving...' : 'Save Preset'}
               </button>
             </div>
           ) : (
             /* Preset List */
             <div className="max-w-2xl mx-auto">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-600">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {presets.length} preset{presets.length !== 1 ? 's' : ''}
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={handleResetToDefaults}
                     disabled={isSaving || isLoading}
-                    className="text-xs border border-gray-300 px-3 py-1 hover:bg-gray-100 transition-all disabled:opacity-50"
+                    className="btn-secondary text-sm py-1.5 px-3"
                   >
-                    RESET TO DEFAULTS
+                    Reset to Defaults
                   </button>
                   <button
                     onClick={handleAddNew}
                     disabled={isSaving || isLoading}
-                    className="text-xs border-2 border-black bg-neon px-3 py-1 font-bold hover:bg-neon/80 transition-all disabled:opacity-50"
+                    className="btn-primary text-sm py-1.5 px-3"
                   >
-                    + ADD NEW
+                    + Add New
                   </button>
                 </div>
               </div>
 
               {error && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-200 p-2 mb-4">
+                <div className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4">
                   {error}
                 </div>
               )}
 
               {isLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading presets...</div>
+                <div className="text-center py-12 text-slate-400">
+                  <div className="w-8 h-8 border-2 border-slate-200 border-t-neon rounded-full animate-spin mx-auto mb-3" />
+                  Loading presets...
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {presets.map((preset) => (
                     <div
                       key={preset.id}
-                      className="border-2 border-black p-3 hover:border-neon transition-all"
+                      className="card p-4 hover:shadow-elevated transition-all group"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1.5">
                             {preset.icon && (
                               <span
-                                className="material-symbols-outlined text-gray-600"
-                                style={{ fontSize: '16px', width: '16px', height: '16px' }}
+                                className="material-symbols-outlined text-slate-500 dark:text-slate-400"
+                                style={{ fontSize: '18px', width: '18px', height: '18px' }}
                               >
                                 {preset.icon}
                               </span>
                             )}
-                            <span className="font-bold text-sm">
-                              {preset.label.toUpperCase()}
+                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                              {preset.label}
                             </span>
                             <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              className={`badge ${
                                 preset.presetType === 'ask'
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-gray-100 text-gray-600'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
                               }`}
                             >
-                              {preset.presetType === 'ask' ? 'ASK' : 'DIRECT'}
+                              {preset.presetType === 'ask' ? 'Ask' : 'Direct'}
                             </span>
                             {preset.isDefault && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-neon/20 text-gray-600">
-                                DEFAULT
+                              <span className="badge badge-neon">
+                                Default
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 font-mono truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
                             {preset.prompt.length > 80
                               ? preset.prompt.substring(0, 80) + '...'
                               : preset.prompt}
                           </p>
                           {preset.presetType === 'ask' && preset.askMessage && (
-                            <p className="text-xs text-blue-600 mt-1 truncate">
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5 truncate">
                               Q: {preset.askMessage}
                             </p>
                           )}
                         </div>
-                        <div className="flex gap-1 flex-shrink-0">
+                        <div className="flex gap-1.5 flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEditPreset(preset)}
                             disabled={isSaving}
-                            className="p-1.5 border border-black hover:bg-neon transition-all disabled:opacity-50"
+                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-neon text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all disabled:opacity-50"
                             title="Edit"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
@@ -601,7 +614,7 @@ export function PresetConfigModal({
                           <button
                             onClick={() => handleDelete(preset)}
                             disabled={isSaving}
-                            className="p-1.5 border border-black hover:bg-red-100 hover:border-red-500 transition-all disabled:opacity-50"
+                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-all disabled:opacity-50"
                             title="Delete"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
@@ -619,10 +632,10 @@ export function PresetConfigModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t-2 border-black bg-gray-50 text-xs text-gray-500">
-          <p>
-            <strong>Tip:</strong> Use <code className="bg-gray-200 px-1">{'{{INPUT}}'}</code> in prompts to insert user responses.
-            For duplicate presets, <code className="bg-gray-200 px-1">{'{{ANGLES}}'}</code> inserts camera angle variations.
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 md:rounded-b-2xl">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-medium">Tip:</span> Use <code className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">{'{{INPUT}}'}</code> in prompts to insert user responses.
+            For duplicate presets, <code className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">{'{{ANGLES}}'}</code> inserts camera angle variations.
           </p>
         </div>
       </div>

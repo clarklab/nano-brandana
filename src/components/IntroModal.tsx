@@ -14,8 +14,8 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-amber-400 via-neon to-amber-300 dark:from-amber-900 dark:via-amber-800 dark:to-amber-900 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-elevated max-w-5xl w-full max-h-[90vh] overflow-y-auto relative animate-slide-up">
+    <div className="fixed inset-0 bg-gradient-to-br from-amber-400 via-neon to-amber-300 dark:from-amber-900 dark:via-amber-800 dark:to-amber-900 z-50 flex items-end md:items-center justify-center md:p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-w-5xl md:rounded-3xl shadow-elevated overflow-y-auto relative animate-slide-up">
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center z-10"
@@ -25,9 +25,9 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
           </svg>
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 min-h-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 min-h-full pb-[env(safe-area-inset-bottom)]">
           {/* Left Column - Intro (first on mobile) */}
-          <div className="p-8 md:p-10 flex flex-col justify-center order-1 md:order-1">
+          <div className="p-8 md:p-10 flex flex-col justify-center order-1 md:order-1 pt-16 md:pt-8">
             <div className="flex items-center gap-4 mb-8">
               <img src="/peel.svg" alt="Peel" className="w-14 h-14" />
               <div>

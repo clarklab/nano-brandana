@@ -150,8 +150,8 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated p-6 max-w-md w-full relative max-h-[90vh] overflow-y-auto animate-slide-up">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-50 md:p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-w-md md:rounded-2xl shadow-elevated p-6 relative overflow-y-auto animate-slide-up pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {/* Close button */}
         <button
           onClick={onClose}

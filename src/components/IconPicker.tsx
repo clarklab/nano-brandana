@@ -165,76 +165,93 @@ export function IconPicker({ selectedIcon, onSelectIcon }: IconPickerProps) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 border-2 border-black hover:border-neon focus:border-neon focus:outline-none transition-all w-full text-left"
+        className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-neon/50 focus:border-neon focus:ring-2 focus:ring-neon/20 focus:outline-none transition-all duration-200 w-full text-left group"
       >
         {selectedIcon ? (
           <>
             <span
-              className="material-symbols-outlined text-base"
-              style={{ fontSize: '18px', width: '18px', height: '18px' }}
+              className="material-symbols-outlined text-slate-600 dark:text-slate-300 group-hover:text-neon transition-colors"
+              style={{ fontSize: '20px', width: '20px', height: '20px' }}
             >
               {selectedIcon}
             </span>
-            <span className="text-sm flex-1 truncate">{selectedIcon}</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-1 truncate">{selectedIcon}</span>
           </>
         ) : (
-          <span className="text-sm text-gray-400 flex-1">No icon selected</span>
+          <span className="text-sm text-slate-400 dark:text-slate-500 flex-1">No icon selected</span>
         )}
-        <span className="text-gray-400 text-xs">
-          {isOpen ? '▲' : '▼'}
-        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        >
+          <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+        </svg>
       </button>
 
       {/* Dropdown picker */}
       {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border-2 border-black shadow-lg max-h-64 overflow-hidden flex flex-col">
+        <div className="absolute z-50 top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-elevated max-h-72 overflow-hidden flex flex-col animate-fade-in">
           {/* Search input */}
-          <div className="p-2 border-b border-gray-200">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search icons..."
-              className="w-full px-2 py-1 text-xs border border-gray-300 focus:border-neon focus:outline-none"
-              autoFocus
-            />
+          <div className="p-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="relative">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
+              >
+                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search icons..."
+                className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-neon/30 focus:border-neon focus:outline-none transition-all text-slate-700 dark:text-slate-200 placeholder-slate-400"
+                autoFocus
+              />
+            </div>
           </div>
 
           {/* Clear option */}
           <button
             type="button"
             onClick={() => handleSelectIcon(null)}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 border-b border-gray-100"
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 transition-colors"
           >
-            <span className="w-[18px] h-[18px] flex items-center justify-center border border-gray-300 rounded text-[10px]">
-              ✕
+            <span className="w-5 h-5 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-md text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+              </svg>
             </span>
-            <span>No icon</span>
+            <span className="font-medium">No icon</span>
           </button>
 
           {/* Icon grid */}
-          <div className="flex-1 overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto p-3 scrollbar-hide">
             {filteredIcons.length === 0 ? (
-              <div className="text-xs text-gray-400 text-center py-4">
+              <div className="text-sm text-slate-400 dark:text-slate-500 text-center py-6">
                 No icons found
               </div>
             ) : (
-              <div className="grid grid-cols-6 gap-1">
+              <div className="grid grid-cols-6 gap-1.5">
                 {filteredIcons.map((icon) => (
                   <button
                     key={icon.name}
                     type="button"
                     onClick={() => handleSelectIcon(icon.name)}
-                    className={`p-1.5 rounded hover:bg-neon/20 transition-colors flex items-center justify-center ${
+                    className={`p-2 rounded-lg transition-all duration-150 flex items-center justify-center ${
                       selectedIcon === icon.name
-                        ? 'bg-neon/30 ring-1 ring-neon'
-                        : ''
+                        ? 'bg-neon/20 ring-2 ring-neon text-slate-900 dark:text-white'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
                     }`}
                     title={icon.name}
                   >
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: '20px', width: '20px', height: '20px' }}
+                      style={{ fontSize: '22px', width: '22px', height: '22px' }}
                     >
                       {icon.name}
                     </span>

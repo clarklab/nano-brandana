@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { WorkItem, getInputDisplayName } from '../lib/concurrency';
 import { base64ToBlob } from '../lib/base64';
-import { calculateTokenCost, formatUSD, calculateTimeSaved, formatTime } from '../lib/pricing';
+import { calculateTokenCost, formatUSD, calculateTimeSaved, formatTime, calculateMoneySaved, formatMoneySaved } from '../lib/pricing';
+import { DEFAULT_HOURLY_RATE } from '../lib/supabase';
 
 interface ResultCardProps {
   item: WorkItem;
   originalImage: string;
   onOpenLightbox?: (images: string[], index: number, title: string) => void;
   onRetry?: (itemId: string) => void;
+  hourlyRate?: number | null; // User's hourly rate for money saved calculation
 }
 
 // Helper to copy image to clipboard
@@ -26,7 +28,7 @@ const copyImageToClipboard = async (imageData: string): Promise<boolean> => {
   }
 };
 
-export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onOpenLightbox, onRetry }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onOpenLightbox, onRetry, hourlyRate }) => {
   const [showOriginal, setShowOriginal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [timeSaved] = useState(() => calculateTimeSaved()); // Calculate once and persist
@@ -249,6 +251,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                 </span>
                 <span className="text-slate-400">
                   {formatTime(timeSaved)} saved
+                </span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium" title={`Based on ${hourlyRate ?? DEFAULT_HOURLY_RATE}/hr rate`}>
+                  {formatMoneySaved(calculateMoneySaved(timeSaved, hourlyRate ?? DEFAULT_HOURLY_RATE))} value
                 </span>
                 {item.result.imageSize && item.result.imageSize !== '1K' && (
                   <span className="text-purple-500 font-medium">

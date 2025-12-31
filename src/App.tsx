@@ -672,6 +672,7 @@ function App() {
                   isRunning={isProcessing}
                   totalElapsed={totalElapsed}
                   totalTokens={totalTokens}
+                  hourlyRate={profile?.hourly_rate}
                   hasCompletedWork={(() => {
                     const hasWork = workItems.some(item => item.status === 'completed' || item.status === 'failed');
                     console.log('hasCompletedWork calculation:', {
@@ -805,6 +806,7 @@ function App() {
                       originalImage={originalImage}
                       onOpenLightbox={handleOpenLightbox}
                       onRetry={handleRedoItem}
+                      hourlyRate={profile?.hourly_rate}
                     />
                   );
                 })}

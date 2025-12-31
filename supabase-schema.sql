@@ -10,7 +10,8 @@ CREATE TABLE public.profiles (
   tokens_remaining INTEGER DEFAULT 100000,  -- Start with 100k tokens
   tokens_used INTEGER DEFAULT 0,
   last_login TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  hourly_rate NUMERIC(10, 2) DEFAULT NULL  -- User's hourly rate for "money saved" calculations
 );
 
 -- Enable Row Level Security

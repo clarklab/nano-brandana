@@ -34,7 +34,11 @@ export interface Profile {
   tokens_used: number;
   last_login: string;
   created_at: string;
+  hourly_rate: number | null; // User's hourly rate for "money saved" calculations
 }
+
+// Default hourly rate for guests or users who haven't set one (USD)
+export const DEFAULT_HOURLY_RATE = 100;
 
 // Type for job logs
 export interface JobLog {

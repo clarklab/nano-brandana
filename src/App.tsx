@@ -9,6 +9,7 @@ import { Lightbox } from './components/Lightbox';
 import { IntroModal } from './components/IntroModal';
 import { AuthModal } from './components/AuthModal';
 import { AccountModal } from './components/AccountModal';
+import { RedoModal } from './components/RedoModal';
 import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
@@ -65,6 +66,7 @@ function App() {
   const [introModalOpen, setIntroModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'input' | 'tasks' | 'results'>('input');
   const [processingMode, setProcessingMode] = useState<'batch' | 'singleJob'>('batch');
+  const [redoModalItem, setRedoModalItem] = useState<WorkItem | null>(null);
 
   // Check if intro has been seen before
   useEffect(() => {
@@ -253,9 +255,27 @@ function App() {
       return;
     }
 
-    // Create a new work item from the source item data
-    const newId = batchProcessor.createRedoFromItem(sourceItem);
-    console.log('Created new redo item with ID:', newId);
+    // Open the redo modal with the item
+    setRedoModalItem(sourceItem);
+  }, [workItems]);
+
+  const handleRedoModalSubmit = useCallback((itemId: string, instruction: string, mode: 'replace' | 'new') => {
+    console.log('Redo modal submitted:', { itemId, instruction, mode });
+
+    // Find the item in React state
+    const sourceItem = workItems.find(item => item.id === itemId);
+    if (!sourceItem) {
+      console.error('Could not find item to redo:', itemId);
+      return;
+    }
+
+    if (mode === 'replace') {
+      // Replace existing item in-place
+      batchProcessor.replaceAndRedoItem(sourceItem, instruction);
+    } else {
+      // Create a new work item with the custom instruction
+      batchProcessor.createRedoFromItemWithInstruction(sourceItem, instruction);
+    }
 
     // Set processing state
     setIsProcessing(true);
@@ -881,6 +901,25 @@ function App() {
         email={profile?.email || user?.email || ''}
         onSignOut={signOut}
         onRefreshJobLogs={refreshJobLogs}
+      />
+
+      <RedoModal
+        isOpen={redoModalItem !== null}
+        onClose={() => setRedoModalItem(null)}
+        item={redoModalItem}
+        originalImage={(() => {
+          if (!redoModalItem) return '';
+          if (redoModalItem.input.type === 'image') {
+            return inputToBase64Map.get(redoModalItem.input.id) || '';
+          } else if (redoModalItem.input.type === 'composite') {
+            const firstImage = redoModalItem.input.items.find(i => i.type === 'image');
+            if (firstImage && firstImage.type === 'image') {
+              return inputToBase64Map.get(firstImage.id) || '';
+            }
+          }
+          return '';
+        })()}
+        onSubmit={handleRedoModalSubmit}
       />
     </div>
   );

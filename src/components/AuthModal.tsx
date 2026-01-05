@@ -26,10 +26,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         {/* Header with logo */}
         <div className="mb-6 pr-8">
-          <div className="flex items-center gap-3 mb-3">
-            <img src="/peel.svg" alt="Peel" className="size-8 dark:invert" />
-            <h2 className="text-xl font-semibold font-display">Create Peel account to continue</h2>
-          </div>
+          <img src="/peel.svg" alt="Peel" className="size-8 dark:invert mb-3" />
+          <h2 className="text-lg font-semibold font-display mb-1">Create Peel account to continue</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Get <span className="font-bold text-amber-600 dark:text-amber-400">25,000 free tokens</span> for image generation
           </p>

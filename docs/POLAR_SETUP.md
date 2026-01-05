@@ -51,14 +51,7 @@ This guide provides **step-by-step idiot-proof instructions** for setting up Pol
 2. Click **"Add Endpoint"** or **"Create Webhook"**
 3. Enter your webhook URL:
    ```
-   https://YOUR-NETLIFY-SITE.netlify.app/.netlify/functions/payment-webhook
-   ```
-
-   **Replace `YOUR-NETLIFY-SITE` with your actual Netlify site name!**
-
-   Example:
-   ```
-   https://nano-brandana.netlify.app/.netlify/functions/payment-webhook
+   https://banana.peel.diy/.netlify/functions/payment-webhook
    ```
 
 4. Select events to send:
@@ -269,7 +262,7 @@ This will install the `@polar-sh/sdk` package that was added to `package.json`.
 
 ### Step 12: Test in Production
 
-1. Go to your deployed site (e.g., `https://nano-brandana.netlify.app`)
+1. Go to your deployed site: `https://banana.peel.diy`
 2. **Sign in** with your account
 3. Click your **profile icon** or **account button**
 4. You should see your token balance
@@ -335,7 +328,7 @@ If you see errors, check the troubleshooting section below.
 
 **Solution:**
 1. Verify `POLAR_WEBHOOK_SECRET` in Netlify matches the webhook secret in Polar dashboard
-2. Check that webhook URL is correct: `https://YOUR-SITE.netlify.app/.netlify/functions/payment-webhook`
+2. Check that webhook URL is correct: `https://banana.peel.diy/.netlify/functions/payment-webhook`
 3. Make sure secret includes the `polar_whsec_` prefix
 
 ### Tokens Not Being Added After Payment

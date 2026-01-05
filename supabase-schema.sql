@@ -7,7 +7,7 @@
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
-  tokens_remaining INTEGER DEFAULT 100000,  -- Start with 100k tokens
+  tokens_remaining INTEGER DEFAULT 25000,  -- Start with 25k tokens
   tokens_used INTEGER DEFAULT 0,
   last_login TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -30,7 +30,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, tokens_remaining, tokens_used)
-  VALUES (NEW.id, NEW.email, 100000, 0);
+  VALUES (NEW.id, NEW.email, 25000, 0);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

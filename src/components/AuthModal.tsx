@@ -28,7 +28,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <div className="mb-6 pr-8">
           <h2 className="text-lg font-semibold font-display">Sign In to Continue</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Get <span className="font-bold text-slate-900 dark:text-slate-100">100,000 free tokens</span> for image generation
+            Get <span className="font-bold text-slate-900 dark:text-slate-100">25,000 free tokens</span> for image generation
           </p>
         </div>
 

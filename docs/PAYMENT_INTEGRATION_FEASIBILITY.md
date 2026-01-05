@@ -31,7 +31,7 @@
 Your current implementation provides an excellent foundation:
 
 1. **User Profiles** (`public.profiles`)
-   - Each user has `tokens_remaining` (default: 100,000 on signup)
+   - Each user has `tokens_remaining` (default: 25,000 on signup)
    - Tracks cumulative `tokens_used`
    - RLS policies ensure data security
 
@@ -441,7 +441,7 @@ Your architecture can support both:
    - Recommendation: No expiration (simpler, better UX)
 
 4. **Free Tier:**
-   - Keep 100k tokens on signup?
+   - Keep 25k tokens on signup?
    - Or reduce free tier once payments are available?
 
 5. **Refund Policy:**

@@ -671,12 +671,16 @@ function App() {
             {authConfigured ? (
               <div className="flex items-center gap-2">
                 {authLoading ? (
-                  // Show sign in button while loading (will update once session is checked)
+                  // Show loading state while checking auth
                   <button
                     disabled
                     className="btn-secondary text-sm opacity-50"
                   >
-                    Sign In
+                    <span className="inline-flex items-center gap-1">
+                      <span className="animate-pulse">.</span>
+                      <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>.</span>
+                      <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>.</span>
+                    </span>
                   </button>
                 ) : user ? (
                   <>
@@ -718,7 +722,7 @@ function App() {
                       }}
                       className="btn-secondary text-sm"
                     >
-                      Sign In
+                      Get Started
                     </button>
                     {/* Menu hamburger for guests */}
                     <button

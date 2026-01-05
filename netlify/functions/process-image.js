@@ -4,18 +4,39 @@ const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1';
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 
-// Supabase configuration
+// Supabase configuration - REQUIRED for security
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_INSTRUCTION_LENGTH = 10000; // Max 10K characters for instruction
 
-// Create Supabase admin client (only if configured)
+// Allowed origins for CORS (production + local dev)
+const ALLOWED_ORIGINS = [
+  process.env.URL, // Netlify deploy URL
+  process.env.DEPLOY_PRIME_URL, // Netlify branch deploy URL
+  'http://localhost:8889',
+  'http://localhost:3000',
+].filter(Boolean);
+
+// Create Supabase admin client - REQUIRED for security
 const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   : null;
 
-const isAuthEnabled = Boolean(supabaseAdmin);
+// Helper to get CORS origin (validate against allowed list)
+function getCorsOrigin(requestOrigin) {
+  if (!requestOrigin) return null;
+  // Check exact match or if origin starts with an allowed origin (for deploy previews)
+  const isAllowed = ALLOWED_ORIGINS.some(allowed =>
+    requestOrigin === allowed ||
+    (allowed && requestOrigin.startsWith(allowed.replace(/\/$/, '')))
+  );
+  // Also allow *.netlify.app for preview deploys
+  const isNetlifyPreview = /^https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app$/.test(requestOrigin) ||
+                           /^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(requestOrigin);
+  return (isAllowed || isNetlifyPreview) ? requestOrigin : null;
+}
 
 // Helper to log job to Supabase
 async function logJob(params) {
@@ -58,6 +79,31 @@ async function logJob(params) {
 }
 
 exports.handler = async (event) => {
+  const requestOrigin = event.headers.origin || event.headers.Origin;
+  const corsOrigin = getCorsOrigin(requestOrigin);
+
+  // Common security headers for all responses
+  const securityHeaders = {
+    'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    ...(corsOrigin && {
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Max-Age': '86400',
+    }),
+  };
+
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: securityHeaders,
+      body: '',
+    };
+  }
+
   // Log environment variables (masked)
   console.log('Environment check:', {
     hasApiKey: !!AI_GATEWAY_API_KEY,
@@ -65,14 +111,25 @@ exports.handler = async (event) => {
     apiKeyPrefix: AI_GATEWAY_API_KEY?.substring(0, 10) + '...',
     baseUrl: AI_GATEWAY_BASE_URL,
     imageModelId: IMAGE_MODEL_ID,
-    authEnabled: isAuthEnabled,
+    hasSupabase: !!supabaseAdmin,
   });
 
   // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: securityHeaders,
       body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
+
+  // SECURITY: Require Supabase authentication - fail closed
+  if (!supabaseAdmin) {
+    console.error('SECURITY ERROR: Supabase not configured - blocking request');
+    return {
+      statusCode: 503,
+      headers: securityHeaders,
+      body: JSON.stringify({ error: 'Service temporarily unavailable. Authentication system not configured.' }),
     };
   }
 
@@ -81,6 +138,7 @@ exports.handler = async (event) => {
     console.error('ERROR: AI_GATEWAY_API_KEY is not configured');
     return {
       statusCode: 500,
+      headers: securityHeaders,
       body: JSON.stringify({ error: 'AI Gateway API key not configured' }),
     };
   }
@@ -88,13 +146,14 @@ exports.handler = async (event) => {
   let userId = null;
   let userProfile = null;
 
-  // AUTH: If Supabase is configured, verify user and check tokens
-  if (isAuthEnabled) {
+  // AUTH: Verify user authentication and check tokens (REQUIRED)
+  {
     const authHeader = event.headers.authorization || event.headers.Authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
       return {
         statusCode: 401,
+        headers: securityHeaders,
         body: JSON.stringify({ error: 'Authentication required. Please sign in.' }),
       };
     }
@@ -109,6 +168,7 @@ exports.handler = async (event) => {
         console.error('Auth error:', authError);
         return {
           statusCode: 401,
+          headers: securityHeaders,
           body: JSON.stringify({ error: 'Invalid or expired session. Please sign in again.' }),
         };
       }
@@ -126,6 +186,7 @@ exports.handler = async (event) => {
         console.error('Profile error:', profileError);
         return {
           statusCode: 500,
+          headers: securityHeaders,
           body: JSON.stringify({ error: 'Failed to fetch user profile' }),
         };
       }
@@ -150,6 +211,7 @@ exports.handler = async (event) => {
 
         return {
           statusCode: 402,
+          headers: securityHeaders,
           body: JSON.stringify({
             error: 'Insufficient tokens',
             tokens_remaining: profile?.tokens_remaining || 0,
@@ -163,6 +225,7 @@ exports.handler = async (event) => {
       console.error('Auth verification failed:', err);
       return {
         statusCode: 401,
+        headers: securityHeaders,
         body: JSON.stringify({ error: 'Authentication failed' }),
       };
     }
@@ -176,7 +239,20 @@ exports.handler = async (event) => {
     if (!instruction) {
       return {
         statusCode: 400,
+        headers: securityHeaders,
         body: JSON.stringify({ error: 'Missing required field: instruction' }),
+      };
+    }
+
+    // SECURITY: Validate instruction length to prevent abuse
+    if (typeof instruction !== 'string' || instruction.length > MAX_INSTRUCTION_LENGTH) {
+      return {
+        statusCode: 400,
+        headers: securityHeaders,
+        body: JSON.stringify({
+          error: 'Invalid instruction',
+          message: `Instruction must be a string with maximum ${MAX_INSTRUCTION_LENGTH} characters`
+        }),
       };
     }
 
@@ -193,6 +269,7 @@ exports.handler = async (event) => {
       if (imageFileSize > MAX_IMAGE_SIZE) {
         return {
           statusCode: 400,
+          headers: securityHeaders,
           body: JSON.stringify({ error: `Image ${i + 1} too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
         };
       }
@@ -205,6 +282,7 @@ exports.handler = async (event) => {
       if (imageFileSize > MAX_IMAGE_SIZE) {
         return {
           statusCode: 400,
+          headers: securityHeaders,
           body: JSON.stringify({ error: `Reference image ${i + 1} too large. Maximum size: ${MAX_IMAGE_SIZE / 1024 / 1024}MB` }),
         };
       }
@@ -291,7 +369,7 @@ exports.handler = async (event) => {
       const errorElapsed = Date.now() - startTime;
 
       // Log error for all gateway failures
-      if (isAuthEnabled && userId) {
+      if (userId) {
         await logJob({
           userId,
           requestId: body.requestId,
@@ -317,19 +395,19 @@ exports.handler = async (event) => {
         if (error.includes('Free credits temporarily have restricted access')) {
           return {
             statusCode: 403,
+            headers: securityHeaders,
             body: JSON.stringify({
               error: 'Vercel AI Gateway free credits are temporarily restricted due to abuse.',
               message: 'To continue using this service, you need to purchase paid credits. Visit https://vercel.com/docs/ai-gateway/pricing for more information.',
-              details: error,
             }),
           };
         }
 
         return {
           statusCode: 403,
+          headers: securityHeaders,
           body: JSON.stringify({
             error: 'Authentication failed. Please check your API key.',
-            details: error,
           }),
         };
       }
@@ -337,15 +415,16 @@ exports.handler = async (event) => {
       if (response.status === 429) {
         return {
           statusCode: 429,
+          headers: securityHeaders,
           body: JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
         };
       }
 
       return {
         statusCode: response.status,
+        headers: securityHeaders,
         body: JSON.stringify({
           error: `AI Gateway error: ${response.statusText}`,
-          details: error,
         }),
       };
     }
@@ -366,9 +445,9 @@ exports.handler = async (event) => {
     const completionTokens = result.usage?.completion_tokens || 0;
     const tokensUsed = result.usage?.total_tokens || (promptTokens + completionTokens) || 1500; // Fallback estimate
 
-    // DEDUCT TOKENS: If auth is enabled, deduct tokens from user's balance
+    // DEDUCT TOKENS: Deduct tokens from user's balance
     let newTokenBalance = null;
-    if (isAuthEnabled && userId) {
+    if (userId) {
       try {
         // Use atomic update to prevent race conditions
         const { data: updateResult, error: updateError } = await supabaseAdmin
@@ -391,7 +470,7 @@ exports.handler = async (event) => {
     }
 
     // Log successful job
-    if (isAuthEnabled && userId) {
+    if (userId) {
       await logJob({
         userId,
         requestId: body.requestId,
@@ -416,11 +495,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      headers: securityHeaders,
       body: JSON.stringify({
         images: generatedImages,
         content,
@@ -436,9 +511,9 @@ exports.handler = async (event) => {
     console.error('Function error:', error);
     return {
       statusCode: 500,
+      headers: securityHeaders,
       body: JSON.stringify({
         error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
       }),
     };
   }

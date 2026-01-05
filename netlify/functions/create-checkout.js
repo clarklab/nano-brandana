@@ -25,11 +25,58 @@ const TOKEN_PACKAGES = {
   }
 };
 
+// Allowed origins for CORS (production + local dev)
+const ALLOWED_ORIGINS = [
+  process.env.URL, // Netlify deploy URL
+  process.env.DEPLOY_PRIME_URL, // Netlify branch deploy URL
+  'http://localhost:8889',
+  'http://localhost:3000',
+].filter(Boolean);
+
+// Helper to get CORS origin (validate against allowed list)
+function getCorsOrigin(requestOrigin) {
+  if (!requestOrigin) return null;
+  const isAllowed = ALLOWED_ORIGINS.some(allowed =>
+    requestOrigin === allowed ||
+    (allowed && requestOrigin.startsWith(allowed.replace(/\/$/, '')))
+  );
+  // Also allow *.netlify.app for preview deploys
+  const isNetlifyPreview = /^https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app$/.test(requestOrigin) ||
+                           /^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(requestOrigin);
+  return (isAllowed || isNetlifyPreview) ? requestOrigin : null;
+}
+
 export const handler = async (event, context) => {
+  const requestOrigin = event.headers.origin || event.headers.Origin;
+  const corsOrigin = getCorsOrigin(requestOrigin);
+
+  // Common security headers for all responses
+  const securityHeaders = {
+    'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    ...(corsOrigin && {
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Max-Age': '86400',
+    }),
+  };
+
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: securityHeaders,
+      body: '',
+    };
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: securityHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -43,6 +90,7 @@ export const handler = async (event, context) => {
     if (!packageId || !TOKEN_PACKAGES[packageId]) {
       return {
         statusCode: 400,
+        headers: securityHeaders,
         body: JSON.stringify({
           error: 'Invalid package ID',
           valid_packages: Object.keys(TOKEN_PACKAGES)
@@ -58,6 +106,7 @@ export const handler = async (event, context) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return {
         statusCode: 401,
+        headers: securityHeaders,
         body: JSON.stringify({ error: 'Missing or invalid authorization header' })
       };
     }
@@ -76,6 +125,7 @@ export const handler = async (event, context) => {
     if (authError || !user) {
       return {
         statusCode: 401,
+        headers: securityHeaders,
         body: JSON.stringify({ error: 'Invalid authentication token' })
       };
     }
@@ -98,9 +148,9 @@ export const handler = async (event, context) => {
       console.error(`Missing product ID for package: ${packageId}`);
       return {
         statusCode: 500,
+        headers: securityHeaders,
         body: JSON.stringify({
-          error: 'Payment system configuration error',
-          details: 'Product ID not configured'
+          error: 'Payment system configuration error'
         })
       };
     }
@@ -140,10 +190,7 @@ export const handler = async (event, context) => {
     // Return checkout URL to client
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers: securityHeaders,
       body: JSON.stringify({
         url: checkout.url,
         checkout_id: checkout.id,
@@ -163,9 +210,9 @@ export const handler = async (event, context) => {
     if (error.statusCode) {
       return {
         statusCode: error.statusCode,
+        headers: securityHeaders,
         body: JSON.stringify({
-          error: 'Payment provider error',
-          message: error.message
+          error: 'Payment provider error'
         })
       };
     }
@@ -173,9 +220,9 @@ export const handler = async (event, context) => {
     // Generic error
     return {
       statusCode: 500,
+      headers: securityHeaders,
       body: JSON.stringify({
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Failed to create checkout session'
+        error: 'Internal server error'
       })
     };
   }

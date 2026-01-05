@@ -2,6 +2,12 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, Profile, JobLog, isSupabaseConfigured } from '../lib/supabase';
 
+interface TokenAnimationState {
+  from: number;
+  to: number;
+  isAnimating: boolean;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
@@ -14,6 +20,10 @@ interface AuthContextType {
   refreshJobLogs: () => Promise<void>;
   updateTokenBalance: (newBalance: number) => void;
   updateHourlyRate: (rate: number | null) => Promise<boolean>;
+  // Token animation support
+  tokenAnimation: TokenAnimationState | null;
+  triggerTokenAnimation: (from: number, to: number) => void;
+  clearTokenAnimation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [jobLogs, setJobLogs] = useState<JobLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tokenAnimation, setTokenAnimation] = useState<TokenAnimationState | null>(null);
 
   // Debug logging for state changes
   console.log('[AuthProvider] Render - loading:', loading, 'user:', user?.email || 'null', 'session:', session ? 'exists' : 'null');
@@ -127,6 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokens_used: prev.tokens_used + (prev.tokens_remaining - newBalance)
       } : null);
     }
+  };
+
+  const triggerTokenAnimation = (from: number, to: number) => {
+    if (from < to) {
+      console.log('[triggerTokenAnimation] Starting animation from', from, 'to', to);
+      setTokenAnimation({ from, to, isAnimating: true });
+    }
+  };
+
+  const clearTokenAnimation = () => {
+    console.log('[clearTokenAnimation] Clearing animation state');
+    setTokenAnimation(null);
   };
 
   const updateHourlyRate = async (rate: number | null): Promise<boolean> => {
@@ -353,7 +376,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshProfile,
       refreshJobLogs,
       updateTokenBalance,
-      updateHourlyRate
+      updateHourlyRate,
+      tokenAnimation,
+      triggerTokenAnimation,
+      clearTokenAnimation
     }}>
       {children}
     </AuthContext.Provider>

@@ -28,7 +28,7 @@ const ensureAudioContextResumed = async () => {
   }
 };
 
-type SoundType = 'blip' | 'bop' | 'click' | 'toggle' | 'success' | 'error';
+type SoundType = 'blip' | 'bop' | 'click' | 'toggle' | 'success' | 'error' | 'ping';
 
 interface SoundConfig {
   frequency: number;
@@ -87,6 +87,14 @@ const SOUND_CONFIGS: Record<SoundType, SoundConfig> = {
     volume: 0.08,
     ramp: 'down',
   },
+  // Ping sound for purchase confirmation - bright, celebratory tone
+  ping: {
+    frequency: 1200,
+    duration: 0.25,
+    type: 'sine',
+    volume: 0.15,
+    ramp: 'up',
+  },
 };
 
 // Play a sound effect
@@ -140,6 +148,7 @@ export const playClick = () => playSound('click');
 export const playToggle = () => playSound('toggle');
 export const playSuccess = () => playSound('success');
 export const playError = () => playSound('error');
+export const playPing = () => playSound('ping');
 
 // Hook for using sounds in React components
 import { useCallback } from 'react';
@@ -151,6 +160,7 @@ export const useSounds = () => {
   const toggle = useCallback(() => playToggle(), []);
   const success = useCallback(() => playSuccess(), []);
   const error = useCallback(() => playError(), []);
+  const ping = useCallback(() => playPing(), []);
 
-  return { blip, bop, click, toggle, success, error, playSound };
+  return { blip, bop, click, toggle, success, error, ping, playSound };
 };

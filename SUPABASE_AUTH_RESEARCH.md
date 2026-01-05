@@ -1,6 +1,6 @@
 # Supabase Auth + Usage Tracking Research for nano-brandana
 
-> **Goal**: Simple magic link auth, track users & token usage, start with 100k free tokens, no payments.
+> **Goal**: Simple magic link auth, track users & token usage, start with 25k free tokens, no payments.
 
 ## Executive Summary
 
@@ -81,7 +81,7 @@ Run this SQL in Supabase SQL Editor:
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
-  tokens_remaining INTEGER DEFAULT 100000,  -- Start with 100k
+  tokens_remaining INTEGER DEFAULT 25000,  -- Start with 25k
   tokens_used INTEGER DEFAULT 0,
   last_login TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, tokens_remaining, tokens_used)
-  VALUES (NEW.id, NEW.email, 100000, 0);
+  VALUES (NEW.id, NEW.email, 25000, 0);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -297,7 +297,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </div>
 
         <p className="text-sm mb-4">
-          Sign in with your email to get <strong>100,000 free tokens</strong> for image generation.
+          Sign in with your email to get <strong>25,000 free tokens</strong> for image generation.
         </p>
 
         <Auth
@@ -687,7 +687,7 @@ app         │
     ▼        ▼
 Profile     Update balance
 created     in UI
-(100k       │
+(25k        │
 tokens)     Done!
 ```
 
@@ -719,7 +719,7 @@ Supabase sessions are stored in localStorage by default. Users stay logged in ac
 ## What You Get
 
 ✅ Magic link auth (no passwords)
-✅ 100k free tokens on signup
+✅ 25k free tokens on signup
 ✅ Token balance displayed in header
 ✅ Token deduction per generation
 ✅ Last login tracking

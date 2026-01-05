@@ -45,7 +45,7 @@ Simple step-by-step guide to set up user authentication and token tracking.
 
 This creates:
 - `profiles` table (stores user tokens)
-- Auto-creates profile when users sign up with 100,000 tokens
+- Auto-creates profile when users sign up with 25,000 tokens
 - `deduct_tokens` function for safe token deduction
 
 ---
@@ -116,7 +116,7 @@ Netlify incorrectly flags these public keys as "exposed secrets". To fix:
 4. Click it, enter your email
 5. Check your email for the magic link
 6. Click the link - you're logged in!
-7. You should see "100,000 tokens" in the header
+7. You should see "25,000 tokens" in the header
 
 ---
 
@@ -171,7 +171,7 @@ IMAGE_MODEL_ID=google/gemini-3-pro-image
 
 Your app now has:
 - Magic link authentication (no passwords)
-- 100,000 free tokens per user
+- 25,000 free tokens per user
 - Automatic token deduction per generation
 - Token balance display in header
 

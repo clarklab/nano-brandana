@@ -15,6 +15,7 @@ import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 import { useAuth } from './contexts/AuthContext';
 import { useSounds } from './lib/sounds';
+import { useAnimatedNumber } from './hooks/useAnimatedNumber';
 
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
@@ -50,10 +51,10 @@ const getStaggerDelay = (batchSize: number) => {
 
 function App() {
   // Sounds
-  const { blip: playBlip, click: playClick } = useSounds();
+  const { blip: playBlip, click: playClick, ping: playPing } = useSounds();
 
   // Auth state
-  const { user, profile, jobLogs, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, refreshJobLogs, updateTokenBalance } = useAuth();
+  const { user, profile, jobLogs, loading: authLoading, isConfigured: authConfigured, signOut, refreshProfile, refreshJobLogs, updateTokenBalance, tokenAnimation, triggerTokenAnimation, clearTokenAnimation } = useAuth();
 
   // Ref to hold updateTokenBalance to avoid useMemo dependency issues
   const updateTokenBalanceRef = useRef(updateTokenBalance);
@@ -94,27 +95,95 @@ function App() {
     }
   }, []);
 
+  // Track payment success processing state
+  const paymentProcessedRef = useRef(false);
+  const prePurchaseTokensRef = useRef<number | null>(null);
+  const isPollingForTokensRef = useRef(false);
+
   // Handle payment success redirect - refresh profile to get updated token balance
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
 
-    if (paymentStatus === 'success') {
-      console.log('Payment success detected, refreshing profile...');
+    if (paymentStatus === 'success' && !paymentProcessedRef.current) {
+      paymentProcessedRef.current = true;
+      console.log('Payment success detected!');
 
-      // Refresh profile to get updated token balance
-      if (authConfigured) {
-        refreshProfile();
-      }
+      // Store the pre-purchase token count
+      // This might be 0 if profile hasn't loaded yet, or the current balance
+      prePurchaseTokensRef.current = profile?.tokens_remaining ?? 0;
+      console.log('Pre-purchase token count stored:', prePurchaseTokensRef.current);
 
       // Open account modal to show the updated balance
       setAccountModalOpen(true);
 
-      // Clean up URL parameters
+      // Clean up URL parameters immediately
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
+
+      // Start polling for token increase
+      if (authConfigured && !isPollingForTokensRef.current) {
+        isPollingForTokensRef.current = true;
+
+        const pollForTokenIncrease = async () => {
+          const maxAttempts = 15; // 15 attempts over ~15 seconds
+          let attempts = 0;
+
+          console.log('Starting to poll for token increase...');
+
+          while (attempts < maxAttempts) {
+            await refreshProfile();
+
+            // Wait for next attempt
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+
+            console.log(`Poll attempt ${attempts}/${maxAttempts}`);
+          }
+
+          console.log('Finished polling for token increase');
+          isPollingForTokensRef.current = false;
+        };
+
+        // Start polling after a short delay
+        setTimeout(pollForTokenIncrease, 500);
+      }
     }
   }, [authConfigured, refreshProfile]);
+
+  // Watch for token changes and trigger animation
+  useEffect(() => {
+    // Only check if we've processed a payment and have a stored pre-purchase value
+    if (prePurchaseTokensRef.current !== null && profile?.tokens_remaining !== undefined) {
+      const prePurchaseTokens = prePurchaseTokensRef.current;
+      const currentTokens = profile.tokens_remaining;
+
+      // If tokens increased from pre-purchase value, trigger animation
+      if (currentTokens > prePurchaseTokens && !tokenAnimation?.isAnimating) {
+        console.log('Token increase detected! Animating from', prePurchaseTokens, 'to', currentTokens);
+        triggerTokenAnimation(prePurchaseTokens, currentTokens);
+
+        // Reset the pre-purchase ref so we don't re-animate
+        prePurchaseTokensRef.current = null;
+      }
+    }
+  }, [profile?.tokens_remaining, tokenAnimation?.isAnimating, triggerTokenAnimation]);
+
+  // Animated token count for the header pill
+  const handleAnimationComplete = useCallback(() => {
+    console.log('Token animation complete, playing ping sound');
+    playPing();
+    // Clear animation state after a short delay
+    setTimeout(() => {
+      clearTokenAnimation();
+    }, 100);
+  }, [playPing, clearTokenAnimation]);
+
+  const animatedTokenCount = useAnimatedNumber(
+    tokenAnimation?.to ?? (profile?.tokens_remaining || 0),
+    tokenAnimation?.isAnimating ? tokenAnimation.from : undefined,
+    { duration: 1500, onComplete: tokenAnimation?.isAnimating ? handleAnimationComplete : undefined }
+  );
 
   // Create batch processor with dynamic settings
   const batchProcessor = React.useMemo(() => {
@@ -690,14 +759,24 @@ function App() {
                         playBlip();
                         setAccountModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 bg-neon/15 px-3 py-1.5 rounded-full hover:bg-neon/25 transition-all duration-200 shadow-soft"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200 shadow-soft ${
+                        tokenAnimation?.isAnimating
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-400 dark:ring-emerald-500 animate-pulse'
+                          : 'bg-neon/15 hover:bg-neon/25'
+                      }`}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" fill="currentColor" className="w-3.5 h-3.5 text-amber-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" fill="currentColor" className={`w-3.5 h-3.5 ${tokenAnimation?.isAnimating ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
                         <path d="m600 24c-317.61 0-576 258.39-576 576s258.39 576 576 576 576-258.39 576-576-258.39-576-576-576zm-246.07 567.52 237.59-237.59c3.0586-3.0469 6.6367-3.5039 8.4844-3.5039s5.4258 0.45703 8.4844 3.5039l237.59 237.6c3.0586 3.0469 3.5156 6.625 3.5156 8.4844s-0.45703 5.4258-3.5156 8.4844l-237.59 237.57c-3.0586 3.0469-6.6367 3.5039-8.4844 3.5039s-5.4258-0.45703-8.4844-3.5039l-237.59-237.6c-3.0586-3.0469-3.5156-6.625-3.5156-8.4844 0-1.8555 0.45703-5.4102 3.5195-8.4688z"/>
                       </svg>
-                      <span className="text-sm font-semibold text-amber-700 dark:text-amber-500">
-                        {formatTokenCount(profile?.tokens_remaining || 0)}
+                      <span className={`text-sm font-semibold tabular-nums ${tokenAnimation?.isAnimating ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-500'}`}>
+                        {tokenAnimation?.isAnimating
+                          ? formatTokenCount(animatedTokenCount)
+                          : formatTokenCount(profile?.tokens_remaining || 0)
+                        }
                       </span>
+                      {tokenAnimation?.isAnimating && (
+                        <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold">+{formatTokenCount(tokenAnimation.to - tokenAnimation.from)}</span>
+                      )}
                     </button>
                     {/* Menu hamburger */}
                     <button

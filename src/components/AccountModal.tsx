@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Profile, JobLog, DEFAULT_HOURLY_RATE } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { BuyTokensModal } from './BuyTokensModal';
+import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 
 interface BatchGroup {
   batchId: string | null;
@@ -28,7 +29,17 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
   const [isBuyTokensOpen, setIsBuyTokensOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { updateHourlyRate } = useAuth();
+  const { updateHourlyRate, tokenAnimation } = useAuth();
+
+  // Animated token count for the modal
+  const animatedTokenCount = useAnimatedNumber(
+    tokenAnimation?.to ?? (profile?.tokens_remaining || 0),
+    tokenAnimation?.isAnimating ? tokenAnimation.from : undefined,
+    { duration: 1500 }
+  );
+
+  // Helper to format large numbers with commas
+  const formatNumber = useCallback((num: number) => num.toLocaleString(), []);
 
   // Hourly rate state
   const [hourlyRateInput, setHourlyRateInput] = useState<string>('');
@@ -176,13 +187,38 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
               <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate mt-0.5">{email}</p>
             </div>
 
-            <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 rounded-xl p-4">
+            <div className={`rounded-xl p-4 transition-all duration-300 ${
+              tokenAnimation?.isAnimating
+                ? 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 ring-2 ring-emerald-400 dark:ring-emerald-500'
+                : 'bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10'
+            }`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tokens Remaining</label>
-                  <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">
-                    {profile?.tokens_remaining?.toLocaleString() || '0'}
-                  </p>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {tokenAnimation?.isAnimating ? 'Tokens Added!' : 'Tokens Remaining'}
+                  </label>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <p className={`text-xl font-bold tabular-nums ${
+                      tokenAnimation?.isAnimating
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}>
+                      {tokenAnimation?.isAnimating
+                        ? formatNumber(animatedTokenCount)
+                        : formatNumber(profile?.tokens_remaining || 0)
+                      }
+                    </p>
+                    {tokenAnimation?.isAnimating && (
+                      <span className="text-emerald-600 dark:text-emerald-400 text-sm font-bold animate-pulse">
+                        +{formatNumber(tokenAnimation.to - tokenAnimation.from)}
+                      </span>
+                    )}
+                  </div>
+                  {tokenAnimation?.isAnimating && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                      Purchase successful! Your tokens are ready to use.
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => setIsBuyTokensOpen(true)}

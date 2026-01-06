@@ -63,6 +63,7 @@ function App() {
   }, [updateTokenBalance]);
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
 
   const [inputs, setInputs] = useState<BaseInputItem[]>([]);
@@ -92,6 +93,39 @@ function App() {
     const hasSeenIntro = localStorage.getItem('peel-intro-seen');
     if (!hasSeenIntro) {
       setIntroModalOpen(true);
+    }
+  }, []);
+
+  // Handle auth errors from URL params (e.g., expired magic link)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorCode = urlParams.get('error_code');
+    const errorDescription = urlParams.get('error_description');
+
+    // Also check hash params (Supabase sometimes puts errors there too)
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hashErrorCode = hashParams.get('error_code');
+    const hashErrorDescription = hashParams.get('error_description');
+
+    const finalErrorCode = errorCode || hashErrorCode;
+    const finalErrorDescription = errorDescription || hashErrorDescription;
+
+    if (finalErrorCode) {
+      console.log('Auth error detected:', finalErrorCode, finalErrorDescription);
+
+      // Map error codes to user-friendly messages
+      let message = finalErrorDescription?.replace(/\+/g, ' ') || 'Authentication failed';
+      if (finalErrorCode === 'otp_expired') {
+        message = 'Your magic link has expired. Please request a new one.';
+      } else if (finalErrorCode === 'access_denied') {
+        message = 'Access denied. Please try signing in again.';
+      }
+
+      setAuthError(message);
+      setAuthModalOpen(true);
+
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
@@ -1084,7 +1118,11 @@ function App() {
 
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setAuthError(null);
+        }}
+        error={authError}
       />
 
       <AccountModal

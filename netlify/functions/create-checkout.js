@@ -2,7 +2,7 @@
  * Netlify Function: create-checkout
  * Creates a Polar checkout session for token purchases
  *
- * Request body: { packageId: "starter" | "pro" }
+ * Request body: { packageId: "starter" | "pro" | "power" }
  * Returns: { url: "https://polar.sh/checkout/..." }
  */
 
@@ -12,15 +12,21 @@ import { createClient } from '@supabase/supabase-js';
 // Token packages configuration
 const TOKEN_PACKAGES = {
   starter: {
-    tokens: 100000,
+    tokens: 25000,
     price_usd: 5.00,
-    name: "Starter Pack - 100K Tokens",
-    description: "Process ~65 images (1-2K resolution)"
+    name: "Starter - 25K Tokens",
+    description: "Process ~16 images (1-2K resolution)"
   },
   pro: {
+    tokens: 250000,
+    price_usd: 35.00,
+    name: "Pro - 250K Tokens",
+    description: "Process ~165 images (1-2K resolution)"
+  },
+  power: {
     tokens: 1000000,
-    price_usd: 17.00,
-    name: "Pro Pack - 1M Tokens",
+    price_usd: 90.00,
+    name: "Power - 1M Tokens",
     description: "Process ~650 images (1-2K resolution)"
   }
 };
@@ -140,9 +146,12 @@ export const handler = async (event, context) => {
     });
 
     // Determine which product ID to use based on package
-    const productId = packageId === 'starter'
-      ? process.env.POLAR_STARTER_PRODUCT_ID
-      : process.env.POLAR_PRO_PRODUCT_ID;
+    const productIdMap = {
+      starter: process.env.POLAR_STARTER_PRODUCT_ID,
+      pro: process.env.POLAR_PRO_PRODUCT_ID,
+      power: process.env.POLAR_POWER_PRODUCT_ID
+    };
+    const productId = productIdMap[packageId];
 
     if (!productId) {
       console.error(`Missing product ID for package: ${packageId}`);
@@ -155,8 +164,13 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get price amount based on package
-    const priceAmount = packageId === 'starter' ? 500 : 1700; // in cents: $5.00 or $17.00
+    // Get price amount based on package (in cents)
+    const priceAmountMap = {
+      starter: 500,   // $5.00
+      pro: 3500,      // $35.00
+      power: 9000     // $90.00
+    };
+    const priceAmount = priceAmountMap[packageId];
 
     // Create checkout session with inline pricing
     // Polar SDK requires product prices to be specified explicitly

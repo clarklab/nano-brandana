@@ -5,9 +5,10 @@ import { supabase } from '../lib/supabase';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  error?: string | null;
 }
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, error }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -32,6 +33,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             Get <span className="font-bold text-amber-600 dark:text-amber-400">25,000 free tokens</span> for image generation
           </p>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+          </div>
+        )}
 
         {/* Supabase Auth UI */}
         <Auth

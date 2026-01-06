@@ -60,8 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchProfile = async (userId: string, userEmail?: string) => {
-    console.log('[fetchProfile] Starting for user:', userId);
+  const fetchProfile = async (userId: string, userEmail?: string, retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second between retries
+
+    console.log('[fetchProfile] Starting for user:', userId, retryCount > 0 ? `(retry ${retryCount}/${MAX_RETRIES})` : '');
     if (!isSupabaseConfigured) {
       console.log('[fetchProfile] Supabase not configured, skipping');
       return;
@@ -87,10 +90,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[fetchProfile] Error:', error);
+
+        // Retry if we haven't exhausted retries (profile might not exist yet due to race condition)
+        if (retryCount < MAX_RETRIES) {
+          console.log(`[fetchProfile] Retrying in ${RETRY_DELAY}ms...`);
+          setTimeout(() => fetchProfile(userId, userEmail, retryCount + 1), RETRY_DELAY);
+          return;
+        }
+
         // If profile doesn't exist but we have user info, create a minimal profile object
         // This can happen if the profile wasn't created yet or there's a DB issue
         if (userEmail) {
-          console.log('[fetchProfile] Using fallback profile with user email');
+          console.log('[fetchProfile] Using fallback profile with user email after all retries');
           setProfile({
             id: userId,
             email: userEmail,
@@ -108,9 +119,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(data);
     } catch (err) {
       console.error('[fetchProfile] Catch error:', err);
+
+      // Retry on timeout/error if we haven't exhausted retries
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[fetchProfile] Retrying in ${RETRY_DELAY}ms after error...`);
+        setTimeout(() => fetchProfile(userId, userEmail, retryCount + 1), RETRY_DELAY);
+        return;
+      }
+
       // On timeout or error, set fallback profile so UI isn't broken
       if (userEmail) {
-        console.log('[fetchProfile] Setting fallback profile after error');
+        console.log('[fetchProfile] Setting fallback profile after error and all retries');
         setProfile({
           id: userId,
           email: userEmail,

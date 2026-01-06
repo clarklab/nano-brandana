@@ -15,7 +15,7 @@ const TOKEN_PACKAGES = {
     tokens: 25000,
     price_usd: 5.00,
     name: "Starter - 25K Tokens",
-    description: "Process ~16 images (1-2K resolution)"
+    description: "Process ~15 images (1-2K resolution)"
   },
   pro: {
     tokens: 250000,

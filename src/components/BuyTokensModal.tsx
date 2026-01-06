@@ -8,6 +8,7 @@ interface TokenPackage {
   price: number;
   description: string;
   popular?: boolean;
+  imageEstimate: number;
 }
 
 interface BuyTokensModalProps {
@@ -22,6 +23,7 @@ const PACKAGES: TokenPackage[] = [
     tokens: 25000,
     price: 5,
     description: 'Perfect for trying out Peel',
+    imageEstimate: 15,
   },
   {
     id: 'pro',
@@ -29,7 +31,7 @@ const PACKAGES: TokenPackage[] = [
     tokens: 250000,
     price: 35,
     description: 'Great for regular users',
-    popular: true,
+    imageEstimate: 165,
   },
   {
     id: 'power',
@@ -37,6 +39,8 @@ const PACKAGES: TokenPackage[] = [
     tokens: 1000000,
     price: 90,
     description: 'Maximum value for power users',
+    popular: true,
+    imageEstimate: 650,
   },
 ];
 
@@ -93,11 +97,6 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
       return `${(tokens / 1000).toFixed(0)}K`;
     }
     return tokens.toString();
-  };
-
-  const estimateImages = (tokens: number) => {
-    // Rough estimate: ~1500 tokens per image
-    return Math.floor(tokens / 1500);
   };
 
   return (
@@ -162,7 +161,7 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
                       </span>
                       <span className="text-slate-400">•</span>
                       <span className="text-slate-600 dark:text-slate-400">
-                        ~{estimateImages(pkg.tokens)} images
+                        ~{pkg.imageEstimate} images
                       </span>
                     </div>
                   </div>

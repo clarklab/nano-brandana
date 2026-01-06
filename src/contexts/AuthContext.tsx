@@ -90,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[fetchProfile] Error:', error);
+        console.error('[fetchProfile] Error details - code:', error.code, 'message:', error.message, 'hint:', error.hint, 'details:', error.details);
 
         // Retry if we haven't exhausted retries (profile might not exist yet due to race condition)
         if (retryCount < MAX_RETRIES) {
@@ -115,7 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      console.log('[fetchProfile] Success, tokens_remaining:', data?.tokens_remaining);
+      console.log('[fetchProfile] Success, data:', JSON.stringify(data));
+      console.log('[fetchProfile] tokens_remaining:', data?.tokens_remaining);
       setProfile(data);
     } catch (err) {
       console.error('[fetchProfile] Catch error:', err);
@@ -306,8 +308,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(session);
           setUser(session?.user ?? null);
           if (session?.user) {
-            fetchProfile(session.user.id, session.user.email);
-            fetchJobLogs(session.user.id);
+            // Add a small delay before fetching profile to allow JWT claims to propagate
+            // This helps avoid RLS issues where the token isn't fully ready yet
+            setTimeout(() => {
+              console.log('[onAuthStateChange] Fetching profile after delay...');
+              fetchProfile(session.user.id, session.user.email);
+              fetchJobLogs(session.user.id);
+            }, 500);
           }
           setLoading(false);
           return;

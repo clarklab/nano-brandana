@@ -72,14 +72,14 @@ This guide provides **step-by-step idiot-proof instructions** for setting up Pol
 
 ## Part 2: Create Token Products in Polar
 
-You need to create two products in Polar representing your token packages.
+You need to create three products in Polar representing your token packages.
 
-### Step 5: Create "Starter Pack" Product
+### Step 5: Create "Starter" Product
 
 1. In Polar dashboard, go to **Products** → **Create Product**
 2. Fill in the product details:
-   - **Name:** `Starter Pack - 100K Tokens`
-   - **Description:** `Process ~65 images with 100,000 tokens`
+   - **Name:** `Starter - 25K Tokens`
+   - **Description:** `Process ~16 images with 25,000 tokens`
    - **Type:** Select **"One-time"** (NOT subscription)
 3. Set the price:
    - **Amount:** `$5.00`
@@ -93,15 +93,15 @@ You need to create two products in Polar representing your token packages.
    You can usually find this in the URL when viewing the product, or in the product details.
 7. **Save this Product ID** - you'll need it for environment variables
 
-### Step 6: Create "Pro Pack" Product
+### Step 6: Create "Pro" Product
 
 1. Click **"Create Product"** again
 2. Fill in the product details:
-   - **Name:** `Pro Pack - 1M Tokens`
-   - **Description:** `Process ~650 images with 1,000,000 tokens`
+   - **Name:** `Pro - 250K Tokens`
+   - **Description:** `Process ~165 images with 250,000 tokens`
    - **Type:** Select **"One-time"** (NOT subscription)
 3. Set the price:
-   - **Amount:** `$17.00`
+   - **Amount:** `$35.00`
    - **Currency:** `USD`
 4. Click **"Create Product"** or **"Save"**
 5. After creating, you'll see the product in your products list
@@ -112,13 +112,32 @@ You need to create two products in Polar representing your token packages.
    You can usually find this in the URL when viewing the product, or in the product details.
 7. **Save this Product ID** - you'll need it for environment variables
 
+### Step 7: Create "Power" Product
+
+1. Click **"Create Product"** again
+2. Fill in the product details:
+   - **Name:** `Power - 1M Tokens`
+   - **Description:** `Process ~650 images with 1,000,000 tokens`
+   - **Type:** Select **"One-time"** (NOT subscription)
+3. Set the price:
+   - **Amount:** `$90.00`
+   - **Currency:** `USD`
+4. Click **"Create Product"** or **"Save"**
+5. After creating, you'll see the product in your products list
+6. **Copy the Product ID** - it looks like:
+   ```
+   prod_zzzzzzzzzzzzzzzzzzzzzzzz
+   ```
+   You can usually find this in the URL when viewing the product, or in the product details.
+7. **Save this Product ID** - you'll need it for environment variables
+
 ---
 
 ## Part 3: Configure Netlify Environment Variables
 
 Now you need to add the Polar credentials to your Netlify deployment.
 
-### Step 7: Add Environment Variables to Netlify
+### Step 8: Add Environment Variables to Netlify
 
 1. Go to **[https://app.netlify.com](https://app.netlify.com)**
 2. Select your **nano-brandana** site
@@ -156,14 +175,23 @@ Add the following variables one by one:
 
 #### Variable 4: POLAR_PRO_PRODUCT_ID
 - **Key:** `POLAR_PRO_PRODUCT_ID`
-- **Value:** (paste the Pro Pack product ID from Step 6)
+- **Value:** (paste the Pro product ID from Step 6)
   ```
   prod_yyyyyyyyyyyyyyyyyyyyyyyy
   ```
 - **Scopes:** All scopes
 - Click **"Create variable"**
 
-#### Variable 5: POLAR_SERVER (Optional)
+#### Variable 5: POLAR_POWER_PRODUCT_ID
+- **Key:** `POLAR_POWER_PRODUCT_ID`
+- **Value:** (paste the Power product ID from Step 7)
+  ```
+  prod_zzzzzzzzzzzzzzzzzzzzzzzz
+  ```
+- **Scopes:** All scopes
+- Click **"Create variable"**
+
+#### Variable 6: POLAR_SERVER (Optional)
 - **Key:** `POLAR_SERVER`
 - **Value:** `production`
 - **Scopes:** All scopes
@@ -171,7 +199,7 @@ Add the following variables one by one:
 
 **Note:** If you want to test in Polar's sandbox mode first, set this to `sandbox` instead.
 
-#### Variable 6: SUPABASE_SERVICE_ROLE_KEY (If Not Already Added)
+#### Variable 7: SUPABASE_SERVICE_ROLE_KEY (If Not Already Added)
 - **Key:** `SUPABASE_SERVICE_ROLE_KEY`
 - **Value:** (get this from your Supabase project settings)
   1. Go to your Supabase dashboard
@@ -188,7 +216,7 @@ Add the following variables one by one:
 
 You need to run the database migration to create the `token_purchases` table and `add_tokens` function.
 
-### Step 8: Run Database Migration in Supabase
+### Step 9: Run Database Migration in Supabase
 
 **Option A: Using Supabase CLI (Recommended)**
 
@@ -223,7 +251,7 @@ You need to run the database migration to create the `token_purchases` table and
 
 ## Part 5: Install Dependencies & Deploy
 
-### Step 9: Install Polar SDK
+### Step 10: Install Polar SDK
 
 1. In your local project directory, run:
    ```bash
@@ -232,7 +260,7 @@ You need to run the database migration to create the `token_purchases` table and
 
 This will install the `@polar-sh/sdk` package that was added to `package.json`.
 
-### Step 10: Deploy to Netlify
+### Step 11: Deploy to Netlify
 
 **Option A: Git Push (Recommended)**
 
@@ -250,7 +278,7 @@ This will install the `@polar-sh/sdk` package that was added to `package.json`.
 1. In Netlify dashboard, go to **Deploys**
 2. Click **"Trigger deploy"** → **"Deploy site"**
 
-### Step 11: Wait for Deployment
+### Step 12: Wait for Deployment
 
 1. Monitor the deploy logs in Netlify
 2. Wait for the build to complete (usually 2-3 minutes)
@@ -260,16 +288,17 @@ This will install the `@polar-sh/sdk` package that was added to `package.json`.
 
 ## Part 6: Testing
 
-### Step 12: Test in Production
+### Step 13: Test in Production
 
 1. Go to your deployed site: `https://banana.peel.diy`
 2. **Sign in** with your account
 3. Click your **profile icon** or **account button**
 4. You should see your token balance
 5. Click the **"BUY TOKENS"** button
-6. You should see two packages:
-   - **Starter Pack** - 100K tokens for $5
-   - **Pro Pack** - 1M tokens for $17
+6. You should see three packages:
+   - **Starter** - 25K tokens for $5
+   - **Pro** - 250K tokens for $35
+   - **Power** - 1M tokens for $90
 7. Click **"BUY NOW"** on one of them
 8. You should be redirected to **Polar's checkout page**
 9. Complete the test payment using Polar's test mode (if enabled) or a real payment
@@ -278,7 +307,7 @@ This will install the `@polar-sh/sdk` package that was added to `package.json`.
 - If you set `POLAR_SERVER=sandbox`, use Polar's test payment methods
 - If you set `POLAR_SERVER=production`, use real payment methods
 
-### Step 13: Verify Token Credit
+### Step 14: Verify Token Credit
 
 1. After completing payment, you'll be redirected back to your site
 2. Check your **account** to verify tokens were added
@@ -289,7 +318,7 @@ This will install the `@polar-sh/sdk` package that was added to `package.json`.
    - ✅ `tokens_purchased` matching the package
    - ✅ `provider_transaction_id` from Polar
 
-### Step 14: Check Webhook Logs
+### Step 15: Check Webhook Logs
 
 1. Go to **Netlify** → **Functions** → **payment-webhook**
 2. Check the function logs
@@ -382,8 +411,9 @@ Here's a complete list of all environment variables you need in Netlify:
 |---------------|-----------------|----------------|
 | `POLAR_ACCESS_TOKEN` | Polar → Settings → API Tokens | `polar_at_xxx...` |
 | `POLAR_WEBHOOK_SECRET` | Polar → Settings → Webhooks → Endpoint | `polar_whsec_xxx...` |
-| `POLAR_STARTER_PRODUCT_ID` | Polar → Products → Starter Pack | `prod_xxx...` |
-| `POLAR_PRO_PRODUCT_ID` | Polar → Products → Pro Pack | `prod_yyy...` |
+| `POLAR_STARTER_PRODUCT_ID` | Polar → Products → Starter | `prod_xxx...` |
+| `POLAR_PRO_PRODUCT_ID` | Polar → Products → Pro | `prod_yyy...` |
+| `POLAR_POWER_PRODUCT_ID` | Polar → Products → Power | `prod_zzz...` |
 | `POLAR_SERVER` | Manual | `production` or `sandbox` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API | `eyJhbG...` (long JWT) |
 | `VITE_SUPABASE_URL` | Already set | `https://xxx.supabase.co` |
@@ -416,7 +446,7 @@ For your understanding, here's the complete flow:
 
 1. **User clicks "BUY TOKENS"**
    - `BuyTokensModal` component opens
-   - Shows two packages
+   - Shows three packages (Starter, Pro, Power)
 
 2. **User clicks "BUY NOW"**
    - Client calls `/.netlify/functions/create-checkout`

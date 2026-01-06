@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface TokenPackage {
-  id: 'starter' | 'pro';
+  id: 'starter' | 'pro' | 'power';
   name: string;
   tokens: number;
   price: number;
@@ -18,18 +18,25 @@ interface BuyTokensModalProps {
 const PACKAGES: TokenPackage[] = [
   {
     id: 'starter',
-    name: 'STARTER PACK',
-    tokens: 100000,
+    name: 'STARTER',
+    tokens: 25000,
     price: 5,
     description: 'Perfect for trying out Peel',
   },
   {
     id: 'pro',
-    name: 'PRO PACK',
-    tokens: 1000000,
-    price: 17,
-    description: 'Best value for regular users',
+    name: 'PRO',
+    tokens: 250000,
+    price: 35,
+    description: 'Great for regular users',
     popular: true,
+  },
+  {
+    id: 'power',
+    name: 'POWER',
+    tokens: 1000000,
+    price: 90,
+    description: 'Maximum value for power users',
   },
 ];
 
@@ -39,7 +46,7 @@ export function BuyTokensModal({ isOpen, onClose }: BuyTokensModalProps) {
 
   if (!isOpen) return null;
 
-  const handlePurchase = async (packageId: 'starter' | 'pro') => {
+  const handlePurchase = async (packageId: 'starter' | 'pro' | 'power') => {
     setLoading(packageId);
     setError(null);
 

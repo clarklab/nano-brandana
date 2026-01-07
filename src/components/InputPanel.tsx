@@ -7,6 +7,7 @@ interface InputPanelProps {
   onFilesAdded: (files: File[]) => void;
   onPromptsAdded: (prompts: string[]) => void;
   inputs: BaseInputItem[];
+  loadingInputIds?: Set<string>;
   onRemoveInput: (id: string) => void;
   onClearAll: () => void;
   processingMode: 'batch' | 'singleJob';
@@ -17,6 +18,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   onFilesAdded,
   onPromptsAdded,
   inputs,
+  loadingInputIds = new Set(),
   onRemoveInput,
   onClearAll,
   processingMode,
@@ -221,14 +223,22 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 >
                   {input.type === 'image' ? (
                     <div className="flex gap-3">
-                      <img
-                        src={URL.createObjectURL(input.file)}
-                        alt={input.file.name}
-                        className="w-14 h-14 object-cover rounded-lg"
-                      />
+                      {loadingInputIds.has(input.id) ? (
+                        <div className="w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                      ) : (
+                        <img
+                          src={URL.createObjectURL(input.file)}
+                          alt={input.file.name}
+                          className="w-14 h-14 object-cover rounded-lg"
+                        />
+                      )}
                       <div className="flex-1 min-w-0 pr-6">
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{input.file.name}</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">{formatFileSize(input.file.size)}</p>
+                        {loadingInputIds.has(input.id) ? (
+                          <div className="w-16 h-3 mt-1 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                        ) : (
+                          <p className="text-xs text-slate-400 dark:text-slate-500">{formatFileSize(input.file.size)}</p>
+                        )}
                       </div>
                     </div>
                   ) : (

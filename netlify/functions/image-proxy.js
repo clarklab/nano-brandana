@@ -1,4 +1,6 @@
 // Simple image proxy to bypass CORS restrictions for "Edit with Peel" links
+const https = require('https');
+const http = require('http');
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -17,6 +19,47 @@ function getCorsOrigin(requestOrigin) {
   const isNetlifyPreview = /^https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app$/.test(requestOrigin) ||
                            /^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(requestOrigin);
   return (isAllowed || isNetlifyPreview) ? requestOrigin : null;
+}
+
+// Fetch URL using built-in http/https modules
+function fetchUrl(url) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === 'https:' ? https : http;
+
+    const request = client.get(url, {
+      headers: {
+        'User-Agent': 'Peel-Image-Proxy/1.0',
+      },
+    }, (response) => {
+      // Handle redirects
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        fetchUrl(response.headers.location).then(resolve).catch(reject);
+        return;
+      }
+
+      if (response.statusCode !== 200) {
+        reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+        return;
+      }
+
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => {
+        resolve({
+          buffer: Buffer.concat(chunks),
+          contentType: response.headers['content-type'] || 'application/octet-stream',
+        });
+      });
+      response.on('error', reject);
+    });
+
+    request.on('error', reject);
+    request.setTimeout(10000, () => {
+      request.destroy();
+      reject(new Error('Request timeout'));
+    });
+  });
 }
 
 exports.handler = async (event) => {
@@ -63,28 +106,17 @@ exports.handler = async (event) => {
     }
 
     // Fetch the image
-    const response = await fetch(imageUrl);
+    const { buffer, contentType } = await fetchUrl(imageUrl);
 
-    if (!response.ok) {
-      return {
-        statusCode: response.status,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: `Failed to fetch image: ${response.statusText}` }),
-      };
-    }
-
-    const contentType = response.headers.get('content-type') || '';
     if (!contentType.startsWith('image/')) {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'URL does not point to an image' }),
+        body: JSON.stringify({ error: `URL does not point to an image (got ${contentType})` }),
       };
     }
 
-    // Get image as buffer and convert to base64
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Convert to base64
     const base64 = buffer.toString('base64');
     const dataUrl = `data:${contentType};base64,${base64}`;
 
@@ -108,7 +140,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Failed to fetch image' }),
+      body: JSON.stringify({ error: `Failed to fetch image: ${error.message}` }),
     };
   }
 };

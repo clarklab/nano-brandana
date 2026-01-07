@@ -452,6 +452,57 @@ function App() {
     setInputs(prev => [...prev, ...newInputs]);
   }, []);
 
+  // Handle "Edit with Peel" link - load image from ?img= URL parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const imageUrl = urlParams.get('img');
+
+    if (imageUrl) {
+      console.log('Edit with Peel: Loading image from URL:', imageUrl);
+
+      // Fetch the image via proxy to bypass CORS
+      const loadImageFromUrl = async () => {
+        try {
+          const proxyUrl = `/.netlify/functions/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+          const response = await fetch(proxyUrl);
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Failed to fetch image via proxy:', error);
+            return;
+          }
+
+          const { dataUrl, contentType, filename } = await response.json();
+
+          // Convert data URL to Blob
+          const base64Data = dataUrl.split(',')[1];
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let i = 0; i < binaryData.length; i++) {
+            bytes[i] = binaryData.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: contentType });
+
+          // Create a File object from the blob
+          const file = new File([blob], filename, { type: contentType });
+
+          // Add to inputs
+          handleFilesAdded([file]);
+
+          // Clean up URL parameter
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+
+          console.log('Edit with Peel: Image loaded successfully:', filename);
+        } catch (error) {
+          console.error('Edit with Peel: Failed to load image:', error);
+        }
+      };
+
+      loadImageFromUrl();
+    }
+  }, [handleFilesAdded]);
+
   const handlePromptsAdded = useCallback((prompts: string[]) => {
     const newInputs: BaseInputItem[] = prompts.map(prompt => ({
       type: 'text' as const,

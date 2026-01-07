@@ -79,6 +79,7 @@ function App() {
   const [totalTokens, setTotalTokens] = useState(0);
   const [inputToBase64Map, setInputToBase64Map] = useState<Map<string, string>>(new Map());
   const [loadingInputIds, setLoadingInputIds] = useState<Set<string>>(new Set());
+  const [importError, setImportError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxOriginalImages, setLightboxOriginalImages] = useState<string[]>([]);
@@ -495,8 +496,8 @@ function App() {
           const response = await fetch(proxyUrl);
 
           if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-            console.error('Failed to fetch image via proxy:', error);
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Failed to fetch image via proxy:', errorData);
             // Remove placeholder on error
             setInputs(prev => prev.filter(input => input.id !== placeholderId));
             setLoadingInputIds(prev => {
@@ -504,6 +505,8 @@ function App() {
               next.delete(placeholderId);
               return next;
             });
+            // Show error modal
+            setImportError(errorData.error || 'Failed to import image');
             return;
           }
 
@@ -1250,6 +1253,44 @@ function App() {
         })()}
         onSubmit={handleRedoModalSubmit}
       />
+
+      {/* Import Error Modal */}
+      {importError && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated max-w-md w-full p-6 animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600 dark:text-amber-400">
+                  <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold font-display">Couldn't Import Image</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+              {importError.includes('too large')
+                ? 'This image is too large to import directly (max 4MB). Please save the image to your device first, then drag and drop or browse to add it.'
+                : importError
+              }
+            </p>
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 mb-5">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">To add this image:</p>
+              <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal list-inside">
+                <li>Right-click the original image and save it</li>
+                <li>Drag & drop or browse to upload here</li>
+              </ol>
+            </div>
+            <button
+              onClick={() => {
+                playBlip();
+                setImportError(null);
+              }}
+              className="btn-primary w-full"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

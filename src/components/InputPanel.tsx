@@ -224,13 +224,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   {input.type === 'image' ? (
                     <div className="flex gap-3">
                       {loadingInputIds.has(input.id) ? (
-                        // Loading skeleton with spinner
-                        <div className="w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center animate-pulse">
-                          <svg className="w-5 h-5 text-slate-400 dark:text-slate-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        </div>
+                        <div className="w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
                       ) : (
                         <img
                           src={URL.createObjectURL(input.file)}
@@ -241,7 +235,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                       <div className="flex-1 min-w-0 pr-6">
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{input.file.name}</p>
                         {loadingInputIds.has(input.id) ? (
-                          <p className="text-xs text-amber-500 dark:text-amber-400">Fetching...</p>
+                          <div className="w-16 h-3 mt-1 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                         ) : (
                           <p className="text-xs text-slate-400 dark:text-slate-500">{formatFileSize(input.file.size)}</p>
                         )}

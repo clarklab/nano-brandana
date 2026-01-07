@@ -7,6 +7,7 @@ interface InputPanelProps {
   onFilesAdded: (files: File[]) => void;
   onPromptsAdded: (prompts: string[]) => void;
   inputs: BaseInputItem[];
+  loadingInputIds?: Set<string>;
   onRemoveInput: (id: string) => void;
   onClearAll: () => void;
   processingMode: 'batch' | 'singleJob';
@@ -17,6 +18,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   onFilesAdded,
   onPromptsAdded,
   inputs,
+  loadingInputIds = new Set(),
   onRemoveInput,
   onClearAll,
   processingMode,
@@ -221,14 +223,28 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 >
                   {input.type === 'image' ? (
                     <div className="flex gap-3">
-                      <img
-                        src={URL.createObjectURL(input.file)}
-                        alt={input.file.name}
-                        className="w-14 h-14 object-cover rounded-lg"
-                      />
+                      {loadingInputIds.has(input.id) ? (
+                        // Loading skeleton with spinner
+                        <div className="w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center animate-pulse">
+                          <svg className="w-5 h-5 text-slate-400 dark:text-slate-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      ) : (
+                        <img
+                          src={URL.createObjectURL(input.file)}
+                          alt={input.file.name}
+                          className="w-14 h-14 object-cover rounded-lg"
+                        />
+                      )}
                       <div className="flex-1 min-w-0 pr-6">
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{input.file.name}</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">{formatFileSize(input.file.size)}</p>
+                        {loadingInputIds.has(input.id) ? (
+                          <p className="text-xs text-amber-500 dark:text-amber-400">Fetching...</p>
+                        ) : (
+                          <p className="text-xs text-slate-400 dark:text-slate-500">{formatFileSize(input.file.size)}</p>
+                        )}
                       </div>
                     </div>
                   ) : (

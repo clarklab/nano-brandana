@@ -78,6 +78,7 @@ function App() {
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [totalTokens, setTotalTokens] = useState(0);
   const [inputToBase64Map, setInputToBase64Map] = useState<Map<string, string>>(new Map());
+  const [loadingInputIds, setLoadingInputIds] = useState<Set<string>>(new Set());
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxOriginalImages, setLightboxOriginalImages] = useState<string[]>([]);
@@ -460,7 +461,34 @@ function App() {
     if (imageUrl) {
       console.log('Edit with Peel: Loading image from URL:', imageUrl);
 
-      // Fetch the image via proxy to bypass CORS
+      // Extract filename from URL for display
+      let displayFilename = 'Loading image...';
+      try {
+        const urlPath = new URL(imageUrl).pathname;
+        displayFilename = decodeURIComponent(urlPath.split('/').pop() || 'imported-image.png');
+      } catch {
+        // Keep default filename
+      }
+
+      // Create a placeholder input immediately for visual feedback
+      const placeholderId = `${Date.now()}-${Math.random()}`;
+      const placeholderBlob = new Blob([], { type: 'image/png' });
+      const placeholderFile = new File([placeholderBlob], displayFilename, { type: 'image/png' });
+
+      const placeholderInput: BaseInputItem = {
+        type: 'image',
+        file: placeholderFile,
+        id: placeholderId,
+      };
+
+      // Add placeholder and mark as loading
+      setInputs(prev => [...prev, placeholderInput]);
+      setLoadingInputIds(prev => new Set(prev).add(placeholderId));
+
+      // Clean up URL parameter immediately
+      window.history.replaceState({}, '', window.location.pathname);
+
+      // Fetch the actual image via proxy
       const loadImageFromUrl = async () => {
         try {
           const proxyUrl = `/.netlify/functions/image-proxy?url=${encodeURIComponent(imageUrl)}`;
@@ -469,6 +497,13 @@ function App() {
           if (!response.ok) {
             const error = await response.json().catch(() => ({ error: 'Unknown error' }));
             console.error('Failed to fetch image via proxy:', error);
+            // Remove placeholder on error
+            setInputs(prev => prev.filter(input => input.id !== placeholderId));
+            setLoadingInputIds(prev => {
+              const next = new Set(prev);
+              next.delete(placeholderId);
+              return next;
+            });
             return;
           }
 
@@ -482,22 +517,36 @@ function App() {
           // Create a File object from the blob
           const file = new File([blob], filename, { type: contentType });
 
-          // Add to inputs
-          handleFilesAdded([file]);
+          // Replace placeholder with actual file
+          setInputs(prev => prev.map(input =>
+            input.id === placeholderId
+              ? { ...input, file }
+              : input
+          ));
 
-          // Clean up URL parameter
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, '', newUrl);
+          // Remove from loading state
+          setLoadingInputIds(prev => {
+            const next = new Set(prev);
+            next.delete(placeholderId);
+            return next;
+          });
 
           console.log('Edit with Peel: Image loaded successfully:', filename);
         } catch (error) {
           console.error('Edit with Peel: Failed to load image:', error);
+          // Remove placeholder on error
+          setInputs(prev => prev.filter(input => input.id !== placeholderId));
+          setLoadingInputIds(prev => {
+            const next = new Set(prev);
+            next.delete(placeholderId);
+            return next;
+          });
         }
       };
 
       loadImageFromUrl();
     }
-  }, [handleFilesAdded]);
+  }, []);
 
   const handlePromptsAdded = useCallback((prompts: string[]) => {
     const newInputs: BaseInputItem[] = prompts.map(prompt => ({
@@ -927,6 +976,7 @@ function App() {
             onFilesAdded={handleFilesAdded}
             onPromptsAdded={handlePromptsAdded}
             inputs={inputs}
+            loadingInputIds={loadingInputIds}
             onRemoveInput={handleRemoveInput}
             onClearAll={handleClearAll}
             processingMode={processingMode}

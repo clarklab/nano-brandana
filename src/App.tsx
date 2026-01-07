@@ -472,16 +472,12 @@ function App() {
             return;
           }
 
-          const { dataUrl, contentType, filename } = await response.json();
-
-          // Convert data URL to Blob
-          const base64Data = dataUrl.split(',')[1];
-          const binaryData = atob(base64Data);
-          const bytes = new Uint8Array(binaryData.length);
-          for (let i = 0; i < binaryData.length; i++) {
-            bytes[i] = binaryData.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], { type: contentType });
+          // Get the image as a blob directly
+          const blob = await response.blob();
+          const contentType = response.headers.get('Content-Type') || 'image/png';
+          const filename = decodeURIComponent(
+            response.headers.get('X-Image-Filename') || 'imported-image.png'
+          );
 
           // Create a File object from the blob
           const file = new File([blob], filename, { type: contentType });

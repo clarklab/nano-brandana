@@ -460,29 +460,31 @@ function App() {
     if (imageUrl) {
       console.log('Edit with Peel: Loading image from URL:', imageUrl);
 
-      // Fetch the image and convert to File
+      // Fetch the image via proxy to bypass CORS
       const loadImageFromUrl = async () => {
         try {
-          const response = await fetch(imageUrl);
+          const proxyUrl = `/.netlify/functions/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+          const response = await fetch(proxyUrl);
+
           if (!response.ok) {
-            console.error('Failed to fetch image:', response.status, response.statusText);
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Failed to fetch image via proxy:', error);
             return;
           }
 
-          const blob = await response.blob();
+          const { dataUrl, contentType, filename } = await response.json();
 
-          // Verify it's an image
-          if (!blob.type.startsWith('image/')) {
-            console.error('URL does not point to an image:', blob.type);
-            return;
+          // Convert data URL to Blob
+          const base64Data = dataUrl.split(',')[1];
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let i = 0; i < binaryData.length; i++) {
+            bytes[i] = binaryData.charCodeAt(i);
           }
-
-          // Extract filename from URL or use default
-          const urlPath = new URL(imageUrl).pathname;
-          const filename = urlPath.split('/').pop() || 'imported-image.png';
+          const blob = new Blob([bytes], { type: contentType });
 
           // Create a File object from the blob
-          const file = new File([blob], filename, { type: blob.type });
+          const file = new File([blob], filename, { type: contentType });
 
           // Add to inputs
           handleFilesAdded([file]);

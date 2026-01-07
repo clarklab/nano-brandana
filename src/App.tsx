@@ -452,6 +452,55 @@ function App() {
     setInputs(prev => [...prev, ...newInputs]);
   }, []);
 
+  // Handle "Edit with Peel" link - load image from ?img= URL parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const imageUrl = urlParams.get('img');
+
+    if (imageUrl) {
+      console.log('Edit with Peel: Loading image from URL:', imageUrl);
+
+      // Fetch the image and convert to File
+      const loadImageFromUrl = async () => {
+        try {
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            console.error('Failed to fetch image:', response.status, response.statusText);
+            return;
+          }
+
+          const blob = await response.blob();
+
+          // Verify it's an image
+          if (!blob.type.startsWith('image/')) {
+            console.error('URL does not point to an image:', blob.type);
+            return;
+          }
+
+          // Extract filename from URL or use default
+          const urlPath = new URL(imageUrl).pathname;
+          const filename = urlPath.split('/').pop() || 'imported-image.png';
+
+          // Create a File object from the blob
+          const file = new File([blob], filename, { type: blob.type });
+
+          // Add to inputs
+          handleFilesAdded([file]);
+
+          // Clean up URL parameter
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+
+          console.log('Edit with Peel: Image loaded successfully:', filename);
+        } catch (error) {
+          console.error('Edit with Peel: Failed to load image:', error);
+        }
+      };
+
+      loadImageFromUrl();
+    }
+  }, [handleFilesAdded]);
+
   const handlePromptsAdded = useCallback((prompts: string[]) => {
     const newInputs: BaseInputItem[] = prompts.map(prompt => ({
       type: 'text' as const,

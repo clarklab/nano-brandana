@@ -4,6 +4,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { BuyTokensModal } from './BuyTokensModal';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
+import { AuthLogsPage } from './AuthLogsPage';
+
+// Admin emails that can access the auth logs
+const ADMIN_EMAILS = ['clark@clarklab.net'];
 
 interface BatchGroup {
   batchId: string | null;
@@ -28,8 +32,12 @@ interface AccountModalProps {
 export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignOut, onRefreshJobLogs }: AccountModalProps) {
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
   const [isBuyTokensOpen, setIsBuyTokensOpen] = useState(false);
+  const [isAuthLogsOpen, setIsAuthLogsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { updateHourlyRate, tokenAnimation } = useAuth();
+
+  // Check if current user is an admin
+  const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
 
   // Animated token count for the modal
   const animatedTokenCount = useAnimatedNumber(
@@ -278,6 +286,23 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
               </button>
             </div>
 
+            {/* Admin: Auth Logs Link */}
+            {isAdmin && (
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                <button
+                  onClick={() => setIsAuthLogsOpen(true)}
+                  className="flex items-center gap-3 w-full py-2 px-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-500">
+                    <path fillRule="evenodd" d="M15.988 3.012A2.25 2.25 0 0 1 18 5.25v6.5A2.25 2.25 0 0 1 15.75 14H13.5V7A2.5 2.5 0 0 0 11 4.5H8.128a2.252 2.252 0 0 1 1.884-1.488A2.25 2.25 0 0 1 12.25 1h1.5a2.25 2.25 0 0 1 2.238 2.012ZM11.5 3.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v.25h-3v-.25Z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M2 7a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7Zm2 3.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Auth Logs</span>
+                  <span className="ml-auto text-xs text-slate-400">Admin</span>
+                </button>
+              </div>
+            )}
+
             {/* Hourly Rate Setting - only for logged in users */}
             {email && (
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
@@ -421,6 +446,14 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
         isOpen={isBuyTokensOpen}
         onClose={() => setIsBuyTokensOpen(false)}
       />
+
+      {/* Auth Logs Page (Admin only) */}
+      {isAdmin && (
+        <AuthLogsPage
+          isOpen={isAuthLogsOpen}
+          onClose={() => setIsAuthLogsOpen(false)}
+        />
+      )}
     </div>
   );
 }

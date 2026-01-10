@@ -12,6 +12,7 @@ interface PresetConfigModalProps {
   presets: RuntimePreset[];
   onSavePreset: (preset: Partial<RuntimePreset> & { id?: string }) => Promise<void>;
   onDeletePreset: (id: string) => Promise<void>;
+  onReorderPresets: (orderedIds: string[]) => Promise<void>;
   onResetToDefaults: () => Promise<void>;
   isLoading: boolean;
 }
@@ -83,6 +84,7 @@ export function PresetConfigModal({
   presets,
   onSavePreset,
   onDeletePreset,
+  onReorderPresets,
   onResetToDefaults,
   isLoading,
 }: PresetConfigModalProps) {
@@ -94,6 +96,8 @@ export function PresetConfigModal({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingImageIndex, setUploadingImageIndex] = useState<number | null>(null);
+  const [draggedPresetId, setDraggedPresetId] = useState<string | null>(null);
+  const [dragOverPresetId, setDragOverPresetId] = useState<string | null>(null);
 
   // Handle open/close animations
   useEffect(() => {
@@ -340,6 +344,90 @@ export function PresetConfigModal({
       setIsSaving(false);
     }
   }, [user, onResetToDefaults, playBlip]);
+
+  const handleToggleVisibility = useCallback(async (preset: RuntimePreset) => {
+    if (!user) {
+      setError('You must be logged in to change visibility');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await onSavePreset({
+        ...preset,
+        showInMainView: !preset.showInMainView,
+      });
+      playBlip();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update visibility');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user, onSavePreset, playBlip]);
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, presetId: string) => {
+    setDraggedPresetId(presetId);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a slight delay to show the dragging state
+    setTimeout(() => {
+      const elem = e.target as HTMLElement;
+      elem.style.opacity = '0.5';
+    }, 0);
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    const elem = e.target as HTMLElement;
+    elem.style.opacity = '1';
+    setDraggedPresetId(null);
+    setDragOverPresetId(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, presetId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (presetId !== draggedPresetId) {
+      setDragOverPresetId(presetId);
+    }
+  }, [draggedPresetId]);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverPresetId(null);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent, targetPresetId: string) => {
+    e.preventDefault();
+    setDragOverPresetId(null);
+
+    if (!draggedPresetId || draggedPresetId === targetPresetId || !user) return;
+
+    // Calculate new order
+    const currentOrder = presets.map(p => p.id);
+    const draggedIndex = currentOrder.indexOf(draggedPresetId);
+    const targetIndex = currentOrder.indexOf(targetPresetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Remove dragged item and insert at new position
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedPresetId);
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await onReorderPresets(newOrder);
+      playBlip();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reorder presets');
+    } finally {
+      setIsSaving(false);
+      setDraggedPresetId(null);
+    }
+  }, [draggedPresetId, presets, user, onReorderPresets, playBlip]);
 
   if (!isVisible) return null;
 
@@ -751,49 +839,91 @@ export function PresetConfigModal({
                   {presets.map((preset) => (
                     <div
                       key={preset.id}
-                      className="card p-4 hover:shadow-elevated transition-all group"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, preset.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, preset.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, preset.id)}
+                      className={`card p-4 hover:shadow-elevated transition-all group cursor-grab active:cursor-grabbing ${
+                        !preset.showInMainView ? 'opacity-60' : ''
+                      } ${dragOverPresetId === preset.id ? 'ring-2 ring-neon ring-offset-2 dark:ring-offset-slate-800' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5">
-                            {preset.icon && (
-                              <span
-                                className="material-symbols-outlined text-slate-500 dark:text-slate-400"
-                                style={{ fontSize: '18px', width: '18px', height: '18px' }}
-                              >
-                                {preset.icon}
-                              </span>
-                            )}
-                            <span className="font-medium text-slate-800 dark:text-slate-200">
-                              {preset.label}
-                            </span>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {/* Drag handle */}
+                          <div className="flex-shrink-0 text-slate-300 dark:text-slate-600 group-hover:text-slate-400 dark:group-hover:text-slate-500 transition-colors">
                             <span
-                              className={`badge ${
-                                preset.presetType === 'ask'
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                              }`}
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '20px', width: '20px', height: '20px' }}
                             >
-                              {preset.presetType === 'ask' ? 'Ask' : 'Direct'}
+                              drag_indicator
                             </span>
-                            {preset.isDefault && (
-                              <span className="badge badge-neon">
-                                Default
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              {preset.icon && (
+                                <span
+                                  className="material-symbols-outlined text-slate-500 dark:text-slate-400"
+                                  style={{ fontSize: '18px', width: '18px', height: '18px' }}
+                                >
+                                  {preset.icon}
+                                </span>
+                              )}
+                              <span className="font-medium text-slate-800 dark:text-slate-200">
+                                {preset.label}
                               </span>
+                              <span
+                                className={`badge ${
+                                  preset.presetType === 'ask'
+                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                                }`}
+                              >
+                                {preset.presetType === 'ask' ? 'Ask' : 'Direct'}
+                              </span>
+                              {preset.isDefault && (
+                                <span className="badge badge-neon">
+                                  Default
+                                </span>
+                              )}
+                              {!preset.showInMainView && (
+                                <span className="badge bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-400">
+                                  Hidden
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                              {preset.prompt.length > 80
+                                ? preset.prompt.substring(0, 80) + '...'
+                                : preset.prompt}
+                            </p>
+                            {preset.presetType === 'ask' && preset.askMessage && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5 truncate">
+                                Q: {preset.askMessage}
+                              </p>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
-                            {preset.prompt.length > 80
-                              ? preset.prompt.substring(0, 80) + '...'
-                              : preset.prompt}
-                          </p>
-                          {preset.presetType === 'ask' && preset.askMessage && (
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5 truncate">
-                              Q: {preset.askMessage}
-                            </p>
-                          )}
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
+                          {/* Visibility toggle */}
+                          <button
+                            onClick={() => handleToggleVisibility(preset)}
+                            disabled={isSaving}
+                            className={`p-2 rounded-lg transition-all disabled:opacity-50 ${
+                              preset.showInMainView
+                                ? 'bg-slate-100 dark:bg-slate-700 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400'
+                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
+                            }`}
+                            title={preset.showInMainView ? 'Hide from main view' : 'Show in main view'}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '16px', width: '16px', height: '16px' }}
+                            >
+                              {preset.showInMainView ? 'visibility' : 'visibility_off'}
+                            </span>
+                          </button>
                           <button
                             onClick={() => handleEditPreset(preset)}
                             disabled={isSaving}

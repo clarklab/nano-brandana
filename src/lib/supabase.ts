@@ -97,6 +97,7 @@ export interface UserPreset {
   validation_error_message: string | null;
   is_default: boolean;
   is_hidden: boolean;
+  show_in_main_view: boolean;
   ref_image_1_url: string | null;
   ref_image_2_url: string | null;
   ref_image_3_url: string | null;
@@ -127,6 +128,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    show_in_main_view: true,
     ref_image_1_url: null,
     ref_image_2_url: null,
     ref_image_3_url: null,
@@ -146,6 +148,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    show_in_main_view: true,
     ref_image_1_url: null,
     ref_image_2_url: null,
     ref_image_3_url: null,
@@ -165,6 +168,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: 'Please enter a number between 1 and 10 for how many additional photos you want.',
     is_default: true,
     is_hidden: false,
+    show_in_main_view: true,
     ref_image_1_url: null,
     ref_image_2_url: null,
     ref_image_3_url: null,
@@ -184,6 +188,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    show_in_main_view: true,
     ref_image_1_url: null,
     ref_image_2_url: null,
     ref_image_3_url: null,
@@ -203,6 +208,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    show_in_main_view: true,
     ref_image_1_url: null,
     ref_image_2_url: null,
     ref_image_3_url: null,
@@ -222,6 +228,7 @@ export const DEFAULT_PRESETS: Omit<UserPreset, 'id' | 'user_id' | 'created_at' |
     validation_error_message: null,
     is_default: true,
     is_hidden: false,
+    show_in_main_view: true,
     ref_image_1_url: null,
     ref_image_2_url: null,
     ref_image_3_url: null,

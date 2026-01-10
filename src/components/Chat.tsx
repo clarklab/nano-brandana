@@ -72,6 +72,7 @@ export const Chat: React.FC<ChatProps> = ({
     isLoading: presetsLoading,
     savePreset,
     deletePreset,
+    reorderPresets,
     resetToDefaults,
   } = useUserPresets();
 
@@ -286,55 +287,6 @@ export const Chat: React.FC<ChatProps> = ({
           </select>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {presets.map((preset) => {
-            const isActive = currentPreset?.id === preset.id || waitingForPreset?.id === preset.id;
-            const hasReferenceImages = !!(preset.refImage1Url || preset.refImage2Url || preset.refImage3Url);
-
-            return (
-              <button
-                key={preset.id}
-                onClick={() => {
-                  playClick();
-                  handlePreset(preset);
-                }}
-                disabled={presetsLoading}
-                className={`px-3 py-1.5 text-xs border rounded-xl transition-all duration-200 font-medium flex items-center gap-1.5 disabled:opacity-50 ${
-                  isActive
-                    ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-900 dark:text-yellow-200 shadow-sm'
-                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-neon/10 hover:border-neon/50'
-                }`}
-              >
-                {preset.icon && (
-                  <span
-                    className={`material-symbols-outlined ${isActive ? 'text-yellow-600 dark:text-yellow-400' : 'text-slate-400'}`}
-                    style={{ fontSize: '14px', width: '14px', height: '14px' }}
-                  >
-                    {preset.icon}
-                  </span>
-                )}
-                {preset.label}
-                {hasReferenceImages && (
-                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-yellow-600 dark:bg-yellow-400' : 'bg-neon'}`} title="Has reference images" />
-                )}
-              </button>
-            );
-          })}
-          {/* Gear icon to open preset configuration */}
-          <button
-            onClick={() => {
-              playBlip();
-              setIsPresetConfigOpen(true);
-            }}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-            title="Configure presets"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-              <path fillRule="evenodd" d="M6.955 1.45A.5.5 0 0 1 7.452 1h1.096a.5.5 0 0 1 .497.45l.17 1.699c.484.12.94.312 1.356.562l1.321-1.081a.5.5 0 0 1 .67.033l.774.775a.5.5 0 0 1 .034.67l-1.08 1.32c.25.417.44.873.561 1.357l1.699.17a.5.5 0 0 1 .45.497v1.096a.5.5 0 0 1-.45.497l-1.699.17c-.12.484-.312.94-.562 1.356l1.082 1.322a.5.5 0 0 1-.034.67l-.774.774a.5.5 0 0 1-.67.033l-1.322-1.08c-.416.25-.872.44-1.356.561l-.17 1.699a.5.5 0 0 1-.497.45H7.452a.5.5 0 0 1-.497-.45l-.17-1.699a4.973 4.973 0 0 1-1.356-.562L4.108 13.37a.5.5 0 0 1-.67-.033l-.774-.775a.5.5 0 0 1-.034-.67l1.08-1.32a4.971 4.971 0 0 1-.561-1.357l-1.699-.17A.5.5 0 0 1 1 8.548V7.452a.5.5 0 0 1 .45-.497l1.699-.17c.12-.484.312-.94.562-1.356L2.629 4.107a.5.5 0 0 1 .034-.67l.774-.774a.5.5 0 0 1 .67-.033L5.43 3.71a4.97 4.97 0 0 1 1.356-.561l.17-1.699ZM8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-
         {instructions.length > 0 && (
           <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
             <div className="flex items-center justify-between mb-2">
@@ -449,6 +401,68 @@ export const Chat: React.FC<ChatProps> = ({
           </div>
         )}
 
+        {/* Preset buttons - horizontal scrolling row */}
+        <div className="flex items-center gap-2">
+          {/* Scrollable presets container with fade mask */}
+          <div className="relative flex-1 min-w-0">
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex gap-2">
+                {presets.filter(p => p.showInMainView).map((preset) => {
+                  const isActive = currentPreset?.id === preset.id || waitingForPreset?.id === preset.id;
+                  const hasReferenceImages = !!(preset.refImage1Url || preset.refImage2Url || preset.refImage3Url);
+
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        playClick();
+                        handlePreset(preset);
+                      }}
+                      disabled={presetsLoading}
+                      className={`px-4 py-2 text-sm border rounded-xl transition-all duration-200 font-medium flex items-center gap-2 disabled:opacity-50 whitespace-nowrap flex-shrink-0 ${
+                        isActive
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-900 dark:text-yellow-200 shadow-sm'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-neon/10 hover:border-neon/50'
+                      }`}
+                    >
+                      {preset.icon && (
+                        <span
+                          className={`material-symbols-outlined ${isActive ? 'text-yellow-600 dark:text-yellow-400' : 'text-slate-400'}`}
+                          style={{ fontSize: '18px', width: '18px', height: '18px' }}
+                        >
+                          {preset.icon}
+                        </span>
+                      )}
+                      {preset.label}
+                      {hasReferenceImages && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-yellow-600 dark:bg-yellow-400' : 'bg-neon'}`} title="Has reference images" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Fade edge to indicate more content */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-900 to-transparent pointer-events-none" />
+          </div>
+          {/* Settings button - matches preset pill styling */}
+          <button
+            onClick={() => {
+              playBlip();
+              setIsPresetConfigOpen(true);
+            }}
+            className="px-3 py-2 text-sm border rounded-xl transition-all duration-200 font-medium flex items-center gap-2 flex-shrink-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-neon/10 hover:border-neon/50 hover:text-slate-700 dark:hover:text-slate-200"
+            title="Configure presets"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: '18px', width: '18px', height: '18px' }}
+            >
+              settings
+            </span>
+          </button>
+        </div>
+
         <div className="relative">
           <textarea
             ref={textareaRef}
@@ -486,6 +500,7 @@ export const Chat: React.FC<ChatProps> = ({
         presets={presets}
         onSavePreset={savePreset}
         onDeletePreset={deletePreset}
+        onReorderPresets={reorderPresets}
         onResetToDefaults={resetToDefaults}
         isLoading={presetsLoading}
       />

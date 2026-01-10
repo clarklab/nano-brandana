@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, Profile, JobLog, isSupabaseConfigured } from '../lib/supabase';
+import { trackAuthCompleted, trackAuthFailed, trackSessionTimeout } from '../lib/auth-tracking';
 
 interface TokenAnimationState {
   from: number;
@@ -279,6 +280,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('[getSession] Catch error (timeout or other):', error);
         if (isMounted) {
+          // Track the session timeout
+          if (error instanceof Error && error.message.includes('timeout')) {
+            trackSessionTimeout();
+          } else {
+            trackAuthFailed('session_error', error instanceof Error ? error.message : 'Unknown error');
+          }
           // Clear potentially corrupted auth data on timeout
           console.log('[getSession] Clearing auth state due to timeout/error');
           clearCorruptedAuthState();
@@ -303,6 +310,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Handle specific events
         if (event === 'SIGNED_IN') {
           console.log('[onAuthStateChange] User signed in successfully');
+          // Track successful auth completion
+          trackAuthCompleted(session?.user?.email);
           setSession(session);
           setUser(session?.user ?? null);
           if (session?.user) {

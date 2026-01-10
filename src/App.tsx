@@ -16,6 +16,7 @@ import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 import { useAuth } from './contexts/AuthContext';
 import { useSounds } from './lib/sounds';
 import { useAnimatedNumber } from './hooks/useAnimatedNumber';
+import { trackCallbackReceived, trackCallbackError } from './lib/auth-tracking';
 
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
@@ -98,36 +99,44 @@ function App() {
     }
   }, []);
 
-  // Handle auth errors from URL params (e.g., expired magic link)
+  // Handle auth callbacks from URL params (success or error)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const errorCode = urlParams.get('error_code');
-    const errorDescription = urlParams.get('error_description');
-
-    // Also check hash params (Supabase sometimes puts errors there too)
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    const hashErrorCode = hashParams.get('error_code');
-    const hashErrorDescription = hashParams.get('error_description');
 
-    const finalErrorCode = errorCode || hashErrorCode;
-    const finalErrorDescription = errorDescription || hashErrorDescription;
+    // Check for error params
+    const errorCode = urlParams.get('error_code') || hashParams.get('error_code');
+    const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
 
-    if (finalErrorCode) {
-      console.log('Auth error detected:', finalErrorCode, finalErrorDescription);
+    // Check for success params (access_token indicates successful callback)
+    const accessToken = hashParams.get('access_token');
+    const hasAuthCallback = accessToken || errorCode;
 
-      // Map error codes to user-friendly messages
-      let message = finalErrorDescription?.replace(/\+/g, ' ') || 'Authentication failed';
-      if (finalErrorCode === 'otp_expired') {
-        message = 'Your magic link has expired. Please request a new one.';
-      } else if (finalErrorCode === 'access_denied') {
-        message = 'Access denied. Please try signing in again.';
+    if (hasAuthCallback) {
+      // Track that we received a callback (before processing)
+      if (accessToken) {
+        // Successful callback
+        console.log('Auth callback detected: success');
+        trackCallbackReceived();
+      } else if (errorCode) {
+        // Error callback
+        console.log('Auth callback detected: error', errorCode, errorDescription);
+        trackCallbackError(errorCode, errorDescription?.replace(/\+/g, ' ') || undefined);
+
+        // Map error codes to user-friendly messages
+        let message = errorDescription?.replace(/\+/g, ' ') || 'Authentication failed';
+        if (errorCode === 'otp_expired') {
+          message = 'Your magic link has expired. Please request a new one.';
+        } else if (errorCode === 'access_denied') {
+          message = 'Access denied. Please try signing in again.';
+        }
+
+        setAuthError(message);
+        setAuthModalOpen(true);
+
+        // Clean up URL for errors (Supabase handles success URL cleanup)
+        window.history.replaceState({}, '', window.location.pathname);
       }
-
-      setAuthError(message);
-      setAuthModalOpen(true);
-
-      // Clean up URL
-      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 

@@ -352,21 +352,31 @@ export function useUserPresets(): UseUserPresetsReturn {
     const hasDefaultIds = orderedIds.some(id => id.startsWith('default-'));
     if (hasDefaultIds) {
       await initializeUserPresets(user.id);
+      // After initialization, we need to re-fetch to get real IDs
+      // The caller should retry reorder after presets refresh
       await fetchPresets();
-      // Need to re-map the IDs
       return;
     }
 
-    // Update each preset's display_order
-    const updates = orderedIds.map((id, index) =>
-      supabase
-        .from('user_presets')
-        .update({ display_order: index })
-        .eq('id', id)
-        .eq('user_id', user.id)
+    // Update each preset's display_order and check for errors
+    const results = await Promise.all(
+      orderedIds.map((id, index) =>
+        supabase
+          .from('user_presets')
+          .update({ display_order: index })
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .select()
+      )
     );
 
-    await Promise.all(updates);
+    // Check for any errors
+    const errors = results.filter(r => r.error);
+    if (errors.length > 0) {
+      console.error('Reorder errors:', errors.map(e => e.error));
+      throw new Error('Failed to save preset order');
+    }
+
     await fetchPresets();
   }, [user, fetchPresets]);
 

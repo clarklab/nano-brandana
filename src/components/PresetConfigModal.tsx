@@ -401,27 +401,41 @@ export function PresetConfigModal({
     e.preventDefault();
     setDragOverPresetId(null);
 
-    if (!draggedPresetId || draggedPresetId === targetPresetId || !user) return;
+    console.log('[Reorder] Drop triggered', { draggedPresetId, targetPresetId, user: !!user });
+
+    if (!draggedPresetId || draggedPresetId === targetPresetId || !user) {
+      console.log('[Reorder] Early return - no drag, same target, or no user');
+      return;
+    }
 
     // Calculate new order
     const currentOrder = presets.map(p => p.id);
     const draggedIndex = currentOrder.indexOf(draggedPresetId);
     const targetIndex = currentOrder.indexOf(targetPresetId);
 
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    console.log('[Reorder] Indices', { draggedIndex, targetIndex, currentOrder });
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      console.log('[Reorder] Invalid indices');
+      return;
+    }
 
     // Remove dragged item and insert at new position
     const newOrder = [...currentOrder];
     newOrder.splice(draggedIndex, 1);
     newOrder.splice(targetIndex, 0, draggedPresetId);
 
+    console.log('[Reorder] New order', newOrder);
+
     setIsSaving(true);
     setError(null);
 
     try {
       await onReorderPresets(newOrder);
+      console.log('[Reorder] Success!');
       playBlip();
     } catch (err) {
+      console.error('[Reorder] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to reorder presets');
     } finally {
       setIsSaving(false);

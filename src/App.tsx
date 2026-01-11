@@ -601,6 +601,24 @@ function App() {
     setInstructionPresetInfo(null);
   }, []);
 
+  const handleRemoveInstruction = useCallback((index: number) => {
+    setInstructions(prev => prev.filter((_, i) => i !== index));
+    setDisplayInstructions(prev => prev.filter((_, i) => i !== index));
+    // Update reference images map - shift indices down
+    setInstructionReferenceImages(prev => {
+      const newMap = new Map<number, string[]>();
+      prev.forEach((urls, i) => {
+        if (i < index) {
+          newMap.set(i, urls);
+        } else if (i > index) {
+          newMap.set(i - 1, urls);
+        }
+        // Skip the removed index
+      });
+      return newMap;
+    });
+  }, []);
+
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
     if (inputs.length === 0) return;
 
@@ -1087,6 +1105,7 @@ function App() {
                 }
                 instructions={displayInstructions}
                 onClearInstructions={handleClearInstructions}
+                onRemoveInstruction={handleRemoveInstruction}
                 inputs={inputs}
                 processingMode={processingMode}
               />

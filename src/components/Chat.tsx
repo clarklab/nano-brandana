@@ -13,6 +13,7 @@ interface ChatProps {
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
+  onRemoveInstruction: (index: number) => void;
   inputs?: InputItem[];
   processingMode: 'batch' | 'singleJob';
 }
@@ -22,6 +23,7 @@ interface TypingMessage {
   text: string;
   isTyping?: boolean;
   displayText?: string;
+  speed?: number; // typing speed in ms per character
 }
 
 const TypingText: React.FC<{ text: string; onComplete: () => void; speed?: number }> = ({ text, onComplete, speed = 8 }) => {
@@ -55,6 +57,7 @@ export const Chat: React.FC<ChatProps> = ({
   canRunBatch,
   instructions = [],
   onClearInstructions,
+  onRemoveInstruction,
   inputs = [],
   processingMode,
 }) => {
@@ -125,7 +128,6 @@ export const Chat: React.FC<ChatProps> = ({
         // Process the prompt template with user input
         const processedPrompt = processPromptTemplate(preset, userMessage);
         const displayText = processDisplayTextTemplate(preset, userMessage);
-        const confirmation = processConfirmationTemplate(preset, userMessage);
 
         // Collect reference image URLs from the preset
         const referenceImageUrls = [
@@ -137,16 +139,17 @@ export const Chat: React.FC<ChatProps> = ({
         onSendInstruction(processedPrompt, displayText, referenceImageUrls.length > 0 ? referenceImageUrls : undefined, { label: preset.label, icon: preset.icon });
         setWaitingForPreset(null);
 
+        // Short confirmation for presets
         setTimeout(() => {
           setMessages(prev => [...prev, {
             type: 'assistant',
-            text: `${confirmation} Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
-            isTyping: true
+            text: `Added "${preset.label}". [${runLabel}](#run-batch)?`,
+            isTyping: true,
+            speed: 4 // faster typing
           }]);
-        }, 100);
+        }, 50);
       } else {
         // Normal instruction or direct preset
-        // If currentPreset is set, include reference images and preset info
         const referenceImageUrls = currentPreset ? [
           currentPreset.refImage1Url,
           currentPreset.refImage2Url,
@@ -154,19 +157,34 @@ export const Chat: React.FC<ChatProps> = ({
         ].filter((url): url is string => url !== null) : [];
 
         const presetInfo = currentPreset ? { label: currentPreset.label, icon: currentPreset.icon } : undefined;
+
+        // Check if using a preset unchanged
+        const isUnchangedPreset = currentPreset && userMessage === currentPreset.prompt;
+
         onSendInstruction(userMessage, undefined, referenceImageUrls.length > 0 ? referenceImageUrls : undefined, presetInfo);
+        const presetLabel = currentPreset?.label;
         setCurrentPreset(null); // Clear current preset after use
 
         // Add assistant confirmation message
         setTimeout(() => {
-          const confirmations = ['Got it!', 'Will do!', 'Perfect!', 'On it!'];
-          const randomConfirmation = confirmations[Math.floor(Math.random() * confirmations.length)];
-          setMessages(prev => [...prev, {
-            type: 'assistant',
-            text: `${randomConfirmation} Added "${userMessage}" to the instruction list. Ready to [${runLabel}](#run-batch) when you are! Need any other edits?`,
-            isTyping: true
-          }]);
-        }, 100);
+          if (isUnchangedPreset && presetLabel) {
+            // Short message for unchanged preset
+            setMessages(prev => [...prev, {
+              type: 'assistant',
+              text: `Added "${presetLabel}". [${runLabel}](#run-batch)?`,
+              isTyping: true,
+              speed: 4 // faster typing
+            }]);
+          } else {
+            // Custom instruction - slightly longer message
+            setMessages(prev => [...prev, {
+              type: 'assistant',
+              text: `Added. [${runLabel}](#run-batch)?`,
+              isTyping: true,
+              speed: 4 // faster typing
+            }]);
+          }
+        }, 50);
       }
     }
   }, [instruction, isProcessing, waitingForPreset, currentPreset, onSendInstruction, runLabel]);
@@ -311,6 +329,8 @@ export const Chat: React.FC<ChatProps> = ({
               {instructions.map((instruction, index) => {
                 const isExpanded = expandedInstructions.has(index);
                 const isLong = instruction.length > 60;
+                // Get a short label for the instruction (first 30 chars or preset name if available)
+                const shortLabel = instruction.length > 30 ? instruction.substring(0, 30) + '...' : instruction;
 
                 return (
                   <div key={index} className="flex items-start gap-2 group">
@@ -320,33 +340,64 @@ export const Chat: React.FC<ChatProps> = ({
                         {instruction}
                       </span>
                     </div>
-                    {isLong && (
+                    <div className="flex gap-0.5 flex-shrink-0">
+                      {isLong && (
+                        <button
+                          onClick={() => {
+                            playClick();
+                            setExpandedInstructions(prev => {
+                              const next = new Set(prev);
+                              if (isExpanded) {
+                                next.delete(index);
+                              } else {
+                                next.add(index);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                          title={isExpanded ? 'Collapse' : 'Expand'}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          >
+                            <path fillRule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      )}
+                      {/* Remove button */}
                       <button
                         onClick={() => {
                           playClick();
+                          onRemoveInstruction(index);
+                          // Update expanded state for indices after removed item
                           setExpandedInstructions(prev => {
-                            const next = new Set(prev);
-                            if (isExpanded) {
-                              next.delete(index);
-                            } else {
-                              next.add(index);
-                            }
+                            const next = new Set<number>();
+                            prev.forEach(i => {
+                              if (i < index) next.add(i);
+                              else if (i > index) next.add(i - 1);
+                            });
                             return next;
                           });
+                          // Add removal message
+                          setMessages(prev => [...prev, {
+                            type: 'assistant',
+                            text: `Removed "${shortLabel}".`,
+                            isTyping: true,
+                            speed: 4
+                          }]);
                         }}
-                        className="flex-shrink-0 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                        title={isExpanded ? 'Collapse' : 'Expand'}
+                        className="p-0.5 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        title="Remove instruction"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                        >
-                          <path fillRule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                          <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
                         </svg>
                       </button>
-                    )}
+                    </div>
                   </div>
                 );
               })}
@@ -382,6 +433,7 @@ export const Chat: React.FC<ChatProps> = ({
                     <TypingText
                       text={message.text}
                       onComplete={() => handleTypingComplete(index)}
+                      speed={message.speed}
                     />
                   ) : (
                     renderMessage(message.text)

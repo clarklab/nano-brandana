@@ -231,6 +231,7 @@ export function useUserPresets(): UseUserPresetsReturn {
         console.warn('Could not fetch user presets:', fetchError.message);
         setDbPresets(null);
       } else {
+        console.log('[Presets] Fetched', data?.length, 'presets, orders:', data?.map((p: UserPreset) => ({ label: p.label, order: p.display_order })));
         setDbPresets(data as UserPreset[]);
       }
     } catch (err) {
@@ -358,6 +359,8 @@ export function useUserPresets(): UseUserPresetsReturn {
       return;
     }
 
+    console.log('[Reorder] Updating display_order for', orderedIds.length, 'presets');
+
     // Update each preset's display_order and check for errors
     const results = await Promise.all(
       orderedIds.map((id, index) =>
@@ -370,14 +373,27 @@ export function useUserPresets(): UseUserPresetsReturn {
       )
     );
 
+    console.log('[Reorder] Update results:', results.map(r => ({
+      error: r.error,
+      data: r.data?.map((d: { id: string; display_order: number }) => ({ id: d.id, display_order: d.display_order }))
+    })));
+
     // Check for any errors
     const errors = results.filter(r => r.error);
     if (errors.length > 0) {
-      console.error('Reorder errors:', errors.map(e => e.error));
+      console.error('[Reorder] Errors:', errors.map(e => e.error));
       throw new Error('Failed to save preset order');
     }
 
+    // Check if any updates returned empty data (no rows matched)
+    const emptyResults = results.filter(r => !r.data || r.data.length === 0);
+    if (emptyResults.length > 0) {
+      console.warn('[Reorder] Some updates matched no rows:', emptyResults.length);
+    }
+
+    console.log('[Reorder] Fetching updated presets...');
     await fetchPresets();
+    console.log('[Reorder] Done!');
   }, [user, fetchPresets]);
 
   // Reset all presets to defaults

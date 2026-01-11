@@ -85,6 +85,9 @@ export const Chat: React.FC<ChatProps> = ({
   // Preset config modal state
   const [isPresetConfigOpen, setIsPresetConfigOpen] = useState(false);
 
+  // Track which instructions are expanded (by index)
+  const [expandedInstructions, setExpandedInstructions] = useState<Set<number>>(new Set());
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -290,11 +293,14 @@ export const Chat: React.FC<ChatProps> = ({
         {instructions.length > 0 && (
           <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Instructions</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Instructions ({instructions.length})
+              </span>
               <button
                 onClick={() => {
                   playBlip();
                   onClearInstructions();
+                  setExpandedInstructions(new Set());
                 }}
                 className="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
               >
@@ -302,12 +308,48 @@ export const Chat: React.FC<ChatProps> = ({
               </button>
             </div>
             <div className="text-sm text-slate-700 dark:text-slate-200 space-y-1">
-              {instructions.map((instruction, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <span className="text-neon mt-0.5">•</span>
-                  <span>{instruction}</span>
-                </div>
-              ))}
+              {instructions.map((instruction, index) => {
+                const isExpanded = expandedInstructions.has(index);
+                const isLong = instruction.length > 60;
+
+                return (
+                  <div key={index} className="flex items-start gap-2 group">
+                    <span className="text-neon mt-0.5 flex-shrink-0">•</span>
+                    <div className="flex-1 min-w-0">
+                      <span className={isExpanded ? '' : 'line-clamp-1'}>
+                        {instruction}
+                      </span>
+                    </div>
+                    {isLong && (
+                      <button
+                        onClick={() => {
+                          playClick();
+                          setExpandedInstructions(prev => {
+                            const next = new Set(prev);
+                            if (isExpanded) {
+                              next.delete(index);
+                            } else {
+                              next.add(index);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="flex-shrink-0 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                        title={isExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                          className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        >
+                          <path fillRule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

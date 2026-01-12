@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { InputItem } from '../lib/concurrency';
 import { useSounds } from '../lib/sounds';
 import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, validateInput } from '../hooks/useUserPresets';
@@ -193,24 +194,33 @@ export const Chat: React.FC<ChatProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
 
-      // If waiting for preset input (ask flow), send as chat
-      if (waitingForPreset) {
-        handleSend();
+      const hasInputs = inputs.length > 0;
+
+      // If waiting for preset input (ask flow), process response then start job
+      if (waitingForPreset && instruction.trim()) {
+        flushSync(() => {
+          handleSend();
+        });
+        if (hasInputs && !isProcessing) {
+          onRunBatch('1K');
+        }
         return;
       }
 
       // If we have inputs and can run a job, start the job
       const isReady = canRunBatch || !!instruction.trim() || !!currentPreset;
-      if (inputs.length > 0 && isReady && !isProcessing) {
-        // Send instruction first if present
+      if (hasInputs && isReady && !isProcessing) {
+        // Send instruction first if present, using flushSync to ensure state updates before onRunBatch
         if (instruction.trim()) {
-          handleSend();
+          flushSync(() => {
+            handleSend();
+          });
         }
         onRunBatch('1K');
         return;
       }
 
-      // Otherwise send as chat
+      // Otherwise send as chat only
       handleSend();
     }
   };
@@ -570,9 +580,11 @@ export const Chat: React.FC<ChatProps> = ({
               <button
                 onClick={() => {
                   playBop();
-                  // If there's instruction text, send it first
+                  // If there's instruction text, send it first using flushSync to ensure state updates before onRunBatch
                   if (instruction.trim()) {
-                    handleSend();
+                    flushSync(() => {
+                      handleSend();
+                    });
                   }
                   onRunBatch('1K');
                 }}
@@ -591,7 +603,7 @@ export const Chat: React.FC<ChatProps> = ({
                         SD
                       </span>
                       <span
-                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) handleSend(); onRunBatch('2K'); } }}
+                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) flushSync(() => handleSend()); onRunBatch('2K'); } }}
                         className={`px-2 py-1 font-semibold ${
                           isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
                         }`}
@@ -599,7 +611,7 @@ export const Chat: React.FC<ChatProps> = ({
                         HD
                       </span>
                       <span
-                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) handleSend(); onRunBatch('4K'); } }}
+                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) flushSync(() => handleSend()); onRunBatch('4K'); } }}
                         className={`px-2 py-1 font-semibold ${
                           isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
                         }`}

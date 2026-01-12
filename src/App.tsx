@@ -1082,7 +1082,7 @@ function App() {
             <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold font-display">Progress</h2>
-                {isProcessing && (
+                {isProcessing ? (
                   <button
                     onClick={() => {
                       playBlip();
@@ -1092,6 +1092,20 @@ function App() {
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel_presentation</span>
                     Cancel Job
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      playBlip();
+                      setWorkItems([]);
+                      setDisplayInstructions([]);
+                      setInstructions([]);
+                      setTotalElapsed(0);
+                      setTotalTokens(0);
+                    }}
+                    className="btn-secondary text-sm py-1.5"
+                  >
+                    Try Again
                   </button>
                 )}
               </div>
@@ -1146,26 +1160,6 @@ function App() {
                   </p>
                 </div>
               </div>
-
-              {!isProcessing && (
-                <div className="pt-4 mt-4 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      playBlip();
-                      // Clear results but keep inputs
-                      setWorkItems([]);
-                      setDisplayInstructions([]);
-                      setInstructions([]);
-                      setTotalElapsed(0);
-                      setTotalTokens(0);
-                    }}
-                    className="btn-secondary w-full flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>settings_backup_restore</span>
-                    Try Again
-                  </button>
-                </div>
-              )}
             </>
           ) : (
             // Show chat/tasks interface when not processing

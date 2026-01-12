@@ -74,3 +74,8 @@ export function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+export function base64ToFile(base64: string, filename: string): File {
+  const blob = base64ToBlob(base64);
+  return new File([blob], filename, { type: blob.type });
+}

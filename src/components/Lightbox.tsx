@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StaticDAMModal } from './StaticDAMModal';
 
 interface LightboxProps {
   images: string[];
@@ -38,6 +39,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [newImagesCount, setNewImagesCount] = useState(0);
+  const [staticDAMModalOpen, setStaticDAMModalOpen] = useState(false);
   const prevImagesLength = useRef(images.length);
 
   // Handle open/close animations
@@ -376,8 +378,8 @@ export const Lightbox: React.FC<LightboxProps> = ({
             Redo
           </button>
         )}
-        <a
-          href="#"
+        <button
+          onClick={() => setStaticDAMModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
           title="Save to staticDAM"
         >
@@ -386,7 +388,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
             <path d="M51.4908 51.4908C65.7149 37.2668 71.4846 19.9747 64.3778 12.8679C57.2711 5.76119 39.979 11.5309 25.7549 25.755C11.5309 39.979 5.76117 57.2711 12.8679 64.3778C19.9747 71.4846 37.2667 65.7149 51.4908 51.4908Z" stroke="currentColor" strokeWidth="4.8" strokeMiterlimit="10"/>
           </svg>
           staticDAM
-        </a>
+        </button>
       </div>
 
       {/* Controls hint */}
@@ -395,6 +397,13 @@ export const Lightbox: React.FC<LightboxProps> = ({
           ESC to close • ← → to navigate • Double-click to zoom
         </span>
       </div>
+
+      {/* StaticDAM Modal */}
+      <StaticDAMModal
+        isOpen={staticDAMModalOpen}
+        onClose={() => setStaticDAMModalOpen(false)}
+        imageData={images[currentIndex]}
+      />
     </div>
   );
 };

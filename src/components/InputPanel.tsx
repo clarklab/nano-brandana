@@ -29,6 +29,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   const [promptText, setPromptText] = useState('');
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ file: File; name: string } | null>(null);
+  const [showModeInfo, setShowModeInfo] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { toggle: playToggleSound, blip: playBlip } = useSounds();
 
   const handleCopyPrompt = useCallback(async (prompt: string, id: string) => {
@@ -130,7 +132,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             <button
               onClick={() => {
                 playBlip();
-                onClearAll();
+                setShowClearConfirm(true);
               }}
               className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
             >
@@ -139,8 +141,22 @@ export const InputPanel: React.FC<InputPanelProps> = ({
           )}
         </div>
         {inputs.length > 1 && (
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowModeInfo(true)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex items-center justify-center"
+              title="What's the difference?"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>info</span>
+            </button>
+            <div className="relative flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1">
+              {/* Sliding pill */}
+              <div
+                className={`absolute top-1 bottom-1 bg-neon rounded-lg shadow-sm transition-all duration-300 ease-out ${
+                  processingMode === 'batch' ? 'left-1 right-[50%]' : 'left-[50%] right-1'
+                }`}
+              />
+              {/* Batch button */}
               <button
                 onClick={() => {
                   if (processingMode !== 'batch') {
@@ -148,21 +164,22 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                     onProcessingModeChange('batch');
                   }
                 }}
-                className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 h-7 ${
+                className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium transition-colors duration-200 flex items-center justify-center gap-1.5 rounded-lg ${
                   processingMode === 'batch'
-                    ? 'bg-neon text-slate-900'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    ? 'text-slate-900'
+                    : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
-                Run as batch
-                <span className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center ${
+                Batch
+                <span className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center transition-colors duration-200 ${
                   processingMode === 'batch'
-                    ? 'bg-slate-900/20 text-slate-900'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
+                    ? 'bg-white text-slate-900'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                 }`}>
                   {inputs.length}
                 </span>
               </button>
+              {/* Combine button */}
               <button
                 onClick={() => {
                   if (processingMode !== 'singleJob') {
@@ -170,13 +187,13 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                     onProcessingModeChange('singleJob');
                   }
                 }}
-                className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center h-7 ${
+                className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium transition-colors duration-200 flex items-center justify-center rounded-lg ${
                   processingMode === 'singleJob'
-                    ? 'bg-neon text-slate-900'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    ? 'text-slate-900'
+                    : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
-                Combine images
+                Combine
               </button>
             </div>
           </div>
@@ -395,6 +412,113 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 alt={previewImage.name}
                 className="max-w-full max-h-[60vh] object-contain"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mode Info Modal */}
+      {showModeInfo && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setShowModeInfo(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated max-w-sm w-full p-5 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold font-display">Processing Modes</h3>
+              <button
+                onClick={() => setShowModeInfo(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-lg bg-neon/20 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-amber-600" style={{ fontSize: '18px' }}>grid_view</span>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">Batch Mode</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Process each image separately. Returns one result image per input image.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-lg bg-neon/20 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-amber-600" style={{ fontSize: '18px' }}>join</span>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">Combine Images into One</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Send all images together in one request. Returns a single combined result image.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 space-y-2">
+              <button
+                onClick={() => setShowModeInfo(false)}
+                className="w-full py-2.5 bg-neon hover:bg-amber-400 text-slate-900 font-semibold rounded-xl transition-colors"
+              >
+                I Understand
+              </button>
+              <a
+                href="https://peel.diy/docs#batch-jobs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-2.5 text-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors text-sm"
+              >
+                Learn more in the Docs
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Confirmation Modal */}
+      {showClearConfirm && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setShowClearConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated max-w-sm w-full p-5 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <span className="material-symbols-outlined text-red-600 dark:text-red-400" style={{ fontSize: '20px' }}>delete_sweep</span>
+              </div>
+              <h3 className="text-lg font-semibold font-display">Clear Everything?</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-5">
+              This will clear all your input images, chat instructions, and any results. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  playBlip();
+                  onClearAll();
+                  setShowClearConfirm(false);
+                }}
+                className="flex-1 py-2.5 px-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors"
+              >
+                Yes, Clear All
+              </button>
+              <button
+                onClick={() => {
+                  playBlip();
+                  setShowClearConfirm(false);
+                }}
+                className="flex-1 py-2.5 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

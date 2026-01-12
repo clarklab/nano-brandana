@@ -28,6 +28,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   const [showPromptInput, setShowPromptInput] = useState(false);
   const [promptText, setPromptText] = useState('');
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ file: File; name: string } | null>(null);
   const { toggle: playToggleSound, blip: playBlip } = useSounds();
 
   const handleCopyPrompt = useCallback(async (prompt: string, id: string) => {
@@ -138,32 +139,47 @@ export const InputPanel: React.FC<InputPanelProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            {processingMode === 'batch' ? (
-              <>
-                Batch
-                <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
+          <div className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => {
+                if (processingMode !== 'batch') {
+                  playToggleSound();
+                  onProcessingModeChange('batch');
+                }
+              }}
+              className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 h-7 ${
+                processingMode === 'batch'
+                  ? 'bg-neon text-slate-900'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              Run as batch
+              {inputs.length > 0 && (
+                <span className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center ${
+                  processingMode === 'batch'
+                    ? 'bg-slate-900/20 text-slate-900'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
+                }`}>
                   {inputs.length}
                 </span>
-              </>
-            ) : 'Single'}
-          </span>
-          <button
-            onClick={() => {
-              playToggleSound();
-              onProcessingModeChange(processingMode === 'batch' ? 'singleJob' : 'batch');
-            }}
-            className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
-              processingMode === 'batch' ? 'bg-neon shadow-glow' : 'bg-slate-200 dark:bg-slate-700'
-            }`}
-            aria-label="Toggle batch mode"
-          >
-            <span
-              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all duration-200 shadow-soft ${
-                processingMode === 'batch' ? 'translate-x-5' : 'translate-x-0'
+              )}
+            </button>
+            <button
+              onClick={() => {
+                if (processingMode !== 'singleJob') {
+                  playToggleSound();
+                  onProcessingModeChange('singleJob');
+                }
+              }}
+              className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center h-7 ${
+                processingMode === 'singleJob'
+                  ? 'bg-neon text-slate-900'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
-            />
-          </button>
+            >
+              Combine images
+            </button>
+          </div>
         </div>
       </div>
 
@@ -198,7 +214,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   className="hidden"
                 />
                 <span className="btn-primary">
-                  Browse Images
+                  Upload Images
                 </span>
               </label>
               <button
@@ -208,7 +224,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 }}
                 className="btn-secondary"
               >
-                Add Text
+                Make Image with Text
               </button>
             </div>
             <p className="text-xs mt-4 text-slate-400 dark:text-slate-500">JPG, PNG, WEBP or text prompts</p>
@@ -229,7 +245,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                         <img
                           src={URL.createObjectURL(input.file)}
                           alt={input.file.name}
-                          className="w-14 h-14 object-cover rounded-lg"
+                          className="w-14 h-14 object-cover rounded-lg cursor-pointer hover:ring-2 hover:ring-neon hover:ring-offset-2 dark:hover:ring-offset-slate-800 transition-all duration-200"
+                          onClick={() => setPreviewImage({ file: input.file, name: input.file.name })}
                         />
                       )}
                       <div className="flex-1 min-w-0 pr-6">
@@ -295,7 +312,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   className="hidden"
                 />
                 <div className="text-center py-2.5 border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-neon hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neon/5 transition-all duration-200 rounded-xl">
-                  <span className="text-sm font-medium">+ Add more images</span>
+                  <span className="text-sm font-medium">+ Upload Images</span>
                 </div>
               </label>
               <button
@@ -305,7 +322,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 }}
                 className="w-full text-center py-2.5 border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-neon hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neon/5 transition-all duration-200 rounded-xl"
               >
-                <span className="text-sm font-medium">+ Add text prompt</span>
+                <span className="text-sm font-medium">+ Make Image with Text</span>
               </button>
             </div>
           </div>
@@ -346,6 +363,38 @@ export const InputPanel: React.FC<InputPanelProps> = ({
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated max-w-2xl w-full p-5 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold font-display truncate pr-4">{previewImage.name}</h3>
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 flex items-center justify-center flex-shrink-0"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
+                  <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden">
+              <img
+                src={URL.createObjectURL(previewImage.file)}
+                alt={previewImage.name}
+                className="max-w-full max-h-[60vh] object-contain"
+              />
             </div>
           </div>
         </div>

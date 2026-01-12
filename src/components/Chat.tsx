@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { InputItem } from '../lib/concurrency';
 import { useSounds } from '../lib/sounds';
-import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, processConfirmationTemplate, validateInput } from '../hooks/useUserPresets';
+import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, validateInput } from '../hooks/useUserPresets';
 import { PresetConfigModal } from './PresetConfigModal';
 
 interface ChatProps {
@@ -449,52 +449,6 @@ export const Chat: React.FC<ChatProps> = ({
       </div>
 
       <div className="space-y-3">
-        {inputs.length > 0 && (
-          <div className="relative">
-            <button
-              onClick={() => {
-                playBop();
-                onRunBatch('1K');
-              }}
-              disabled={isProcessing || !canRunBatch}
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 relative ${
-                canRunBatch
-                  ? 'bg-neon text-slate-900 hover:bg-amber-400 shadow-soft hover:shadow-glow active:scale-[0.98]'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-3">
-                <span>{isProcessing ? 'Processing...' : `Generate Images (${inputs.length})`}</span>
-                {!isProcessing && (
-                  <div className="flex bg-black/10 rounded-lg overflow-hidden text-xs">
-                    <span
-                      className="px-2 py-1 bg-slate-900 text-white font-semibold"
-                    >
-                      1K
-                    </span>
-                    <span
-                      onClick={(e) => { e.stopPropagation(); if (canRunBatch) { playBop(); onRunBatch('2K'); } }}
-                      className={`px-2 py-1 font-semibold ${
-                        canRunBatch ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
-                      }`}
-                    >
-                      2K
-                    </span>
-                    <span
-                      onClick={(e) => { e.stopPropagation(); if (canRunBatch) { playBop(); onRunBatch('4K'); } }}
-                      className={`px-2 py-1 font-semibold ${
-                        canRunBatch ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
-                      }`}
-                    >
-                      4K
-                    </span>
-                  </div>
-                )}
-              </div>
-            </button>
-          </div>
-        )}
-
         {/* Preset buttons - horizontal scrolling row */}
         <div className="flex items-center gap-2">
           {/* Scrollable presets container with fade mask */}
@@ -557,33 +511,88 @@ export const Chat: React.FC<ChatProps> = ({
           </button>
         </div>
 
-        <div className="relative">
-          <textarea
-            ref={textareaRef}
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "Enter number..." : waitingForPreset.validationType === 'color' ? "Enter color..." : "Enter response...") : "Enter instruction..."}
-            disabled={isProcessing}
-            className="input resize-none h-20 pr-12 text-sm"
-            rows={3}
-          />
-          <button
-            onClick={() => {
-              playClick();
-              handleSend();
-            }}
-            disabled={!instruction.trim() || isProcessing}
-            className={`absolute bottom-3 right-3 p-2 rounded-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
-              instruction.trim() && !isProcessing
-                ? 'bg-neon text-slate-900 hover:bg-amber-400 shadow-soft'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-            }`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-              <path fillRule="evenodd" d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z" clipRule="evenodd" />
-            </svg>
-          </button>
+        {/* Chat input with integrated Generate button */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "Enter number..." : waitingForPreset.validationType === 'color' ? "Enter color..." : "Enter response...") : "Enter instruction..."}
+              disabled={isProcessing}
+              className="w-full resize-none h-24 p-3 pb-8 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+              rows={3}
+            />
+            {/* Send as chat button - subtle, right-aligned */}
+            <button
+              onClick={() => {
+                playClick();
+                handleSend();
+              }}
+              disabled={!instruction.trim() || isProcessing}
+              className={`absolute bottom-2 right-3 text-xs font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 ${
+                instruction.trim() && !isProcessing
+                  ? 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  : 'text-slate-400 dark:text-slate-500'
+              }`}
+            >
+              <span>Send as chat</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                <path fillRule="evenodd" d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          {/* Generate button - integrated at bottom */}
+          {inputs.length > 0 && (() => {
+            // Button is ready if: has existing instructions, OR user typed something, OR preset is selected
+            const isReady = canRunBatch || !!instruction.trim() || !!currentPreset;
+            return (
+              <button
+                onClick={() => {
+                  playBop();
+                  // If there's instruction text, send it first
+                  if (instruction.trim()) {
+                    handleSend();
+                  }
+                  onRunBatch('1K');
+                }}
+                disabled={isProcessing || !isReady}
+                className={`w-full py-3 font-semibold text-sm transition-all duration-200 border-t ${
+                  isReady
+                    ? 'bg-neon text-slate-900 hover:bg-amber-400 border-neon active:scale-[0.99]'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span>{isProcessing ? 'Processing...' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Single Image' : `Make ${inputs.length} Images`}</span>
+                  {!isProcessing && (
+                    <div className="flex bg-black/10 rounded-lg overflow-hidden text-xs">
+                      <span className="px-2 py-1 bg-slate-900 text-white font-semibold">
+                        SD
+                      </span>
+                      <span
+                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) handleSend(); onRunBatch('2K'); } }}
+                        className={`px-2 py-1 font-semibold ${
+                          isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
+                        }`}
+                      >
+                        HD
+                      </span>
+                      <span
+                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) handleSend(); onRunBatch('4K'); } }}
+                        className={`px-2 py-1 font-semibold ${
+                          isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
+                        }`}
+                      >
+                        4K
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })()}
         </div>
       </div>
 

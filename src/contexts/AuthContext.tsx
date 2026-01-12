@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, Profile, JobLog, isSupabaseConfigured } from '../lib/supabase';
 import { trackAuthCompleted, trackAuthFailed, trackSessionTimeout } from '../lib/auth-tracking';
+import { setAuthCookie, clearAuthCookie } from '../lib/auth-cookie';
 
 interface TokenAnimationState {
   from: number;
@@ -312,6 +313,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('[onAuthStateChange] User signed in successfully');
           // Track successful auth completion
           trackAuthCompleted(session?.user?.email);
+          // Set cross-domain auth cookie for marketing site
+          setAuthCookie();
           setSession(session);
           setUser(session?.user ?? null);
           if (session?.user) {
@@ -329,6 +332,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (event === 'SIGNED_OUT') {
           console.log('[onAuthStateChange] User signed out, clearing state');
           clearCorruptedAuthState();
+          // Clear cross-domain auth cookie
+          clearAuthCookie();
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -377,6 +382,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
       // Explicitly clear auth state
       clearCorruptedAuthState();
+      // Clear cross-domain auth cookie
+      clearAuthCookie();
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -385,6 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[signOut] Error during sign out:', error);
       // Force clear state even on error
       clearCorruptedAuthState();
+      clearAuthCookie();
       setSession(null);
       setUser(null);
       setProfile(null);

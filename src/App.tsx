@@ -86,6 +86,7 @@ function App() {
   const [lightboxOriginalImages, setLightboxOriginalImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxTitle, setLightboxTitle] = useState('');
+  const [lightboxImageToItemId, setLightboxImageToItemId] = useState<Map<number, string>>(new Map());
   const [introModalOpen, setIntroModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'input' | 'tasks' | 'results'>('input');
   const [processingMode, setProcessingMode] = useState<'batch' | 'singleJob'>('batch');
@@ -840,6 +841,7 @@ function App() {
     // Collect ALL images from ALL completed work items
     const allImages: string[] = [];
     const allOriginalImages: string[] = [];
+    const imageToItemIdMap = new Map<number, string>();
     let clickedImageGlobalIndex = 0;
     let foundClickedImage = false;
 
@@ -861,6 +863,8 @@ function App() {
             clickedImageGlobalIndex = allImages.length;
             foundClickedImage = true;
           }
+          // Map this image index to its work item ID
+          imageToItemIdMap.set(allImages.length, item.id);
           allImages.push(image);
           allOriginalImages.push(originalImage);
         });
@@ -869,6 +873,7 @@ function App() {
 
     setLightboxImages(allImages);
     setLightboxOriginalImages(allOriginalImages);
+    setLightboxImageToItemId(imageToItemIdMap);
     setLightboxIndex(clickedImageGlobalIndex);
     setLightboxTitle(`All Results (${allImages.length} images)`);
     setLightboxOpen(true);
@@ -878,6 +883,30 @@ function App() {
     setLightboxOpen(false);
   }, []);
 
+  // Lightbox action handlers
+  const handleLightboxDownload = useCallback((imageData: string, index: number) => {
+    const blob = base64ToBlob(imageData);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `edited_image_${index + 1}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleLightboxCopy = useCallback(async (imageData: string): Promise<boolean> => {
+    try {
+      const blob = base64ToBlob(imageData);
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob })
+      ]);
+      return true;
+    } catch (err) {
+      console.error('Failed to copy image:', err);
+      return false;
+    }
+  }, []);
+
   // Update lightbox images reactively when new images come in while lightbox is open
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -885,6 +914,7 @@ function App() {
     // Recollect all images from completed work items
     const allImages: string[] = [];
     const allOriginalImages: string[] = [];
+    const imageToItemIdMap = new Map<number, string>();
 
     workItems.forEach(item => {
       if (item.status === 'completed' && item.result?.images && item.result.images.length > 0) {
@@ -900,6 +930,7 @@ function App() {
         }
 
         item.result.images.forEach(img => {
+          imageToItemIdMap.set(allImages.length, item.id);
           allImages.push(img);
           allOriginalImages.push(originalImage);
         });
@@ -910,6 +941,7 @@ function App() {
     if (allImages.length !== lightboxImages.length) {
       setLightboxImages(allImages);
       setLightboxOriginalImages(allOriginalImages);
+      setLightboxImageToItemId(imageToItemIdMap);
       setLightboxTitle(`All Results (${allImages.length} images)`);
     }
   }, [lightboxOpen, workItems, inputToBase64Map, lightboxImages.length]);
@@ -1284,6 +1316,10 @@ function App() {
         isOpen={lightboxOpen}
         onClose={handleCloseLightbox}
         title={lightboxTitle}
+        onDownload={handleLightboxDownload}
+        onCopy={handleLightboxCopy}
+        onRedo={handleRedoItem}
+        imageToItemId={lightboxImageToItemId}
       />
       
       <IntroModal

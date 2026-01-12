@@ -7,6 +7,12 @@ interface LightboxProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  // Action handlers
+  onDownload?: (imageData: string, index: number) => void;
+  onCopy?: (imageData: string) => Promise<boolean>;
+  onRedo?: (itemId: string) => void;
+  // Map image index to work item ID for redo
+  imageToItemId?: Map<number, string>;
 }
 
 export const Lightbox: React.FC<LightboxProps> = ({
@@ -15,7 +21,11 @@ export const Lightbox: React.FC<LightboxProps> = ({
   initialIndex,
   isOpen,
   onClose,
-  title
+  title,
+  onDownload,
+  onCopy,
+  onRedo,
+  imageToItemId,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -26,6 +36,8 @@ export const Lightbox: React.FC<LightboxProps> = ({
   const [isPinching, setIsPinching] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [newImagesCount, setNewImagesCount] = useState(0);
   const prevImagesLength = useRef(images.length);
 
   // Handle open/close animations
@@ -44,14 +56,29 @@ export const Lightbox: React.FC<LightboxProps> = ({
     }
   }, [isOpen]);
 
-  // React to new images being added - keep showing new images as they come in
+  // React to new images being added - show notification badge
   useEffect(() => {
     if (images.length > prevImagesLength.current) {
-      // New images have been added, optionally update to show the new one
-      // Keep current index if it's still valid, otherwise stay at latest
+      const addedCount = images.length - prevImagesLength.current;
+      setNewImagesCount(addedCount);
+      // Auto-clear badge after 5 seconds
+      const timer = setTimeout(() => setNewImagesCount(0), 5000);
+      prevImagesLength.current = images.length;
+      return () => clearTimeout(timer);
     }
     prevImagesLength.current = images.length;
   }, [images.length]);
+
+  // Handle copy to clipboard
+  const handleCopy = useCallback(async () => {
+    if (onCopy && images[currentIndex]) {
+      const success = await onCopy(images[currentIndex]);
+      if (success) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    }
+  }, [onCopy, images, currentIndex]);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -211,6 +238,18 @@ export const Lightbox: React.FC<LightboxProps> = ({
           <span className="badge bg-white/10 text-white/90">
             {currentIndex + 1} / {images.length}
           </span>
+          {/* New images notification badge */}
+          {newImagesCount > 0 && (
+            <button
+              onClick={() => {
+                setCurrentIndex(images.length - 1);
+                setNewImagesCount(0);
+              }}
+              className="badge bg-neon text-slate-900 font-medium animate-pulse cursor-pointer hover:bg-amber-400 transition-colors"
+            >
+              {newImagesCount} new →
+            </button>
+          )}
         </div>
         <button
           onClick={handleClose}
@@ -300,6 +339,44 @@ export const Lightbox: React.FC<LightboxProps> = ({
               aria-label={`Go to image ${index + 1}`}
             />
           ))}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      {(onDownload || onCopy || onRedo) && (
+        <div className="flex justify-center gap-2 pb-2">
+          {onDownload && (
+            <button
+              onClick={() => onDownload(images[currentIndex], currentIndex)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+              title="Download"
+            >
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              Download
+            </button>
+          )}
+          {onCopy && (
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+              title="Copy to clipboard"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {copied ? 'check' : 'content_copy'}
+              </span>
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          )}
+          {onRedo && imageToItemId?.get(currentIndex) && (
+            <button
+              onClick={() => onRedo(imageToItemId.get(currentIndex)!)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+              title="Redo this image"
+            >
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Redo
+            </button>
+          )}
         </div>
       )}
 

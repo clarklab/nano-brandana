@@ -343,42 +343,51 @@ export const Lightbox: React.FC<LightboxProps> = ({
       )}
 
       {/* Action Buttons */}
-      {(onDownload || onCopy || onRedo) && (
-        <div className="flex justify-center gap-2 pb-2">
-          {onDownload && (
-            <button
-              onClick={() => onDownload(images[currentIndex], currentIndex)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
-              title="Download"
-            >
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              Download
-            </button>
-          )}
-          {onCopy && (
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
-              title="Copy to clipboard"
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                {copied ? 'check' : 'content_copy'}
-              </span>
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-          )}
-          {onRedo && imageToItemId?.get(currentIndex) && (
-            <button
-              onClick={() => onRedo(imageToItemId.get(currentIndex)!)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
-              title="Redo this image"
-            >
-              <span className="material-symbols-outlined text-[18px]">refresh</span>
-              Redo
-            </button>
-          )}
-        </div>
-      )}
+      <div className="flex justify-center gap-2 pb-2">
+        {onDownload && (
+          <button
+            onClick={() => onDownload(images[currentIndex], currentIndex)}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+            title="Download"
+          >
+            <span className="material-symbols-outlined text-[18px]">download</span>
+            Download
+          </button>
+        )}
+        {onCopy && (
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+            title="Copy to clipboard"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {copied ? 'check' : 'content_copy'}
+            </span>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        )}
+        {onRedo && imageToItemId?.get(currentIndex) && (
+          <button
+            onClick={() => onRedo(imageToItemId.get(currentIndex)!)}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+            title="Redo this image"
+          >
+            <span className="material-symbols-outlined text-[18px]">refresh</span>
+            Redo
+          </button>
+        )}
+        <a
+          href="#"
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all text-sm font-medium"
+          title="Save to staticDAM"
+        >
+          <svg width="18" height="18" viewBox="0 0 78 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M64.3778 64.3778C71.4846 57.2711 65.7149 39.979 51.4908 25.755C37.2667 11.5309 19.9747 5.76118 12.8679 12.8679C5.76117 19.9747 11.5309 37.2668 25.7549 51.4908C39.979 65.7149 57.2711 71.4846 64.3778 64.3778Z" stroke="currentColor" strokeWidth="4.8" strokeMiterlimit="10"/>
+            <path d="M51.4908 51.4908C65.7149 37.2668 71.4846 19.9747 64.3778 12.8679C57.2711 5.76119 39.979 11.5309 25.7549 25.755C11.5309 39.979 5.76117 57.2711 12.8679 64.3778C19.9747 71.4846 37.2667 65.7149 51.4908 51.4908Z" stroke="currentColor" strokeWidth="4.8" strokeMiterlimit="10"/>
+          </svg>
+          staticDAM
+        </a>
+      </div>
 
       {/* Controls hint */}
       <div className="text-center pb-6 pt-2">

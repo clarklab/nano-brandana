@@ -138,23 +138,23 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-            <button
-              onClick={() => {
-                if (processingMode !== 'batch') {
-                  playToggleSound();
-                  onProcessingModeChange('batch');
-                }
-              }}
-              className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 h-7 ${
-                processingMode === 'batch'
-                  ? 'bg-neon text-slate-900'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
-            >
-              Run as batch
-              {inputs.length > 0 && (
+        {inputs.length > 1 && (
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => {
+                  if (processingMode !== 'batch') {
+                    playToggleSound();
+                    onProcessingModeChange('batch');
+                  }
+                }}
+                className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 h-7 ${
+                  processingMode === 'batch'
+                    ? 'bg-neon text-slate-900'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Run as batch
                 <span className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center ${
                   processingMode === 'batch'
                     ? 'bg-slate-900/20 text-slate-900'
@@ -162,25 +162,25 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 }`}>
                   {inputs.length}
                 </span>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                if (processingMode !== 'singleJob') {
-                  playToggleSound();
-                  onProcessingModeChange('singleJob');
-                }
-              }}
-              className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center h-7 ${
-                processingMode === 'singleJob'
-                  ? 'bg-neon text-slate-900'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
-            >
-              Combine images
-            </button>
+              </button>
+              <button
+                onClick={() => {
+                  if (processingMode !== 'singleJob') {
+                    playToggleSound();
+                    onProcessingModeChange('singleJob');
+                  }
+                }}
+                className={`px-2.5 py-1.5 text-xs font-medium transition-all duration-200 flex items-center justify-center h-7 ${
+                  processingMode === 'singleJob'
+                    ? 'bg-neon text-slate-900'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Combine images
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div

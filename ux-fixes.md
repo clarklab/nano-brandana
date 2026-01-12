@@ -68,3 +68,28 @@ Based on PRD: `docs/PRD-USER-TEST-FIXES.md`
 1. `src/components/InputPanel.tsx` - Tasks #2, #3, #6
 2. `src/components/Chat.tsx` - Tasks #4, #5
 
+---
+
+## Additional Changes (Post-PRD)
+
+### Cancel Job Feature
+- Added "Cancel Job" button in Progress header (only shows when processing)
+- Uses "cancel_presentation" material icon
+- Opens confirmation modal before canceling
+- On confirm: stops batch processor, clears results, keeps inputs, switches to chat view
+- Credits not charged for cancelled/in-progress items (they never complete)
+- File: `src/App.tsx`
+
+### "Try Again" Button
+- Changed "New Batch" to "Try Again" with "settings_backup_restore" icon
+- Clears results but keeps input images
+- File: `src/App.tsx`
+
+### Batch Toggle Visibility
+- Toggle only shows when 2+ inputs added
+- File: `src/components/InputPanel.tsx`
+
+### Generate Button Activation
+- Now activates when user types OR selects preset (not just after sending)
+- File: `src/components/Chat.tsx`
+

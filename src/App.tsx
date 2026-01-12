@@ -90,6 +90,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'input' | 'tasks' | 'results'>('input');
   const [processingMode, setProcessingMode] = useState<'batch' | 'singleJob'>('batch');
   const [redoModalItem, setRedoModalItem] = useState<WorkItem | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Check if intro has been seen before
   useEffect(() => {
@@ -715,6 +716,31 @@ function App() {
     setBatchStartTime(Date.now());
   }, [inputs, instructions, instructionReferenceImages, instructionPresetInfo, batchProcessor, processingMode, authConfigured, user, profile]);
 
+  // Handle cancel job - stops processing, clears results, keeps inputs
+  const handleCancelJob = useCallback(() => {
+    // Stop the batch processor (aborts in-flight requests)
+    batchProcessor.stop();
+
+    // Clear processing state
+    setIsProcessing(false);
+    setBatchStartTime(null);
+
+    // Clear results but keep inputs
+    setWorkItems([]);
+    setDisplayInstructions([]);
+    setInstructions([]);
+    setTotalElapsed(0);
+    setTotalTokens(0);
+
+    // Switch back to tasks/chat view
+    setActiveTab('tasks');
+
+    // Close the confirm modal
+    setShowCancelConfirm(false);
+
+    console.log('Job cancelled by user');
+  }, [batchProcessor]);
+
   // Check if processing is complete
   useEffect(() => {
     const statusSummary = workItems.map(item => ({
@@ -1019,7 +1045,21 @@ function App() {
           {isProcessing || workItems.length > 0 ? (
             // Show progress/stats during and after processing
             <>
-              <h2 className="text-lg font-semibold font-display mb-4">Progress</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold font-display">Progress</h2>
+                {isProcessing && (
+                  <button
+                    onClick={() => {
+                      playBlip();
+                      setShowCancelConfirm(true);
+                    }}
+                    className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1.5 transition-colors"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel_presentation</span>
+                    Cancel Job
+                  </button>
+                )}
+              </div>
               <div className="space-y-4 flex-1">
                 <ProgressBar items={workItems} />
                 <Timer
@@ -1077,13 +1117,17 @@ function App() {
                   <button
                     onClick={() => {
                       playBlip();
+                      // Clear results but keep inputs
                       setWorkItems([]);
                       setDisplayInstructions([]);
                       setInstructions([]);
+                      setTotalElapsed(0);
+                      setTotalTokens(0);
                     }}
-                    className="btn-secondary w-full"
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
                   >
-                    New Batch
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>settings_backup_restore</span>
+                    Try Again
                   </button>
                 </div>
               )}
@@ -1281,6 +1325,43 @@ function App() {
         })()}
         onSubmit={handleRedoModalSubmit}
       />
+
+      {/* Cancel Job Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-elevated max-w-sm w-full p-5 animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <span className="material-symbols-outlined text-red-600 dark:text-red-400" style={{ fontSize: '20px' }}>cancel_presentation</span>
+              </div>
+              <h3 className="text-lg font-semibold font-display">Cancel Job?</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-5">
+              This will stop the current job and clear all results. Your input images will be kept. Any images already processed won't be charged.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  playBlip();
+                  handleCancelJob();
+                }}
+                className="flex-1 py-2.5 px-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors"
+              >
+                Yes, Cancel Job
+              </button>
+              <button
+                onClick={() => {
+                  playBlip();
+                  setShowCancelConfirm(false);
+                }}
+                className="flex-1 py-2.5 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-colors"
+              >
+                Keep Running
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import Error Modal */}
       {importError && (

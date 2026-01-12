@@ -192,6 +192,25 @@ export const Chat: React.FC<ChatProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+
+      // If waiting for preset input (ask flow), send as chat
+      if (waitingForPreset) {
+        handleSend();
+        return;
+      }
+
+      // If we have inputs and can run a job, start the job
+      const isReady = canRunBatch || !!instruction.trim() || !!currentPreset;
+      if (inputs.length > 0 && isReady && !isProcessing) {
+        // Send instruction first if present
+        if (instruction.trim()) {
+          handleSend();
+        }
+        onRunBatch('1K');
+        return;
+      }
+
+      // Otherwise send as chat
       handleSend();
     }
   };

@@ -265,16 +265,6 @@ export const Chat: React.FC<ChatProps> = ({
     playClick();
   }, [currentPreset, waitingForPreset, playClick]);
 
-  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'A' && target.getAttribute('href') === '#run-batch') {
-      e.preventDefault();
-      if (canRunBatch) {
-        onRunBatch();
-      }
-    }
-  };
-
   const renderMessage = (text: string) => {
     // Convert markdown-style links to clickable elements
     const linkRegex = /\[([^\]]+)\]\(#run-batch\)/g;
@@ -455,7 +445,6 @@ export const Chat: React.FC<ChatProps> = ({
                     ? 'bg-slate-800 dark:bg-slate-700 text-white rounded-br-md'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-md'
                 }`}
-                onClick={message.type === 'assistant' ? handleMessageClick : undefined}
               >
                 {message.type === 'assistant' ? (
                   message.isTyping ? (

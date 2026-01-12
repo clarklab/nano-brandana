@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { flushSync } from 'react-dom';
 import { InputItem } from '../lib/concurrency';
 import { useSounds } from '../lib/sounds';
 import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, validateInput } from '../hooks/useUserPresets';
@@ -10,7 +9,7 @@ interface ChatProps {
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
-  onRunBatch: (imageSize?: '1K' | '2K' | '4K') => void;
+  onRunBatch: (imageSize?: '1K' | '2K' | '4K', pendingInstruction?: string) => void;
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
@@ -195,28 +194,24 @@ export const Chat: React.FC<ChatProps> = ({
       e.preventDefault();
 
       const hasInputs = inputs.length > 0;
+      const pending = instruction.trim();
 
       // If waiting for preset input (ask flow), process response then start job
-      if (waitingForPreset && instruction.trim()) {
-        flushSync(() => {
-          handleSend();
-        });
+      if (waitingForPreset && pending) {
+        handleSend();
         if (hasInputs && !isProcessing) {
-          onRunBatch('1K');
+          onRunBatch('1K', pending);
         }
         return;
       }
 
       // If we have inputs and can run a job, start the job
-      const isReady = canRunBatch || !!instruction.trim() || !!currentPreset;
+      const isReady = canRunBatch || !!pending || !!currentPreset;
       if (hasInputs && isReady && !isProcessing) {
-        // Send instruction first if present, using flushSync to ensure state updates before onRunBatch
-        if (instruction.trim()) {
-          flushSync(() => {
-            handleSend();
-          });
+        if (pending) {
+          handleSend();
         }
-        onRunBatch('1K');
+        onRunBatch('1K', pending || undefined);
         return;
       }
 
@@ -569,13 +564,11 @@ export const Chat: React.FC<ChatProps> = ({
               <button
                 onClick={() => {
                   playBop();
-                  // If there's instruction text, send it first using flushSync to ensure state updates before onRunBatch
-                  if (instruction.trim()) {
-                    flushSync(() => {
-                      handleSend();
-                    });
+                  const pending = instruction.trim();
+                  if (pending) {
+                    handleSend();
                   }
-                  onRunBatch('1K');
+                  onRunBatch('1K', pending || undefined);
                 }}
                 disabled={isProcessing || !isReady}
                 className={`w-full py-3 font-semibold text-sm transition-all duration-200 border-t ${
@@ -592,7 +585,7 @@ export const Chat: React.FC<ChatProps> = ({
                         SD
                       </span>
                       <span
-                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) flushSync(() => handleSend()); onRunBatch('2K'); } }}
+                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); const p = instruction.trim(); if (p) handleSend(); onRunBatch('2K', p || undefined); } }}
                         className={`px-2 py-1 font-semibold ${
                           isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
                         }`}
@@ -600,7 +593,7 @@ export const Chat: React.FC<ChatProps> = ({
                         HD
                       </span>
                       <span
-                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); if (instruction.trim()) flushSync(() => handleSend()); onRunBatch('4K'); } }}
+                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); const p = instruction.trim(); if (p) handleSend(); onRunBatch('4K', p || undefined); } }}
                         className={`px-2 py-1 font-semibold ${
                           isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
                         }`}

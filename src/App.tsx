@@ -620,7 +620,7 @@ function App() {
     });
   }, []);
 
-  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K') => {
+  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', pendingInstruction?: string) => {
     if (inputs.length === 0) return;
 
     // AUTH GATE: If auth is configured and user is not logged in, show auth modal
@@ -638,12 +638,15 @@ function App() {
       }
     }
 
-    // Check if we have instructions for image inputs
+    // Check if we have instructions for image inputs - use pending instruction if state hasn't updated yet
+    const effectiveInstructions = pendingInstruction
+      ? [...instructions, pendingInstruction]
+      : instructions;
     const hasImages = inputs.some(input => input.type === 'image');
-    if (hasImages && instructions.length === 0) return;
+    if (hasImages && effectiveInstructions.length === 0) return;
 
     // Combine all global instructions
-    const globalInstruction = instructions.join('. ');
+    const globalInstruction = effectiveInstructions.join('. ');
 
     // Collect all reference images from all instructions
     const allReferenceImageUrls: string[] = [];

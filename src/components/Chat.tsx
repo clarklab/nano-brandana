@@ -4,14 +4,15 @@ import { useSounds } from '../lib/sounds';
 import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, validateInput } from '../hooks/useUserPresets';
 import { PresetConfigModal } from './PresetConfigModal';
 import { QualityPicker, ImageSize } from './QualityPicker';
-import { RatioPicker, AspectRatio } from './RatioPicker';
+import { RatioPicker, AspectRatio, CustomSize } from './RatioPicker';
+import { findClosestRatio, getQualityForSize } from '../lib/base64';
 
 interface ChatProps {
   onSendInstruction: (instruction: string, displayText?: string, referenceImageUrls?: string[], presetInfo?: { label: string; icon: string | null }) => void;
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
-  onRunBatch: (imageSize?: '1K' | '2K' | '4K', aspectRatio?: string | null, pendingInstruction?: string) => void;
+  onRunBatch: (imageSize?: '1K' | '2K' | '4K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string) => void;
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
@@ -68,6 +69,28 @@ export const Chat: React.FC<ChatProps> = ({
   const [instruction, setInstruction] = useState('');
   const [imageSize, setImageSize] = useState<ImageSize>('1K');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(null);
+  const [customSize, setCustomSize] = useState<CustomSize | null>(null);
+
+  // Calculate effective settings - when custom size is set, derive optimal ratio/quality
+  const getEffectiveSettings = () => {
+    if (aspectRatio === 'custom' && customSize) {
+      const effectiveRatio = findClosestRatio(customSize.width, customSize.height);
+      const effectiveQuality = getQualityForSize(customSize.width, customSize.height);
+      return {
+        imageSize: effectiveQuality,
+        aspectRatio: effectiveRatio,
+        customWidth: customSize.width,
+        customHeight: customSize.height,
+      };
+    }
+    return {
+      imageSize,
+      aspectRatio: aspectRatio === 'custom' ? null : aspectRatio,
+      customWidth: undefined,
+      customHeight: undefined,
+    };
+  };
+
   const { blip: playBlip, bop: playBop, click: playClick } = useSounds();
   const [messages, setMessages] = useState<TypingMessage[]>([
     { type: 'assistant', text: 'Welcome to Peel, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
@@ -204,7 +227,8 @@ export const Chat: React.FC<ChatProps> = ({
       if (waitingForPreset && pending) {
         handleSend();
         if (hasInputs && !isProcessing) {
-          onRunBatch(imageSize, aspectRatio, pending);
+          const settings = getEffectiveSettings();
+          onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending);
         }
         return;
       }
@@ -215,7 +239,8 @@ export const Chat: React.FC<ChatProps> = ({
         if (pending) {
           handleSend();
         }
-        onRunBatch(imageSize, aspectRatio, pending || undefined);
+        const settings = getEffectiveSettings();
+        onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined);
         return;
       }
 
@@ -278,7 +303,8 @@ export const Chat: React.FC<ChatProps> = ({
             onClick={(e) => {
               e.preventDefault();
               if (canRunBatch) {
-                onRunBatch();
+                const settings = getEffectiveSettings();
+                onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight);
               }
             }}
             className={`underline font-bold ${
@@ -569,7 +595,7 @@ export const Chat: React.FC<ChatProps> = ({
                 {/* Pickers on the left */}
                 <div className="flex items-center gap-1.5 relative">
                   <QualityPicker value={imageSize} onChange={setImageSize} />
-                  <RatioPicker value={aspectRatio} onChange={setAspectRatio} />
+                  <RatioPicker value={aspectRatio} onChange={setAspectRatio} customSize={customSize} onCustomSizeChange={setCustomSize} />
                 </div>
 
                 {/* Generate button on the right */}
@@ -580,7 +606,8 @@ export const Chat: React.FC<ChatProps> = ({
                     if (pending) {
                       handleSend();
                     }
-                    onRunBatch(imageSize, aspectRatio, pending || undefined);
+                    const settings = getEffectiveSettings();
+                    onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined);
                   }}
                   disabled={isProcessing || !isReady}
                   className={`flex-1 py-2 px-4 font-semibold text-sm rounded-lg transition-all duration-200 ${

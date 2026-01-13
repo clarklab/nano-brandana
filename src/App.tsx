@@ -11,7 +11,7 @@ import { AuthModal } from './components/AuthModal';
 import { AccountModal } from './components/AccountModal';
 import { RedoModal } from './components/RedoModal';
 import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
-import { fileToBase64, resizeImage, base64ToBlob } from './lib/base64';
+import { fileToBase64, resizeImage, base64ToBlob, resizeBase64ToExact } from './lib/base64';
 import { processImage, retryWithBackoff, validateImageData } from './lib/api';
 import { useAuth } from './contexts/AuthContext';
 import { useSounds } from './lib/sounds';
@@ -372,6 +372,21 @@ function App() {
         );
         console.log('API call completed for:', inputName, result);
 
+        // If custom dimensions were specified, resize images to exact size
+        if (item.customWidth && item.customHeight && result.images && result.images.length > 0) {
+          console.log('Resizing images to custom size:', item.customWidth, 'x', item.customHeight);
+          try {
+            const resizedImages = await Promise.all(
+              result.images.map(img => resizeBase64ToExact(img, item.customWidth!, item.customHeight!))
+            );
+            result.images = resizedImages;
+            console.log('Images resized successfully');
+          } catch (resizeError) {
+            console.error('Failed to resize images:', resizeError);
+            // Continue with original images if resize fails
+          }
+        }
+
         item.status = 'completed';
         item.result = result;
         item.endTime = Date.now();
@@ -622,7 +637,7 @@ function App() {
     });
   }, []);
 
-  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', aspectRatio?: string | null, pendingInstruction?: string) => {
+  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string) => {
     if (inputs.length === 0) return;
 
     // AUTH GATE: If auth is configured and user is not logged in, show auth modal
@@ -685,6 +700,8 @@ function App() {
         referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
         imageSize,
         aspectRatio: aspectRatio || undefined,
+        customWidth,
+        customHeight,
         batchId,
         presetLabel: instructionPresetInfo?.label,
         presetIcon: instructionPresetInfo?.icon ?? undefined,
@@ -710,6 +727,8 @@ function App() {
           referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
           imageSize,
           aspectRatio: aspectRatio || undefined,
+          customWidth,
+          customHeight,
           batchId,
           presetLabel: instructionPresetInfo?.label,
           presetIcon: instructionPresetInfo?.icon ?? undefined,
@@ -1085,18 +1104,7 @@ function App() {
             <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold font-display">Progress</h2>
-                {isProcessing ? (
-                  <button
-                    onClick={() => {
-                      playBlip();
-                      setShowCancelConfirm(true);
-                    }}
-                    className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1.5 transition-colors"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel_presentation</span>
-                    Cancel Job
-                  </button>
-                ) : (
+                {!isProcessing && workItems.length > 0 && (
                   <button
                     onClick={() => {
                       playBlip();
@@ -1193,17 +1201,31 @@ function App() {
         <div className={`p-4 flex flex-col overflow-hidden bg-white dark:bg-surface-dark ${activeTab === 'results' ? 'block' : 'hidden'} md:block`}>
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h2 className="text-lg font-semibold font-display">Results</h2>
-            {hasResults && (
-              <button
-                onClick={() => {
-                  playBlip();
-                  handleDownloadAll();
-                }}
-                className="btn-secondary text-sm py-1.5"
-              >
-                Download All
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isProcessing && (
+                <button
+                  onClick={() => {
+                    playBlip();
+                    setShowCancelConfirm(true);
+                  }}
+                  className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel_presentation</span>
+                  Cancel
+                </button>
+              )}
+              {hasResults && (
+                <button
+                  onClick={() => {
+                    playBlip();
+                    handleDownloadAll();
+                  }}
+                  className="btn-secondary text-sm py-1.5"
+                >
+                  Download All
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto h-full">

@@ -115,11 +115,13 @@ export async function resizeBase64ToExact(
       canvas.height = targetHeight;
 
       // Draw scaled and cropped image
+      // sx, sy = top-left of crop region in source image coordinates
+      // We divide offset by scale to convert from scaled coords back to source coords
       ctx.drawImage(
         img,
-        -offsetX / scale, // source x (in original image coords)
-        -offsetY / scale, // source y
-        targetWidth / scale, // source width
+        offsetX / scale, // source x (positive - we're cropping INTO the image)
+        offsetY / scale, // source y
+        targetWidth / scale, // source width (how much to take from source)
         targetHeight / scale, // source height
         0, // dest x
         0, // dest y

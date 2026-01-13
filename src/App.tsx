@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import JSZip from 'jszip';
 import { InputPanel } from './components/InputPanel';
 import { Chat } from './components/Chat';
 import { ResultCard } from './components/ResultCard';
@@ -10,9 +9,11 @@ import { IntroModal } from './components/IntroModal';
 import { AuthModal } from './components/AuthModal';
 import { AccountModal } from './components/AccountModal';
 import { RedoModal } from './components/RedoModal';
+import { DownloadModal, DownloadImage } from './components/DownloadModal';
 import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob, resizeBase64ToExact } from './lib/base64';
-import { processImage, retryWithBackoff, validateImageData } from './lib/api';
+import { resizeImageLocally } from './lib/imageResize';
+import { processImage, retryWithBackoff, validateImageData, logResizeJob } from './lib/api';
 import { useAuth } from './contexts/AuthContext';
 import { useSounds } from './lib/sounds';
 import { useAnimatedNumber } from './hooks/useAnimatedNumber';
@@ -92,6 +93,7 @@ function App() {
   const [processingMode, setProcessingMode] = useState<'batch' | 'singleJob'>('batch');
   const [redoModalItem, setRedoModalItem] = useState<WorkItem | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
   // Check if intro has been seen before
   useEffect(() => {
@@ -245,6 +247,53 @@ function App() {
 
     return createBatchProcessor(async (item: WorkItem) => {
       try {
+        // Handle resize-only jobs (local processing, no API call)
+        if (item.resizeOnly && item.input.type === 'image') {
+          const startTime = Date.now();
+          const inputName = getInputDisplayName(item.input);
+          console.log('Local resize for:', inputName, 'with imageSize:', item.imageSize, 'aspectRatio:', item.aspectRatio);
+
+          try {
+            const result = await resizeImageLocally(item.input.file, {
+              imageSize: item.imageSize,
+              aspectRatio: item.aspectRatio,
+              customWidth: item.customWidth,
+              customHeight: item.customHeight,
+            });
+
+            const elapsed = Date.now() - startTime;
+            console.log('Local resize completed for:', inputName, 'in', elapsed, 'ms');
+
+            item.status = 'completed';
+            item.result = {
+              images: [result.base64],
+              elapsed,
+              usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+              imageSize: item.imageSize || '1K',
+            };
+            item.endTime = Date.now();
+
+            // Log to database (fire and forget)
+            logResizeJob({
+              batchId: item.batchId,
+              imageSize: item.imageSize,
+              imagesCount: 1,
+              elapsedMs: elapsed,
+              aspectRatio: item.aspectRatio,
+              customWidth: item.customWidth,
+              customHeight: item.customHeight,
+            });
+
+            return item;
+          } catch (err) {
+            console.error('Local resize failed for:', inputName, err);
+            item.status = 'failed';
+            item.error = err instanceof Error ? err.message : 'Resize failed';
+            item.endTime = Date.now();
+            return item;
+          }
+        }
+
         let base64: string | undefined;
         let base64Array: string[] | undefined;
         const inputId = item.input.id;
@@ -646,17 +695,19 @@ function App() {
     });
   }, []);
 
-  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string) => {
+  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string, isResizeOnly?: boolean) => {
     if (inputs.length === 0) return;
 
     // AUTH GATE: If auth is configured and user is not logged in, show auth modal
-    if (authConfigured && !user) {
+    // Skip for resize-only (free) jobs
+    if (authConfigured && !user && !isResizeOnly) {
       setAuthModalOpen(true);
       return;
     }
 
     // Check if user has enough tokens (rough estimate: ~1500 tokens per image)
-    if (authConfigured && profile) {
+    // Skip for resize-only (free) jobs
+    if (authConfigured && profile && !isResizeOnly) {
       const estimatedTokens = inputs.length * 1500;
       if (profile.tokens_remaining < estimatedTokens) {
         alert(`Not enough tokens! You need ~${estimatedTokens.toLocaleString()} tokens but only have ${profile.tokens_remaining.toLocaleString()} remaining.`);
@@ -665,11 +716,12 @@ function App() {
     }
 
     // Check if we have instructions for image inputs - use pending instruction if state hasn't updated yet
+    // Skip this check for resize-only jobs (they don't need instructions)
     const effectiveInstructions = pendingInstruction
       ? [...instructions, pendingInstruction]
       : instructions;
     const hasImages = inputs.some(input => input.type === 'image');
-    if (hasImages && effectiveInstructions.length === 0) return;
+    if (hasImages && effectiveInstructions.length === 0 && !isResizeOnly) return;
 
     // Combine all global instructions
     const globalInstruction = effectiveInstructions.join('. ');
@@ -720,7 +772,10 @@ function App() {
       newItems = inputs.map(input => {
         let finalInstruction: string;
 
-        if (input.type === 'text') {
+        if (isResizeOnly) {
+          // For resize-only jobs, use a simple descriptor
+          finalInstruction = 'Local resize';
+        } else if (input.type === 'text') {
           // For text prompts: combine the prompt text with global instructions
           finalInstruction = globalInstruction
             ? `${input.prompt}. ${globalInstruction}`
@@ -733,14 +788,15 @@ function App() {
         return {
           input,
           instruction: finalInstruction,
-          referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
+          referenceImageUrls: isResizeOnly ? undefined : (allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined),
           imageSize,
           aspectRatio: aspectRatio || undefined,
           customWidth,
           customHeight,
           batchId,
-          presetLabel: instructionPresetInfo?.label,
-          presetIcon: instructionPresetInfo?.icon ?? undefined,
+          presetLabel: isResizeOnly ? undefined : instructionPresetInfo?.label,
+          presetIcon: isResizeOnly ? undefined : (instructionPresetInfo?.icon ?? undefined),
+          resizeOnly: isResizeOnly,
         };
       });
     }
@@ -842,28 +898,32 @@ function App() {
     }
   }, [workItems, isProcessing, batchStartTime, authConfigured, refreshProfile]);
 
-  const handleDownloadAll = async () => {
-    const zip = new JSZip();
-    const completedItems = workItems.filter(item => item.status === 'completed' && item.result?.images);
+  // Collect downloadable images for the modal
+  const downloadableImages = React.useMemo((): DownloadImage[] => {
+    const images: DownloadImage[] = [];
+    workItems
+      .filter((item) => item.status === 'completed' && item.result?.images)
+      .forEach((item, itemIndex) => {
+        const baseName =
+          item.input.type === 'image'
+            ? (item.input.displayName || item.input.file.name).split('.')[0]
+            : item.input.type === 'composite'
+            ? 'combined_job'
+            : `text_prompt_${itemIndex + 1}`;
 
-    completedItems.forEach((item, itemIndex) => {
-      item.result!.images.forEach((image, imageIndex) => {
-        const blob = base64ToBlob(image);
-        const baseName = item.input.type === 'image'
-          ? item.input.file.name.split('.')[0]
-          : `text_prompt_${itemIndex + 1}`;
-        const filename = `${baseName}_edited_${itemIndex + 1}_v${imageIndex + 1}.png`;
-        zip.file(filename, blob);
+        item.result!.images.forEach((base64, variantIndex) => {
+          images.push({
+            id: `${item.id}-${variantIndex}`,
+            base64,
+            originalFilename: `${baseName}_edited${item.result!.images.length > 1 ? `_v${variantIndex + 1}` : ''}`,
+          });
+        });
       });
-    });
+    return images;
+  }, [workItems]);
 
-    const content = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'edited_images.zip';
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadAll = () => {
+    setDownloadModalOpen(true);
   };
 
   const hasResults = workItems.some(item => item.status === 'completed');
@@ -1468,6 +1528,13 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Download Modal */}
+      <DownloadModal
+        isOpen={downloadModalOpen}
+        images={downloadableImages}
+        onClose={() => setDownloadModalOpen(false)}
+      />
     </div>
   );
 }

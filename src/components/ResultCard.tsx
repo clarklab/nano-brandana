@@ -239,29 +239,44 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
           {item.result.usage && (
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                <span title="Input + Output tokens">{(item.result.usage.total_tokens || ((item.result.usage.prompt_tokens || 0) + (item.result.usage.completion_tokens || 0))).toLocaleString()} tokens</span>
-                {(item.result.usage.prompt_tokens || item.result.usage.completion_tokens) && (
-                  <span className="text-slate-400" title="Input / Output breakdown">({(item.result.usage.prompt_tokens || 0).toLocaleString()} in / {(item.result.usage.completion_tokens || 0).toLocaleString()} out)</span>
-                )}
-                <span className="text-amber-600 dark:text-amber-400 font-medium">
-                  {formatUSD(calculateTokenCost(
-                    item.result.usage.prompt_tokens || 0,
-                    item.result.usage.completion_tokens || 0,
-                    'google/gemini-3-pro-image',
-                    item.result.images?.length || 1,
-                    item.result.imageSize
-                  ))}
-                </span>
-                <span className="text-slate-400">
-                  {formatTime(timeSaved)} saved
-                </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium" title={`Based on ${hourlyRate ?? DEFAULT_HOURLY_RATE}/hr rate`}>
-                  {formatMoneySaved(calculateMoneySaved(timeSaved, hourlyRate ?? DEFAULT_HOURLY_RATE))} value
-                </span>
-                {item.result.imageSize && item.result.imageSize !== '1K' && (
-                  <span className="text-purple-500 font-medium">
-                    {item.result.imageSize}
-                  </span>
+                {/* Check if this is a free (resize-only) job */}
+                {(item.result.usage.total_tokens || 0) === 0 && (item.result.usage.prompt_tokens || 0) === 0 && (item.result.usage.completion_tokens || 0) === 0 ? (
+                  <>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">FREE</span>
+                    <span className="text-slate-400">Local resize</span>
+                    {item.result.imageSize && item.result.imageSize !== '1K' && (
+                      <span className="text-purple-500 font-medium">
+                        {item.result.imageSize}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span title="Input + Output tokens">{(item.result.usage.total_tokens || ((item.result.usage.prompt_tokens || 0) + (item.result.usage.completion_tokens || 0))).toLocaleString()} tokens</span>
+                    {(item.result.usage.prompt_tokens || item.result.usage.completion_tokens) && (
+                      <span className="text-slate-400" title="Input / Output breakdown">({(item.result.usage.prompt_tokens || 0).toLocaleString()} in / {(item.result.usage.completion_tokens || 0).toLocaleString()} out)</span>
+                    )}
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                      {formatUSD(calculateTokenCost(
+                        item.result.usage.prompt_tokens || 0,
+                        item.result.usage.completion_tokens || 0,
+                        'google/gemini-3-pro-image',
+                        item.result.images?.length || 1,
+                        item.result.imageSize
+                      ))}
+                    </span>
+                    <span className="text-slate-400">
+                      {formatTime(timeSaved)} saved
+                    </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium" title={`Based on ${hourlyRate ?? DEFAULT_HOURLY_RATE}/hr rate`}>
+                      {formatMoneySaved(calculateMoneySaved(timeSaved, hourlyRate ?? DEFAULT_HOURLY_RATE))} value
+                    </span>
+                    {item.result.imageSize && item.result.imageSize !== '1K' && (
+                      <span className="text-purple-500 font-medium">
+                        {item.result.imageSize}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>

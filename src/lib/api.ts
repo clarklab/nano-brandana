@@ -206,6 +206,47 @@ export async function retryWithBackoff<T>(
       }
     }
   }
-  
+
   throw lastError;
+}
+
+/**
+ * Log a local resize (free) job to the database.
+ * This is a fire-and-forget operation - failures won't affect the user.
+ */
+export async function logResizeJob(params: {
+  batchId?: string;
+  imageSize?: '1K' | '2K' | '4K';
+  imagesCount?: number;
+  elapsedMs?: number;
+  aspectRatio?: string | null;
+  customWidth?: number;
+  customHeight?: number;
+}): Promise<void> {
+  try {
+    // Get auth token if available
+    let authToken: string | undefined;
+    if (isSupabaseConfigured) {
+      const { data: { session } } = await supabase.auth.getSession();
+      authToken = session?.access_token;
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    // Fire and forget - don't await or throw errors
+    fetch('/.netlify/functions/log-resize', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+    }).catch((err) => {
+      console.warn('Failed to log resize job:', err);
+    });
+  } catch (err) {
+    console.warn('Failed to initiate resize job logging:', err);
+  }
 }

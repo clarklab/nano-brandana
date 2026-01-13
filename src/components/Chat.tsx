@@ -12,7 +12,7 @@ interface ChatProps {
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
-  onRunBatch: (imageSize?: '1K' | '2K' | '4K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string) => void;
+  onRunBatch: (imageSize?: '1K' | '2K' | '4K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string, isResizeOnly?: boolean) => void;
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
@@ -228,19 +228,24 @@ export const Chat: React.FC<ChatProps> = ({
         handleSend();
         if (hasInputs && !isProcessing) {
           const settings = getEffectiveSettings();
-          onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending);
+          onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending, false);
         }
         return;
       }
 
+      // Check for resize-only mode
+      const hasOutputSettings = imageSize !== '1K' || aspectRatio !== null || customSize !== null;
+      const allImagesInput = inputs.every(i => i.type === 'image');
+      const isResizeOnly = hasOutputSettings && !pending && !currentPreset && !canRunBatch && allImagesInput;
+
       // If we have inputs and can run a job, start the job
-      const isReady = canRunBatch || !!pending || !!currentPreset;
+      const isReady = canRunBatch || !!pending || !!currentPreset || isResizeOnly;
       if (hasInputs && isReady && !isProcessing) {
         if (pending) {
           handleSend();
         }
         const settings = getEffectiveSettings();
-        onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined);
+        onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined, isResizeOnly);
         return;
       }
 
@@ -588,8 +593,14 @@ export const Chat: React.FC<ChatProps> = ({
           </div>
           {/* Footer with pickers and generate button */}
           {inputs.length > 0 && (() => {
-            // Button is ready if: has existing instructions, OR user typed something, OR preset is selected
-            const isReady = canRunBatch || !!instruction.trim() || !!currentPreset;
+            // Check if output settings have been changed from defaults
+            const hasOutputSettings = imageSize !== '1K' || aspectRatio !== null || customSize !== null;
+            // Check if all inputs are images (resize-only requires images, not text prompts)
+            const allImagesInput = inputs.every(i => i.type === 'image');
+            // Resize-only: has output settings, no instructions, no preset, all images
+            const isResizeOnly = hasOutputSettings && !instruction.trim() && !currentPreset && !canRunBatch && allImagesInput;
+            // Button is ready if: has existing instructions, OR user typed something, OR preset is selected, OR resize-only mode
+            const isReady = canRunBatch || !!instruction.trim() || !!currentPreset || isResizeOnly;
             return (
               <div className="border-t border-slate-200 dark:border-slate-700 flex items-center gap-2 p-2">
                 {/* Pickers on the left */}
@@ -607,7 +618,9 @@ export const Chat: React.FC<ChatProps> = ({
                       handleSend();
                     }
                     const settings = getEffectiveSettings();
-                    onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined);
+                    // Re-check resize-only at click time
+                    const clickResizeOnly = hasOutputSettings && !pending && !currentPreset && !canRunBatch && allImagesInput;
+                    onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined, clickResizeOnly);
                   }}
                   disabled={isProcessing || !isReady}
                   className={`flex-1 py-2 px-4 font-semibold text-sm rounded-lg transition-all duration-200 ${
@@ -616,7 +629,7 @@ export const Chat: React.FC<ChatProps> = ({
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                   }`}
                 >
-                  {isProcessing ? 'Processing...' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Image' : `Make ${inputs.length} Images`}
+                  {isProcessing ? 'Processing...' : isResizeOnly ? 'Resize' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Image' : `Make ${inputs.length} Images`}
                 </button>
               </div>
             );

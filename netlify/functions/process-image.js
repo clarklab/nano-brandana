@@ -317,16 +317,17 @@ exports.handler = async (event) => {
     };
 
     // Add image configuration if specified (size and/or aspect ratio)
+    // Note: Gemini API uses camelCase for these parameters
     const imageConfig = {};
     if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
-      imageConfig.image_size = imageSize;
+      imageConfig.imageSize = imageSize;
     }
     if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
-      imageConfig.aspect_ratio = aspectRatio;
+      imageConfig.aspectRatio = aspectRatio;
     }
     if (Object.keys(imageConfig).length > 0) {
-      requestBody.generation_config = {
-        image_config: imageConfig
+      requestBody.generationConfig = {
+        imageConfig: imageConfig
       };
     }
 

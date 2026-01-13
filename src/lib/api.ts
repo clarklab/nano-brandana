@@ -8,6 +8,7 @@ export interface ProcessImageRequest {
   model?: string;
   stream?: boolean;
   imageSize?: '1K' | '2K' | '4K';
+  aspectRatio?: string | null;
   mode?: 'batch' | 'singleJob'; // Processing mode
   batchId?: string; // Groups logs from a single batch run
 }

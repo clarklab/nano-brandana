@@ -327,7 +327,7 @@ function App() {
         }
 
         const inputName = getInputDisplayName(item.input);
-        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize, 'images:', base64Array?.length || (base64 ? 1 : 0), 'reference images:', referenceImages?.length || 0);
+        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize, 'aspectRatio:', item.aspectRatio, 'images:', base64Array?.length || (base64 ? 1 : 0), 'reference images:', referenceImages?.length || 0);
         const result = await retryWithBackoff(
           () => processImage({
             image: base64, // undefined for text-only or composite
@@ -336,6 +336,7 @@ function App() {
             instruction: item.instruction,
             model: currentModel,
             imageSize: item.imageSize || '1K',
+            aspectRatio: item.aspectRatio,
             mode: item.input.type === 'composite' ? 'singleJob' : 'batch',
             batchId: item.batchId,
           }),
@@ -621,7 +622,7 @@ function App() {
     });
   }, []);
 
-  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', pendingInstruction?: string) => {
+  const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', aspectRatio?: string | null, pendingInstruction?: string) => {
     if (inputs.length === 0) return;
 
     // AUTH GATE: If auth is configured and user is not logged in, show auth modal
@@ -683,6 +684,7 @@ function App() {
         instruction: finalInstruction,
         referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
         imageSize,
+        aspectRatio: aspectRatio || undefined,
         batchId,
         presetLabel: instructionPresetInfo?.label,
         presetIcon: instructionPresetInfo?.icon ?? undefined,
@@ -707,6 +709,7 @@ function App() {
           instruction: finalInstruction,
           referenceImageUrls: allReferenceImageUrls.length > 0 ? allReferenceImageUrls : undefined,
           imageSize,
+          aspectRatio: aspectRatio || undefined,
           batchId,
           presetLabel: instructionPresetInfo?.label,
           presetIcon: instructionPresetInfo?.icon ?? undefined,

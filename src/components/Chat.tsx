@@ -3,13 +3,15 @@ import { InputItem } from '../lib/concurrency';
 import { useSounds } from '../lib/sounds';
 import { useUserPresets, RuntimePreset, processPromptTemplate, processDisplayTextTemplate, validateInput } from '../hooks/useUserPresets';
 import { PresetConfigModal } from './PresetConfigModal';
+import { QualityPicker, ImageSize } from './QualityPicker';
+import { RatioPicker, AspectRatio } from './RatioPicker';
 
 interface ChatProps {
   onSendInstruction: (instruction: string, displayText?: string, referenceImageUrls?: string[], presetInfo?: { label: string; icon: string | null }) => void;
   isProcessing: boolean;
   currentModel: string;
   onModelChange: (model: string) => void;
-  onRunBatch: (imageSize?: '1K' | '2K' | '4K', pendingInstruction?: string) => void;
+  onRunBatch: (imageSize?: '1K' | '2K' | '4K', aspectRatio?: string | null, pendingInstruction?: string) => void;
   canRunBatch: boolean;
   instructions: string[];
   onClearInstructions: () => void;
@@ -64,6 +66,8 @@ export const Chat: React.FC<ChatProps> = ({
   // Dynamic labels based on processing mode
   const runLabel = processingMode === 'batch' ? 'run the batch' : 'run the job';
   const [instruction, setInstruction] = useState('');
+  const [imageSize, setImageSize] = useState<ImageSize>('1K');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(null);
   const { blip: playBlip, bop: playBop, click: playClick } = useSounds();
   const [messages, setMessages] = useState<TypingMessage[]>([
     { type: 'assistant', text: 'Welcome to Peel, a batch image editor for brands. Upload your images first, then enter your instructions here...', isTyping: true }
@@ -200,7 +204,7 @@ export const Chat: React.FC<ChatProps> = ({
       if (waitingForPreset && pending) {
         handleSend();
         if (hasInputs && !isProcessing) {
-          onRunBatch('1K', pending);
+          onRunBatch(imageSize, aspectRatio, pending);
         }
         return;
       }
@@ -211,7 +215,7 @@ export const Chat: React.FC<ChatProps> = ({
         if (pending) {
           handleSend();
         }
-        onRunBatch('1K', pending || undefined);
+        onRunBatch(imageSize, aspectRatio, pending || undefined);
         return;
       }
 
@@ -556,54 +560,38 @@ export const Chat: React.FC<ChatProps> = ({
               </svg>
             </button>
           </div>
-          {/* Generate button - integrated at bottom */}
+          {/* Footer with pickers and generate button */}
           {inputs.length > 0 && (() => {
             // Button is ready if: has existing instructions, OR user typed something, OR preset is selected
             const isReady = canRunBatch || !!instruction.trim() || !!currentPreset;
             return (
-              <button
-                onClick={() => {
-                  playBop();
-                  const pending = instruction.trim();
-                  if (pending) {
-                    handleSend();
-                  }
-                  onRunBatch('1K', pending || undefined);
-                }}
-                disabled={isProcessing || !isReady}
-                className={`w-full py-3 font-semibold text-sm transition-all duration-200 border-t ${
-                  isReady
-                    ? 'bg-neon text-slate-900 hover:bg-amber-400 border-neon active:scale-[0.99]'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <span>{isProcessing ? 'Processing...' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Single Image' : `Make ${inputs.length} Images`}</span>
-                  {!isProcessing && (
-                    <div className="flex bg-black/10 rounded-lg overflow-hidden text-xs">
-                      <span className="px-2 py-1 bg-slate-900 text-white font-semibold">
-                        SD
-                      </span>
-                      <span
-                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); const p = instruction.trim(); if (p) handleSend(); onRunBatch('2K', p || undefined); } }}
-                        className={`px-2 py-1 font-semibold ${
-                          isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
-                        }`}
-                      >
-                        HD
-                      </span>
-                      <span
-                        onClick={(e) => { e.stopPropagation(); if (isReady) { playBop(); const p = instruction.trim(); if (p) handleSend(); onRunBatch('4K', p || undefined); } }}
-                        className={`px-2 py-1 font-semibold ${
-                          isReady ? 'hover:bg-slate-900/80 hover:text-white cursor-pointer' : ''
-                        }`}
-                      >
-                        4K
-                      </span>
-                    </div>
-                  )}
+              <div className="border-t border-slate-200 dark:border-slate-700 flex items-center gap-2 p-2">
+                {/* Pickers on the left */}
+                <div className="flex items-center gap-1.5 relative">
+                  <QualityPicker value={imageSize} onChange={setImageSize} />
+                  <RatioPicker value={aspectRatio} onChange={setAspectRatio} />
                 </div>
-              </button>
+
+                {/* Generate button on the right */}
+                <button
+                  onClick={() => {
+                    playBop();
+                    const pending = instruction.trim();
+                    if (pending) {
+                      handleSend();
+                    }
+                    onRunBatch(imageSize, aspectRatio, pending || undefined);
+                  }}
+                  disabled={isProcessing || !isReady}
+                  className={`flex-1 py-2 px-4 font-semibold text-sm rounded-lg transition-all duration-200 ${
+                    isReady
+                      ? 'bg-neon text-slate-900 hover:bg-amber-400 active:scale-[0.99]'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  {isProcessing ? 'Processing...' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Image' : `Make ${inputs.length} Images`}
+                </button>
+              </div>
             );
           })()}
         </div>

@@ -17,6 +17,7 @@ export interface WorkItem {
   instruction: string;
   referenceImageUrls?: string[]; // Reference images from presets (max 3)
   imageSize?: '1K' | '2K' | '4K';
+  aspectRatio?: string; // Aspect ratio for image generation
   batchId?: string; // Groups logs from a single batch run
   presetLabel?: string; // Label of preset used (if any)
   presetIcon?: string; // Icon of preset used (if any)
@@ -223,6 +224,7 @@ export function createBatchProcessor(
           input: item.input,
           instruction: item.instruction,
           imageSize: item.imageSize,
+          aspectRatio: item.aspectRatio,
           batchId: item.batchId,
           status: 'queued',
           retries: 0,
@@ -254,6 +256,7 @@ export function createBatchProcessor(
         input: sourceItem.input,
         instruction: sourceItem.instruction,
         imageSize: sourceItem.imageSize,
+        aspectRatio: sourceItem.aspectRatio,
         batchId: sourceItem.batchId,
         status: 'queued',
         retries: 0,
@@ -282,6 +285,7 @@ export function createBatchProcessor(
         input: sourceItem.input,
         instruction: instruction,
         imageSize: sourceItem.imageSize,
+        aspectRatio: sourceItem.aspectRatio,
         batchId: sourceItem.batchId,
         status: 'queued',
         retries: 0,

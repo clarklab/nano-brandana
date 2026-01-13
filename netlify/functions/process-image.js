@@ -233,7 +233,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { image, images, referenceImages, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', mode = 'batch', batchId } = body;
+    const { image, images, referenceImages, instruction, model = IMAGE_MODEL_ID, stream = false, imageSize = '1K', aspectRatio = null, mode = 'batch', batchId } = body;
 
     // Validate input - instruction is always required, image is optional for text-to-image
     if (!instruction) {
@@ -316,12 +316,17 @@ exports.handler = async (event) => {
       modalities: ['text', 'image'],
     };
 
-    // Add image size configuration if specified
+    // Add image configuration if specified (size and/or aspect ratio)
+    const imageConfig = {};
     if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
+      imageConfig.image_size = imageSize;
+    }
+    if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
+      imageConfig.aspect_ratio = aspectRatio;
+    }
+    if (Object.keys(imageConfig).length > 0) {
       requestBody.generation_config = {
-        image_config: {
-          image_size: imageSize
-        }
+        image_config: imageConfig
       };
     }
 
@@ -331,6 +336,7 @@ exports.handler = async (event) => {
       model,
       stream,
       imageSize,
+      aspectRatio,
       mode,
       imageCount: allImages.length,
       referenceImageCount: refImages.length,

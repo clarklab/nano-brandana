@@ -8,7 +8,7 @@ const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image'
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB - matches client-side limit for Lambda safety
 const MAX_INSTRUCTION_LENGTH = 10000; // Max 10K characters for instruction
 
 // Allowed origins for CORS (production + local dev)

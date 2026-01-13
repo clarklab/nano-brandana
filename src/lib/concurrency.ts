@@ -1,7 +1,7 @@
 import pLimit from 'p-limit';
 
 // Base input types - original inputs from user (image or text)
-export type ImageInputItem = { type: 'image'; file: File; id: string };
+export type ImageInputItem = { type: 'image'; file: File; id: string; displayName?: string };
 export type TextInputItem = { type: 'text'; prompt: string; id: string };
 export type BaseInputItem = ImageInputItem | TextInputItem;
 
@@ -55,7 +55,7 @@ export interface BatchProcessor {
 // Helper function to get display name for an input item
 export function getInputDisplayName(input: InputItem): string {
   if (input.type === 'image') {
-    return input.file.name;
+    return input.displayName || input.file.name;
   } else if (input.type === 'text') {
     return `Text: ${input.prompt.substring(0, 30)}...`;
   } else if (input.type === 'composite') {

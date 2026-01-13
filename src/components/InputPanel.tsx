@@ -2,6 +2,10 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { BaseInputItem } from '../lib/concurrency';
 import { formatFileSize } from '../lib/base64';
 import { useSounds } from '../lib/sounds';
+import { FileSizeLimitModal, OversizedFile } from './FileSizeLimitModal';
+
+// 4MB limit - Lambda is 6MB, base64 adds ~33% (4MB → ~5.3MB), leaves headroom for headers
+const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
 
 interface InputPanelProps {
   onFilesAdded: (files: File[]) => void;
@@ -12,6 +16,7 @@ interface InputPanelProps {
   onClearAll: () => void;
   processingMode: 'batch' | 'singleJob';
   onProcessingModeChange: (mode: 'batch' | 'singleJob') => void;
+  onUpdateDisplayName?: (id: string, displayName: string) => void;
 }
 
 export const InputPanel: React.FC<InputPanelProps> = ({
@@ -23,15 +28,35 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   onClearAll,
   processingMode,
   onProcessingModeChange,
+  onUpdateDisplayName,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showPromptInput, setShowPromptInput] = useState(false);
   const [promptText, setPromptText] = useState('');
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<{ file: File; name: string } | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ file: File; name: string; id: string; displayName?: string } | null>(null);
+  const [editingDisplayName, setEditingDisplayName] = useState('');
   const [showModeInfo, setShowModeInfo] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [oversizedFiles, setOversizedFiles] = useState<OversizedFile[]>([]);
+  const [showSizeLimitModal, setShowSizeLimitModal] = useState(false);
   const { toggle: playToggleSound, blip: playBlip } = useSounds();
+
+  // Helper to partition files by size
+  const partitionFilesBySize = useCallback((files: File[]) => {
+    const validFiles: File[] = [];
+    const oversized: OversizedFile[] = [];
+
+    for (const file of files) {
+      if (file.size <= MAX_FILE_SIZE_BYTES) {
+        validFiles.push(file);
+      } else {
+        oversized.push({ file, id: crypto.randomUUID() });
+      }
+    }
+
+    return { validFiles, oversized };
+  }, []);
 
   const handleCopyPrompt = useCallback(async (prompt: string, id: string) => {
     try {
@@ -62,16 +87,40 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     );
 
     if (droppedFiles.length > 0) {
-      onFilesAdded(droppedFiles);
+      const { validFiles, oversized } = partitionFilesBySize(droppedFiles);
+
+      // Add valid files immediately
+      if (validFiles.length > 0) {
+        onFilesAdded(validFiles);
+      }
+
+      // Show modal for oversized files
+      if (oversized.length > 0) {
+        setOversizedFiles(oversized);
+        setShowSizeLimitModal(true);
+      }
     }
-  }, [onFilesAdded]);
+  }, [onFilesAdded, partitionFilesBySize]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (selectedFiles.length > 0) {
-      onFilesAdded(selectedFiles);
+      const { validFiles, oversized } = partitionFilesBySize(selectedFiles);
+
+      // Add valid files immediately
+      if (validFiles.length > 0) {
+        onFilesAdded(validFiles);
+      }
+
+      // Show modal for oversized files
+      if (oversized.length > 0) {
+        setOversizedFiles(oversized);
+        setShowSizeLimitModal(true);
+      }
     }
-  }, [onFilesAdded]);
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
+  }, [onFilesAdded, partitionFilesBySize]);
 
   const handleAddPrompt = useCallback(() => {
     if (promptText.trim()) {
@@ -115,7 +164,29 @@ export const InputPanel: React.FC<InputPanelProps> = ({
 
       if (imageFiles.length > 0) {
         e.preventDefault();
-        onFilesAdded(imageFiles);
+
+        // Partition by size
+        const validFiles: File[] = [];
+        const oversized: OversizedFile[] = [];
+
+        for (const file of imageFiles) {
+          if (file.size <= MAX_FILE_SIZE_BYTES) {
+            validFiles.push(file);
+          } else {
+            oversized.push({ file, id: crypto.randomUUID() });
+          }
+        }
+
+        // Add valid files immediately
+        if (validFiles.length > 0) {
+          onFilesAdded(validFiles);
+        }
+
+        // Show modal for oversized files
+        if (oversized.length > 0) {
+          setOversizedFiles(oversized);
+          setShowSizeLimitModal(true);
+        }
       }
     };
 
@@ -255,19 +326,29 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                   className="relative group bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
                 >
                   {input.type === 'image' ? (
-                    <div className="flex gap-3">
+                    <div
+                      className="flex gap-3 cursor-pointer"
+                      onClick={() => {
+                        setPreviewImage({
+                          file: input.file,
+                          name: input.file.name,
+                          id: input.id,
+                          displayName: input.displayName,
+                        });
+                        setEditingDisplayName(input.displayName || '');
+                      }}
+                    >
                       {loadingInputIds.has(input.id) ? (
                         <div className="w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
                       ) : (
                         <img
                           src={URL.createObjectURL(input.file)}
-                          alt={input.file.name}
-                          className="w-14 h-14 object-cover rounded-lg cursor-pointer hover:ring-2 hover:ring-neon hover:ring-offset-2 dark:hover:ring-offset-slate-800 transition-all duration-200"
-                          onClick={() => setPreviewImage({ file: input.file, name: input.file.name })}
+                          alt={input.displayName || input.file.name}
+                          className="w-14 h-14 object-cover rounded-lg hover:ring-2 hover:ring-neon hover:ring-offset-2 dark:hover:ring-offset-slate-800 transition-all duration-200"
                         />
                       )}
                       <div className="flex-1 min-w-0 pr-6">
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{input.file.name}</p>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{input.displayName || input.file.name}</p>
                         {loadingInputIds.has(input.id) ? (
                           <div className="w-16 h-3 mt-1 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                         ) : (
@@ -396,7 +477,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold font-display truncate pr-4">{previewImage.name}</h3>
+              <h3 className="text-lg font-semibold font-display truncate pr-4">{previewImage.displayName || previewImage.name}</h3>
               <button
                 onClick={() => setPreviewImage(null)}
                 className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200 flex items-center justify-center flex-shrink-0"
@@ -406,12 +487,41 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                 </svg>
               </button>
             </div>
-            <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden mb-4">
               <img
                 src={URL.createObjectURL(previewImage.file)}
-                alt={previewImage.name}
-                className="max-w-full max-h-[60vh] object-contain"
+                alt={previewImage.displayName || previewImage.name}
+                className="max-w-full max-h-[50vh] object-contain"
               />
+            </div>
+            {/* File name input */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Display Name
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={editingDisplayName}
+                  onChange={(e) => setEditingDisplayName(e.target.value)}
+                  placeholder={previewImage.name}
+                  className="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-neon focus:border-transparent"
+                />
+                <button
+                  onClick={() => {
+                    if (onUpdateDisplayName) {
+                      onUpdateDisplayName(previewImage.id, editingDisplayName);
+                    }
+                    setPreviewImage(null);
+                  }}
+                  className="btn-primary px-4"
+                >
+                  Save
+                </button>
+              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                This name will be shown in the input list and used for output files.
+              </p>
             </div>
           </div>
         </div>
@@ -523,6 +633,26 @@ export const InputPanel: React.FC<InputPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* File Size Limit Modal */}
+      <FileSizeLimitModal
+        isOpen={showSizeLimitModal}
+        oversizedFiles={oversizedFiles}
+        maxSizeBytes={MAX_FILE_SIZE_BYTES}
+        onClose={() => {
+          setShowSizeLimitModal(false);
+          setOversizedFiles([]);
+        }}
+        onPickAnother={() => {
+          setShowSizeLimitModal(false);
+          setOversizedFiles([]);
+        }}
+        onResizeComplete={(files) => {
+          onFilesAdded(files);
+          setShowSizeLimitModal(false);
+          setOversizedFiles([]);
+        }}
+      />
     </div>
   );
 };

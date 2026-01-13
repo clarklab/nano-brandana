@@ -39,7 +39,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
   const displayName = getInputDisplayName(item.input);
 
   const fileBaseName = item.input.type === 'image'
-    ? item.input.file.name.split('.')[0]
+    ? (item.input.displayName || item.input.file.name).split('.')[0]
     : item.input.type === 'composite'
     ? 'combined_job'
     : 'text_prompt';

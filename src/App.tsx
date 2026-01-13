@@ -591,6 +591,15 @@ function App() {
     setInputs(prev => prev.filter(input => input.id !== id));
   }, []);
 
+  const handleUpdateDisplayName = useCallback((id: string, displayName: string) => {
+    setInputs(prev => prev.map(input => {
+      if (input.id === id && input.type === 'image') {
+        return { ...input, displayName: displayName || undefined };
+      }
+      return input;
+    }));
+  }, []);
+
   const handleClearAll = useCallback(() => {
     setInputs([]);
     setInputToBase64Map(new Map());
@@ -1094,6 +1103,7 @@ function App() {
             onClearAll={handleClearAll}
             processingMode={processingMode}
             onProcessingModeChange={setProcessingMode}
+            onUpdateDisplayName={handleUpdateDisplayName}
           />
         </div>
 

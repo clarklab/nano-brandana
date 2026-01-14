@@ -1,26 +1,33 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Vercel AI Gateway (existing)
+// Vercel AI Gateway (OpenAI-compatible format)
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1';
 
-// Google Gemini API (direct key - set via GEMINI_API_KEY env var)
-// This takes priority over any auto-injected Netlify keys
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com';
+// Netlify AI Gateway (auto-injected by Netlify platform)
+// Uses GOOGLE_GEMINI_BASE_URL which routes through Netlify's gateway for usage tracking
+const NETLIFY_GEMINI_KEY = process.env.NETLIFY_AI_GATEWAY_KEY || process.env.GEMINI_API_KEY;
+const NETLIFY_GEMINI_BASE_URL = process.env.GOOGLE_GEMINI_BASE_URL;
+
+// Google Direct API (your own API key, no gateway)
+const GOOGLE_DIRECT_KEY = process.env.GOOGLE_DIRECT_API_KEY || process.env.GEMINI_API_KEY;
+const GOOGLE_DIRECT_BASE_URL = 'https://generativelanguage.googleapis.com';
 
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 
 // Gateway detection helpers
-function isNetlifyGateway(model) {
-  return model?.startsWith('netlify/');
+// Prefixes: google/ = Vercel, netlify/ = Netlify AI Gateway, direct/ = Google Direct
+function getGatewayType(model) {
+  if (model?.startsWith('netlify/')) return 'netlify';
+  if (model?.startsWith('direct/')) return 'direct';
+  return 'vercel'; // default (google/ prefix or no prefix)
 }
 
 function getActualModelId(model) {
-  // Strip gateway prefix for Netlify models
-  if (model?.startsWith('netlify/')) {
-    return model.replace('netlify/', '');
-  }
+  // Strip gateway prefix
+  if (model?.startsWith('netlify/')) return model.replace('netlify/', '');
+  if (model?.startsWith('direct/')) return model.replace('direct/', '');
+  if (model?.startsWith('google/')) return model.replace('google/', '');
   return model;
 }
 
@@ -126,12 +133,19 @@ exports.handler = async (event) => {
 
   // Log environment variables (masked)
   console.log('Environment check:', {
+    // Vercel AI Gateway
     hasVercelKey: !!AI_GATEWAY_API_KEY,
     vercelKeyPrefix: AI_GATEWAY_API_KEY?.substring(0, 10) + '...',
     vercelBaseUrl: AI_GATEWAY_BASE_URL,
-    hasGeminiKey: !!GEMINI_API_KEY,
-    geminiKeyPrefix: GEMINI_API_KEY?.substring(0, 10) + '...',
-    geminiBaseUrl: GEMINI_BASE_URL,
+    // Netlify AI Gateway (auto-injected)
+    hasNetlifyKey: !!NETLIFY_GEMINI_KEY,
+    netlifyKeyPrefix: NETLIFY_GEMINI_KEY?.substring(0, 10) + '...',
+    netlifyBaseUrl: NETLIFY_GEMINI_BASE_URL || '(not injected)',
+    // Google Direct API
+    hasGoogleDirectKey: !!GOOGLE_DIRECT_KEY,
+    googleDirectKeyPrefix: GOOGLE_DIRECT_KEY?.substring(0, 10) + '...',
+    googleDirectBaseUrl: GOOGLE_DIRECT_BASE_URL,
+    // Other
     imageModelId: IMAGE_MODEL_ID,
     hasSupabase: !!supabaseAdmin,
   });
@@ -305,34 +319,55 @@ exports.handler = async (event) => {
     const startTime = Date.now();
 
     // Determine which gateway to use based on model prefix
-    const useNetlify = isNetlifyGateway(model);
+    const gatewayType = getGatewayType(model);
     const actualModel = getActualModelId(model);
 
     // Check API key for the selected gateway
-    if (useNetlify && !GEMINI_API_KEY) {
-      console.error('ERROR: GEMINI_API_KEY is not configured for Netlify Gateway');
-      return {
-        statusCode: 500,
-        headers: securityHeaders,
-        body: JSON.stringify({ error: 'Netlify AI Gateway API key not configured. Deploy to Netlify for auto-injection.' }),
-      };
-    }
-    if (!useNetlify && !AI_GATEWAY_API_KEY) {
-      console.error('ERROR: AI_GATEWAY_API_KEY is not configured for Vercel Gateway');
-      return {
-        statusCode: 500,
-        headers: securityHeaders,
-        body: JSON.stringify({ error: 'Vercel AI Gateway API key not configured' }),
-      };
+    if (gatewayType === 'netlify') {
+      if (!NETLIFY_GEMINI_BASE_URL) {
+        console.error('ERROR: GOOGLE_GEMINI_BASE_URL not injected - Netlify AI Gateway not available');
+        return {
+          statusCode: 500,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Netlify AI Gateway not available. This feature requires deployment to Netlify with AI Gateway enabled.' }),
+        };
+      }
+      if (!NETLIFY_GEMINI_KEY) {
+        console.error('ERROR: Netlify AI Gateway key not available');
+        return {
+          statusCode: 500,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Netlify AI Gateway API key not configured.' }),
+        };
+      }
+    } else if (gatewayType === 'direct') {
+      if (!GOOGLE_DIRECT_KEY) {
+        console.error('ERROR: GOOGLE_DIRECT_API_KEY or GEMINI_API_KEY not configured');
+        return {
+          statusCode: 500,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Google Direct API key not configured. Set GOOGLE_DIRECT_API_KEY or GEMINI_API_KEY.' }),
+        };
+      }
+    } else {
+      // Vercel gateway
+      if (!AI_GATEWAY_API_KEY) {
+        console.error('ERROR: AI_GATEWAY_API_KEY is not configured for Vercel Gateway');
+        return {
+          statusCode: 500,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Vercel AI Gateway API key not configured' }),
+        };
+      }
     }
 
     let endpoint, requestHeaders, requestBody;
 
-    if (useNetlify) {
-      // ========== NETLIFY AI GATEWAY (Google GenAI format) ==========
-      endpoint = `${GEMINI_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
+    if (gatewayType === 'netlify') {
+      // ========== NETLIFY AI GATEWAY (Google GenAI format via Netlify's proxy) ==========
+      endpoint = `${NETLIFY_GEMINI_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
       requestHeaders = {
-        'x-goog-api-key': GEMINI_API_KEY,
+        'x-goog-api-key': NETLIFY_GEMINI_KEY,
         'Content-Type': 'application/json',
       };
 
@@ -366,7 +401,45 @@ exports.handler = async (event) => {
       if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
         requestBody.generationConfig.aspectRatio = aspectRatio;
       }
-      // Note: Netlify/Google GenAI may handle imageSize differently - test this
+
+    } else if (gatewayType === 'direct') {
+      // ========== GOOGLE DIRECT API (your own key, no gateway) ==========
+      endpoint = `${GOOGLE_DIRECT_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
+      requestHeaders = {
+        'x-goog-api-key': GOOGLE_DIRECT_KEY,
+        'Content-Type': 'application/json',
+      };
+
+      // Build parts array for Google GenAI format
+      const parts = [{ text: instruction }];
+
+      // Add all main images as inlineData
+      for (const img of allImages) {
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+
+      // Add all reference images
+      for (const img of refImages) {
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+
+      requestBody = {
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      };
+
+      // Add image configuration if specified
+      if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
+        requestBody.generationConfig.aspectRatio = aspectRatio;
+      }
 
     } else {
       // ========== VERCEL AI GATEWAY (OpenAI-compatible format) ==========
@@ -416,7 +489,7 @@ exports.handler = async (event) => {
 
     // Log request details (without sensitive data)
     console.log('API Request:', {
-      gateway: useNetlify ? 'Netlify' : 'Vercel',
+      gateway: gatewayType,
       endpoint,
       model: actualModel,
       stream,
@@ -525,8 +598,8 @@ exports.handler = async (event) => {
     let promptTokens = 0;
     let completionTokens = 0;
 
-    if (useNetlify) {
-      // ========== PARSE NETLIFY/GOOGLE GENAI RESPONSE ==========
+    if (gatewayType === 'netlify' || gatewayType === 'direct') {
+      // ========== PARSE GOOGLE GENAI RESPONSE (both Netlify gateway and Direct) ==========
       // Images come in candidates[0].content.parts[].inlineData
       for (const part of result.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
@@ -620,7 +693,7 @@ exports.handler = async (event) => {
         model: actualModel,
         imageSize,
         tokens_remaining: newTokenBalance,
-        gateway: useNetlify ? 'netlify' : 'vercel',
+        gateway: gatewayType,
       }),
     };
   } catch (error) {

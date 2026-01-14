@@ -335,7 +335,8 @@ export const Chat: React.FC<ChatProps> = ({
   // Get display name for model
   const getModelDisplayName = (model: string) => {
     if (model === 'google/gemini-3-pro-image') return 'Nano Banana Pro (Vercel)';
-    if (model === 'netlify/gemini-3-pro-image-preview') return 'Nano Banana Pro (Google)';
+    if (model === 'netlify/gemini-3-pro-image-preview') return 'Nano Banana Pro (Netlify)';
+    if (model === 'direct/gemini-3-pro-image-preview') return 'Nano Banana Pro (Direct)';
     return model;
   };
 
@@ -357,6 +358,9 @@ export const Chat: React.FC<ChatProps> = ({
             </option>
             <option value="netlify/gemini-3-pro-image-preview">
               {getModelDisplayName('netlify/gemini-3-pro-image-preview')}
+            </option>
+            <option value="direct/gemini-3-pro-image-preview">
+              {getModelDisplayName('direct/gemini-3-pro-image-preview')}
             </option>
           </select>
         </div>

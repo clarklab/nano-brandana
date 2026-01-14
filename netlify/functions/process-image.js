@@ -5,8 +5,9 @@ const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1';
 
 // Netlify AI Gateway (auto-injected by Netlify when deployed)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_BASE_URL = process.env.GOOGLE_GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
+// Try GEMINI_API_KEY first, then fall back to NETLIFY_AI_GATEWAY_KEY (always injected)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NETLIFY_AI_GATEWAY_KEY;
+const GEMINI_BASE_URL = process.env.GOOGLE_GEMINI_BASE_URL || process.env.NETLIFY_AI_GATEWAY_BASE_URL || 'https://generativelanguage.googleapis.com';
 
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 
@@ -131,6 +132,10 @@ exports.handler = async (event) => {
     hasNetlifyKey: !!GEMINI_API_KEY,
     netlifyKeyPrefix: GEMINI_API_KEY?.substring(0, 10) + '...',
     netlifyBaseUrl: GEMINI_BASE_URL,
+    // Debug: show which Netlify env vars are available
+    hasGeminiApiKey: !!process.env.GEMINI_API_KEY,
+    hasNetlifyGatewayKey: !!process.env.NETLIFY_AI_GATEWAY_KEY,
+    hasNetlifyGatewayBaseUrl: !!process.env.NETLIFY_AI_GATEWAY_BASE_URL,
     imageModelId: IMAGE_MODEL_ID,
     hasSupabase: !!supabaseAdmin,
   });

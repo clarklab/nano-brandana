@@ -1,8 +1,27 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// Vercel AI Gateway (existing)
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1';
+
+// Netlify AI Gateway (auto-injected by Netlify when deployed)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_BASE_URL = process.env.GOOGLE_GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
+
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
+
+// Gateway detection helpers
+function isNetlifyGateway(model) {
+  return model?.startsWith('netlify/');
+}
+
+function getActualModelId(model) {
+  // Strip gateway prefix for Netlify models
+  if (model?.startsWith('netlify/')) {
+    return model.replace('netlify/', '');
+  }
+  return model;
+}
 
 // Supabase configuration - REQUIRED for security
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -106,10 +125,12 @@ exports.handler = async (event) => {
 
   // Log environment variables (masked)
   console.log('Environment check:', {
-    hasApiKey: !!AI_GATEWAY_API_KEY,
-    apiKeyLength: AI_GATEWAY_API_KEY?.length,
-    apiKeyPrefix: AI_GATEWAY_API_KEY?.substring(0, 10) + '...',
-    baseUrl: AI_GATEWAY_BASE_URL,
+    hasVercelKey: !!AI_GATEWAY_API_KEY,
+    vercelKeyPrefix: AI_GATEWAY_API_KEY?.substring(0, 10) + '...',
+    vercelBaseUrl: AI_GATEWAY_BASE_URL,
+    hasNetlifyKey: !!GEMINI_API_KEY,
+    netlifyKeyPrefix: GEMINI_API_KEY?.substring(0, 10) + '...',
+    netlifyBaseUrl: GEMINI_BASE_URL,
     imageModelId: IMAGE_MODEL_ID,
     hasSupabase: !!supabaseAdmin,
   });
@@ -133,15 +154,7 @@ exports.handler = async (event) => {
     };
   }
 
-  // Check API key
-  if (!AI_GATEWAY_API_KEY) {
-    console.error('ERROR: AI_GATEWAY_API_KEY is not configured');
-    return {
-      statusCode: 500,
-      headers: securityHeaders,
-      body: JSON.stringify({ error: 'AI Gateway API key not configured' }),
-    };
-  }
+  // Note: API key check moved to after model selection to check the right gateway
 
   let userId = null;
   let userProfile = null;
@@ -290,51 +303,121 @@ exports.handler = async (event) => {
 
     const startTime = Date.now();
 
-    // Prepare request
-    const endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
+    // Determine which gateway to use based on model prefix
+    const useNetlify = isNetlifyGateway(model);
+    const actualModel = getActualModelId(model);
 
-    // Build content array based on whether we have images
-    const messageContent = [{ type: 'text', text: instruction }];
-
-    // Add all main images to the message content
-    for (const img of allImages) {
-      messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
-    }
-
-    // Add all reference images AFTER main images
-    for (const img of refImages) {
-      messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
-    }
-
-    const requestBody = {
-      model,
-      messages: [{
-        role: 'user',
-        content: messageContent
-      }],
-      stream,
-      modalities: ['text', 'image'],
-    };
-
-    // Add image configuration if specified (size and/or aspect ratio)
-    // Note: Gemini API uses camelCase for these parameters
-    const imageConfig = {};
-    if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
-      imageConfig.imageSize = imageSize;
-    }
-    if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
-      imageConfig.aspectRatio = aspectRatio;
-    }
-    if (Object.keys(imageConfig).length > 0) {
-      requestBody.generationConfig = {
-        imageConfig: imageConfig
+    // Check API key for the selected gateway
+    if (useNetlify && !GEMINI_API_KEY) {
+      console.error('ERROR: GEMINI_API_KEY is not configured for Netlify Gateway');
+      return {
+        statusCode: 500,
+        headers: securityHeaders,
+        body: JSON.stringify({ error: 'Netlify AI Gateway API key not configured. Deploy to Netlify for auto-injection.' }),
       };
+    }
+    if (!useNetlify && !AI_GATEWAY_API_KEY) {
+      console.error('ERROR: AI_GATEWAY_API_KEY is not configured for Vercel Gateway');
+      return {
+        statusCode: 500,
+        headers: securityHeaders,
+        body: JSON.stringify({ error: 'Vercel AI Gateway API key not configured' }),
+      };
+    }
+
+    let endpoint, requestHeaders, requestBody;
+
+    if (useNetlify) {
+      // ========== NETLIFY AI GATEWAY (Google GenAI format) ==========
+      endpoint = `${GEMINI_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
+      requestHeaders = {
+        'x-goog-api-key': GEMINI_API_KEY,
+        'Content-Type': 'application/json',
+      };
+
+      // Build parts array for Google GenAI format
+      const parts = [{ text: instruction }];
+
+      // Add all main images as inlineData
+      for (const img of allImages) {
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+
+      // Add all reference images
+      for (const img of refImages) {
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+
+      requestBody = {
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      };
+
+      // Add image configuration if specified
+      if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
+        requestBody.generationConfig.aspectRatio = aspectRatio;
+      }
+      // Note: Netlify/Google GenAI may handle imageSize differently - test this
+
+    } else {
+      // ========== VERCEL AI GATEWAY (OpenAI-compatible format) ==========
+      endpoint = `${AI_GATEWAY_BASE_URL}/chat/completions`;
+      requestHeaders = {
+        'Authorization': `Bearer ${AI_GATEWAY_API_KEY}`,
+        'Content-Type': 'application/json',
+      };
+
+      // Build content array for OpenAI format
+      const messageContent = [{ type: 'text', text: instruction }];
+
+      // Add all main images to the message content
+      for (const img of allImages) {
+        messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
+      }
+
+      // Add all reference images AFTER main images
+      for (const img of refImages) {
+        messageContent.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
+      }
+
+      requestBody = {
+        model: actualModel,
+        messages: [{
+          role: 'user',
+          content: messageContent
+        }],
+        stream,
+        modalities: ['text', 'image'],
+      };
+
+      // Add image configuration if specified (size and/or aspect ratio)
+      const imageConfig = {};
+      if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
+        imageConfig.imageSize = imageSize;
+      }
+      if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
+        imageConfig.aspectRatio = aspectRatio;
+      }
+      if (Object.keys(imageConfig).length > 0) {
+        requestBody.generationConfig = {
+          imageConfig: imageConfig
+        };
+      }
     }
 
     // Log request details (without sensitive data)
     console.log('API Request:', {
+      gateway: useNetlify ? 'Netlify' : 'Vercel',
       endpoint,
-      model,
+      model: actualModel,
       stream,
       imageSize,
       aspectRatio,
@@ -344,16 +427,12 @@ exports.handler = async (event) => {
       totalImageLength: allImages.reduce((sum, img) => sum + img.length, 0),
       totalReferenceImageLength: refImages.reduce((sum, img) => sum + img.length, 0),
       instructionLength: instruction?.length,
-      authHeader: `Bearer ${AI_GATEWAY_API_KEY?.substring(0, 15)}...`,
     });
 
-    // Call Vercel AI Gateway
+    // Call the selected AI Gateway
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${AI_GATEWAY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: requestHeaders,
       body: JSON.stringify(requestBody),
     });
 
@@ -439,18 +518,39 @@ exports.handler = async (event) => {
     const result = await response.json();
     const elapsed = Date.now() - startTime;
 
-    // Extract generated images from response
-    const generatedImages = result.choices?.[0]?.message?.images?.map((img) =>
-      img.image_url?.url || img.url
-    ).filter(Boolean) || [];
+    // Extract generated images and content based on gateway format
+    let generatedImages = [];
+    let content = '';
+    let promptTokens = 0;
+    let completionTokens = 0;
 
-    // Also check for images in the content
-    const content = result.choices?.[0]?.message?.content;
+    if (useNetlify) {
+      // ========== PARSE NETLIFY/GOOGLE GENAI RESPONSE ==========
+      // Images come in candidates[0].content.parts[].inlineData
+      for (const part of result.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          // Convert back to data URL format for consistency with frontend
+          generatedImages.push(`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`);
+        }
+        if (part.text) {
+          content += part.text;
+        }
+      }
+      // Google GenAI uses usageMetadata instead of usage
+      promptTokens = result.usageMetadata?.promptTokenCount || 0;
+      completionTokens = result.usageMetadata?.candidatesTokenCount || 0;
+    } else {
+      // ========== PARSE VERCEL/OPENAI-COMPATIBLE RESPONSE ==========
+      generatedImages = result.choices?.[0]?.message?.images?.map((img) =>
+        img.image_url?.url || img.url
+      ).filter(Boolean) || [];
+      content = result.choices?.[0]?.message?.content || '';
+      promptTokens = result.usage?.prompt_tokens || 0;
+      completionTokens = result.usage?.completion_tokens || 0;
+    }
 
     // Get tokens used from response - sum input + output tokens for accurate billing
-    const promptTokens = result.usage?.prompt_tokens || 0;
-    const completionTokens = result.usage?.completion_tokens || 0;
-    const tokensUsed = result.usage?.total_tokens || (promptTokens + completionTokens) || 1500; // Fallback estimate
+    const tokensUsed = (promptTokens + completionTokens) || 1500; // Fallback estimate
 
     // DEDUCT TOKENS: Deduct tokens from user's balance
     let newTokenBalance = null;
@@ -489,9 +589,9 @@ exports.handler = async (event) => {
         instructionLength: instruction?.length,
         totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
         imagesReturned: generatedImages.length,
-        promptTokens: result.usage?.prompt_tokens,
-        completionTokens: result.usage?.completion_tokens,
-        totalTokens: result.usage?.total_tokens,
+        promptTokens,
+        completionTokens,
+        totalTokens: tokensUsed,
         elapsedMs: elapsed,
         status: 'success',
         tokensCharged: tokensUsed,
@@ -500,18 +600,26 @@ exports.handler = async (event) => {
       });
     }
 
+    // Normalize usage for response (both gateways return same format to frontend)
+    const normalizedUsage = {
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: tokensUsed,
+    };
+
     return {
       statusCode: 200,
       headers: securityHeaders,
       body: JSON.stringify({
         images: generatedImages,
         content,
-        usage: result.usage,
-        providerMetadata: result.providerMetadata,
+        usage: normalizedUsage,
+        providerMetadata: result.providerMetadata || result.modelVersion,
         elapsed,
-        model: result.model,
+        model: actualModel,
         imageSize,
         tokens_remaining: newTokenBalance,
+        gateway: useNetlify ? 'netlify' : 'vercel',
       }),
     };
   } catch (error) {

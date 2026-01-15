@@ -16,8 +16,9 @@ const GOOGLE_DIRECT_BASE_URL = 'https://generativelanguage.googleapis.com';
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 
 // Gateway detection helpers
-// Prefixes: google/ = Vercel, netlify/ = Netlify AI Gateway, direct/ = Google Direct
+// Prefixes: byo/ = User's own key, google/ = Vercel, netlify/ = Netlify AI Gateway, direct/ = Google Direct
 function getGatewayType(model) {
+  if (model?.startsWith('byo/')) return 'byo';
   if (model?.startsWith('netlify/')) return 'netlify';
   if (model?.startsWith('direct/')) return 'direct';
   return 'vercel'; // default (google/ prefix or no prefix)
@@ -25,6 +26,7 @@ function getGatewayType(model) {
 
 function getActualModelId(model) {
   // Strip gateway prefix
+  if (model?.startsWith('byo/')) return model.replace('byo/', '');
   if (model?.startsWith('netlify/')) return model.replace('netlify/', '');
   if (model?.startsWith('direct/')) return model.replace('direct/', '');
   if (model?.startsWith('google/')) return model.replace('google/', '');
@@ -203,10 +205,10 @@ exports.handler = async (event) => {
 
       userId = user.id;
 
-      // Get user's token balance
+      // Get user's token balance and BYO API key
       const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('tokens_remaining')
+        .select('tokens_remaining, gemini_api_key')
         .eq('id', userId)
         .single();
 
@@ -322,8 +324,20 @@ exports.handler = async (event) => {
     const gatewayType = getGatewayType(model);
     const actualModel = getActualModelId(model);
 
+    // Get user's BYO API key if they have one
+    const userByoKey = userProfile?.gemini_api_key;
+
     // Check API key for the selected gateway
-    if (gatewayType === 'netlify') {
+    if (gatewayType === 'byo') {
+      if (!userByoKey) {
+        console.error('ERROR: BYO gateway selected but user has no API key configured');
+        return {
+          statusCode: 400,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'No API key configured. Add your key in settings to use this option.' }),
+        };
+      }
+    } else if (gatewayType === 'netlify') {
       if (!NETLIFY_GEMINI_BASE_URL) {
         console.error('ERROR: GOOGLE_GEMINI_BASE_URL not injected - Netlify AI Gateway not available');
         return {
@@ -363,7 +377,46 @@ exports.handler = async (event) => {
 
     let endpoint, requestHeaders, requestBody;
 
-    if (gatewayType === 'netlify') {
+    if (gatewayType === 'byo') {
+      // ========== BYO KEY (user's own Google API key, no token charges) ==========
+      endpoint = `${GOOGLE_DIRECT_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
+      requestHeaders = {
+        'x-goog-api-key': userByoKey,
+        'Content-Type': 'application/json',
+      };
+
+      // Build parts array for Google GenAI format
+      const parts = [{ text: instruction }];
+
+      // Add all main images as inlineData
+      for (const img of allImages) {
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+
+      // Add all reference images
+      for (const img of refImages) {
+        const match = img.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+        }
+      }
+
+      requestBody = {
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      };
+
+      // Add image configuration if specified
+      if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
+        requestBody.generationConfig.aspectRatio = aspectRatio;
+      }
+
+    } else if (gatewayType === 'netlify') {
       // ========== NETLIFY AI GATEWAY (Google GenAI format via Netlify's proxy) ==========
       endpoint = `${NETLIFY_GEMINI_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
       requestHeaders = {
@@ -598,8 +651,8 @@ exports.handler = async (event) => {
     let promptTokens = 0;
     let completionTokens = 0;
 
-    if (gatewayType === 'netlify' || gatewayType === 'direct') {
-      // ========== PARSE GOOGLE GENAI RESPONSE (both Netlify gateway and Direct) ==========
+    if (gatewayType === 'byo' || gatewayType === 'netlify' || gatewayType === 'direct') {
+      // ========== PARSE GOOGLE GENAI RESPONSE (BYO, Netlify gateway, and Direct) ==========
       // Images come in candidates[0].content.parts[].inlineData
       for (const part of result.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
@@ -626,9 +679,11 @@ exports.handler = async (event) => {
     // Get tokens used from response - sum input + output tokens for accurate billing
     const tokensUsed = (promptTokens + completionTokens) || 1500; // Fallback estimate
 
-    // DEDUCT TOKENS: Deduct tokens from user's balance
+    // DEDUCT TOKENS: Deduct tokens from user's balance (skip for BYO key users)
     let newTokenBalance = null;
-    if (userId) {
+    const tokensCharged = gatewayType === 'byo' ? 0 : tokensUsed; // No charge for BYO
+
+    if (userId && gatewayType !== 'byo') {
       try {
         // Use atomic update to prevent race conditions
         const { data: updateResult, error: updateError } = await supabaseAdmin
@@ -648,6 +703,10 @@ exports.handler = async (event) => {
         console.error('Token deduction failed:', err);
         // Don't fail the request, just log the error
       }
+    } else if (gatewayType === 'byo') {
+      console.log('BYO key used - no token deduction:', { userId, tokensUsed });
+      // Keep user's current token balance
+      newTokenBalance = userProfile?.tokens_remaining || null;
     }
 
     // Log successful job
@@ -668,9 +727,10 @@ exports.handler = async (event) => {
         totalTokens: tokensUsed,
         elapsedMs: elapsed,
         status: 'success',
-        tokensCharged: tokensUsed,
+        tokensCharged, // 0 for BYO, tokensUsed otherwise
         tokenBalanceBefore: userProfile?.tokens_remaining,
         tokenBalanceAfter: newTokenBalance,
+        gateway: gatewayType, // Track which gateway was used
       });
     }
 

@@ -35,6 +35,7 @@ export interface Profile {
   last_login: string;
   created_at: string;
   hourly_rate: number | null; // User's hourly rate for "money saved" calculations
+  gemini_api_key?: string | null; // BYO key - user's own Google Gemini API key (masked on client)
 }
 
 // Default hourly rate for guests or users who haven't set one (USD)

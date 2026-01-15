@@ -26,6 +26,9 @@ interface AuthContextType {
   tokenAnimation: TokenAnimationState | null;
   triggerTokenAnimation: (from: number, to: number) => void;
   clearTokenAnimation: () => void;
+  // BYO API key support
+  hasOwnApiKey: boolean;
+  updateGeminiApiKey: (key: string | null) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -196,6 +199,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err) {
       console.error('[updateHourlyRate] Catch error:', err);
+      return false;
+    }
+  };
+
+  const updateGeminiApiKey = async (key: string | null): Promise<boolean> => {
+    if (!user || !isSupabaseConfigured) {
+      console.log('[updateGeminiApiKey] No user or Supabase not configured');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ gemini_api_key: key })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('[updateGeminiApiKey] Error:', error);
+        return false;
+      }
+
+      // Update local state with masked key (never store real key in client state)
+      setProfile(prev => prev ? { ...prev, gemini_api_key: key ? '****' : null } : null);
+      console.log('[updateGeminiApiKey] Success, key:', key ? 'set' : 'removed');
+      return true;
+    } catch (err) {
+      console.error('[updateGeminiApiKey] Catch error:', err);
       return false;
     }
   };
@@ -415,7 +445,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updateHourlyRate,
       tokenAnimation,
       triggerTokenAnimation,
-      clearTokenAnimation
+      clearTokenAnimation,
+      hasOwnApiKey: !!profile?.gemini_api_key,
+      updateGeminiApiKey,
     }}>
       {children}
     </AuthContext.Provider>

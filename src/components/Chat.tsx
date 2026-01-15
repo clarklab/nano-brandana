@@ -7,7 +7,6 @@ import { QualityPicker, ImageSize } from './QualityPicker';
 import { RatioPicker, AspectRatio, CustomSize } from './RatioPicker';
 import { findClosestRatio, getQualityForSize } from '../lib/base64';
 import { useAuth } from '../contexts/AuthContext';
-import { ApiKeyModal } from './ApiKeyModal';
 
 interface ChatProps {
   onSendInstruction: (instruction: string, displayText?: string, referenceImageUrls?: string[], presetInfo?: { label: string; icon: string | null }) => void;
@@ -117,9 +116,7 @@ export const Chat: React.FC<ChatProps> = ({
   // Preset config modal state
   const [isPresetConfigOpen, setIsPresetConfigOpen] = useState(false);
 
-  // API key modal state
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const { hasOwnApiKey, user } = useAuth();
+  const { hasOwnApiKey } = useAuth();
 
   // Track which instructions are expanded (by index)
   const [expandedInstructions, setExpandedInstructions] = useState<Set<number>>(new Set());
@@ -376,24 +373,6 @@ export const Chat: React.FC<ChatProps> = ({
                 {getModelDisplayName('direct/gemini-3-pro-image-preview')}
               </option>
             </select>
-            {user && (
-              <button
-                onClick={() => {
-                  playClick();
-                  setIsApiKeyModalOpen(true);
-                }}
-                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                  hasOwnApiKey
-                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                title={hasOwnApiKey ? 'Your API key is active' : 'Add your own API key'}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                  <path fillRule="evenodd" d="M8 7a5 5 0 1 1 3.61 4.804l-1.903 1.903A1 1 0 0 1 9 14H8v1a1 1 0 0 1-1 1H6v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 .293-.707L8.196 8.39A5.002 5.002 0 0 1 8 7Zm5-3a.75.75 0 0 0 0 1.5A1.5 1.5 0 0 1 14.5 7 .75.75 0 0 0 16 7a3 3 0 0 0-3-3Z" clipRule="evenodd" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
 
@@ -687,12 +666,6 @@ export const Chat: React.FC<ChatProps> = ({
         onReorderPresets={reorderPresets}
         onResetToDefaults={resetToDefaults}
         isLoading={presetsLoading}
-      />
-
-      {/* API Key Modal */}
-      <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onClose={() => setIsApiKeyModalOpen(false)}
       />
     </div>
   );

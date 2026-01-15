@@ -36,7 +36,7 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
   const [isAuthLogsOpen, setIsAuthLogsOpen] = useState(false);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { updateHourlyRate, tokenAnimation } = useAuth();
+  const { updateHourlyRate, tokenAnimation, hasOwnApiKey, updateGeminiApiKey } = useAuth();
 
   // Check if current user is an admin
   const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
@@ -55,6 +55,12 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
   const [hourlyRateInput, setHourlyRateInput] = useState<string>('');
   const [isSavingRate, setIsSavingRate] = useState(false);
   const [rateSaveStatus, setRateSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+
+  // API key state
+  const [apiKeyInput, setApiKeyInput] = useState<string>('');
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
+  const [apiKeySaveStatus, setApiKeySaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+  const [isApiKeyInfoOpen, setIsApiKeyInfoOpen] = useState(false);
 
   // Initialize hourly rate input from profile
   useEffect(() => {
@@ -84,6 +90,46 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
     } else {
       setRateSaveStatus('error');
       setTimeout(() => setRateSaveStatus('idle'), 2000);
+    }
+  };
+
+  // Handle API key save
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) return;
+
+    // Basic validation - Google API keys typically start with "AIza"
+    if (!apiKeyInput.startsWith('AIza') || apiKeyInput.length < 30) {
+      setApiKeySaveStatus('error');
+      setTimeout(() => setApiKeySaveStatus('idle'), 2000);
+      return;
+    }
+
+    setIsSavingApiKey(true);
+    const success = await updateGeminiApiKey(apiKeyInput.trim());
+    setIsSavingApiKey(false);
+
+    if (success) {
+      setApiKeySaveStatus('saved');
+      setApiKeyInput('');
+      setTimeout(() => setApiKeySaveStatus('idle'), 2000);
+    } else {
+      setApiKeySaveStatus('error');
+      setTimeout(() => setApiKeySaveStatus('idle'), 2000);
+    }
+  };
+
+  // Handle API key removal
+  const handleRemoveApiKey = async () => {
+    setIsSavingApiKey(true);
+    const success = await updateGeminiApiKey(null);
+    setIsSavingApiKey(false);
+
+    if (success) {
+      setApiKeySaveStatus('saved');
+      setTimeout(() => setApiKeySaveStatus('idle'), 2000);
+    } else {
+      setApiKeySaveStatus('error');
+      setTimeout(() => setApiKeySaveStatus('idle'), 2000);
     }
   };
 
@@ -360,6 +406,71 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
                 </div>
               </div>
             )}
+
+            {/* Your API Key Setting - only for logged in users */}
+            {email && (
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0">
+                    <path fillRule="evenodd" d="M8 7a5 5 0 1 1 3.61 4.804l-1.903 1.903A1 1 0 0 1 9 14H8v1a1 1 0 0 1-1 1H6v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 .293-.707L8.196 8.39A5.002 5.002 0 0 1 8 7Zm5-3a.75.75 0 0 0 0 1.5A1.5 1.5 0 0 1 14.5 7 .75.75 0 0 0 16 7a3 3 0 0 0-3-3Z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Your API Key
+                      </label>
+                      <button
+                        onClick={() => setIsApiKeyInfoOpen(true)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                        title="Learn more"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                          <path fillRule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                    {hasOwnApiKey ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 px-3 py-1.5 text-sm border border-emerald-200 dark:border-emerald-800 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
+                          Key active
+                        </div>
+                        <button
+                          onClick={handleRemoveApiKey}
+                          disabled={isSavingApiKey}
+                          className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {isSavingApiKey ? 'Removing...' : 'Remove'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="password"
+                          value={apiKeyInput}
+                          onChange={(e) => setApiKeyInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
+                          placeholder="AIza..."
+                          className="flex-1 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-neon/50 focus:border-neon"
+                        />
+                        <button
+                          onClick={handleSaveApiKey}
+                          disabled={isSavingApiKey || !apiKeyInput.trim()}
+                          className="px-3 py-1.5 text-xs font-medium bg-neon text-slate-900 rounded-lg hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSavingApiKey ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                    )}
+                    {apiKeySaveStatus === 'error' && (
+                      <p className="text-2xs text-red-500 mt-1">Invalid key format. Keys start with "AIza".</p>
+                    )}
+                    {apiKeySaveStatus === 'saved' && (
+                      <p className="text-2xs text-emerald-500 mt-1">Saved!</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -473,6 +584,65 @@ export function AccountModal({ isOpen, onClose, profile, jobLogs, email, onSignO
           isOpen={isActivityLogOpen}
           onClose={() => setIsActivityLogOpen(false)}
         />
+      )}
+
+      {/* API Key Info Modal */}
+      {isApiKeyInfoOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-elevated p-6 relative animate-slide-up">
+            <button
+              onClick={() => setIsApiKeyInfoOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center justify-center"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" className="text-slate-500" fill="currentColor">
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-neon/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-amber-600">
+                  <path fillRule="evenodd" d="M8 7a5 5 0 1 1 3.61 4.804l-1.903 1.903A1 1 0 0 1 9 14H8v1a1 1 0 0 1-1 1H6v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 .293-.707L8.196 8.39A5.002 5.002 0 0 1 8 7Zm5-3a.75.75 0 0 0 0 1.5A1.5 1.5 0 0 1 14.5 7 .75.75 0 0 0 16 7a3 3 0 0 0-3-3Z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold font-display text-slate-800 dark:text-slate-100">
+                Your API Key
+              </h3>
+            </div>
+
+            <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+              <p>
+                Add your own Google Gemini API key for <strong>unlimited generations</strong> without using platform tokens.
+              </p>
+              <p>
+                When your key is active, select <strong>"Your Key"</strong> from the model dropdown to route generations through your own API quota.
+              </p>
+              <p className="text-slate-500 dark:text-slate-400">
+                Your key is stored securely and only used server-side. It's never exposed to the browser.
+              </p>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-2">
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary text-center py-2.5"
+              >
+                Get a Free API Key
+              </a>
+              <a
+                href="https://peel.diy/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-center py-2.5"
+              >
+                Read the Docs
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

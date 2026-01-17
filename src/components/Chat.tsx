@@ -337,10 +337,10 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Get display name for model
   const getModelDisplayName = (model: string) => {
-    if (model === 'byo/gemini-3-pro-image-preview') return 'Nano Banana Pro (Your Key)';
+    if (model === 'byo/gemini-3-pro-image') return 'Nano Banana Pro (Your Key)';
     if (model === 'google/gemini-3-pro-image') return 'Nano Banana Pro (Vercel)';
-    if (model === 'netlify/gemini-3-pro-image-preview') return 'Nano Banana Pro (Netlify)';
-    if (model === 'direct/gemini-3-pro-image-preview') return 'Nano Banana Pro (Direct)';
+    if (model === 'netlify/gemini-3-pro-image') return 'Nano Banana Pro (Netlify)';
+    if (model === 'direct/gemini-3-pro-image') return 'Nano Banana Pro (Direct)';
     return model;
   };
 
@@ -359,18 +359,18 @@ export const Chat: React.FC<ChatProps> = ({
               className="bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-neon/30 cursor-pointer"
             >
               {hasOwnApiKey && (
-                <option value="byo/gemini-3-pro-image-preview">
-                  {getModelDisplayName('byo/gemini-3-pro-image-preview')}
+                <option value="byo/gemini-3-pro-image">
+                  {getModelDisplayName('byo/gemini-3-pro-image')}
                 </option>
               )}
               <option value="google/gemini-3-pro-image">
                 {getModelDisplayName('google/gemini-3-pro-image')}
               </option>
-              <option value="netlify/gemini-3-pro-image-preview">
-                {getModelDisplayName('netlify/gemini-3-pro-image-preview')}
+              <option value="netlify/gemini-3-pro-image">
+                {getModelDisplayName('netlify/gemini-3-pro-image')}
               </option>
-              <option value="direct/gemini-3-pro-image-preview">
-                {getModelDisplayName('direct/gemini-3-pro-image-preview')}
+              <option value="direct/gemini-3-pro-image">
+                {getModelDisplayName('direct/gemini-3-pro-image')}
               </option>
             </select>
           </div>

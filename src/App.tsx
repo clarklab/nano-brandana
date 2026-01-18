@@ -657,6 +657,19 @@ function App() {
     setInputToBase64Map(new Map());
   }, []);
 
+  // Clear results and reset tasks/progress view
+  const handleClearResults = useCallback(() => {
+    setWorkItems([]);
+    setDisplayInstructions([]);
+    setInstructions([]);
+    setInstructionReferenceImages(new Map());
+    setInstructionPresetInfo(null);
+    setTotalElapsed(0);
+    setTotalTokens(0);
+    setIsProcessing(false);
+    setBatchStartTime(null);
+  }, []);
+
   const handleSendInstruction = useCallback((inst: string, displayText?: string, referenceImageUrls?: string[], presetInfo?: { label: string; icon: string | null }) => {
     setInstructions(prev => {
       const newInstructions = [...prev, inst];
@@ -808,6 +821,9 @@ function App() {
     batchProcessor.start();
     setIsProcessing(true);
     setBatchStartTime(Date.now());
+
+    // On mobile, jump to results view when starting a job
+    setActiveTab('results');
   }, [inputs, instructions, instructionReferenceImages, instructionPresetInfo, batchProcessor, processingMode, authConfigured, user, profile]);
 
   // Handle cancel job - stops processing, clears results, keeps inputs
@@ -1251,7 +1267,7 @@ function App() {
         <div className={`p-4 flex flex-col overflow-hidden bg-white dark:bg-surface-dark ${activeTab === 'results' ? 'block' : 'hidden'} md:block`}>
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h2 className="text-lg font-semibold font-display">Results</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {isProcessing && (
                 <button
                   onClick={() => {
@@ -1262,6 +1278,17 @@ function App() {
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel_presentation</span>
                   Cancel
+                </button>
+              )}
+              {!isProcessing && workItems.length > 0 && (
+                <button
+                  onClick={() => {
+                    playBlip();
+                    handleClearResults();
+                  }}
+                  className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                >
+                  Clear all
                 </button>
               )}
               {hasResults && (

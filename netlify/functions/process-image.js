@@ -24,13 +24,25 @@ function getGatewayType(model) {
   return 'vercel'; // default (google/ prefix or no prefix)
 }
 
-function getActualModelId(model) {
-  // Strip gateway prefix
-  if (model?.startsWith('byo/')) return model.replace('byo/', '');
-  if (model?.startsWith('netlify/')) return model.replace('netlify/', '');
-  if (model?.startsWith('direct/')) return model.replace('direct/', '');
-  if (model?.startsWith('google/')) return model.replace('google/', '');
-  return model;
+function getActualModelId(model, gatewayType) {
+  // Strip gateway prefix first
+  let actualModel = model;
+  if (model?.startsWith('byo/')) actualModel = model.replace('byo/', '');
+  else if (model?.startsWith('netlify/')) actualModel = model.replace('netlify/', '');
+  else if (model?.startsWith('direct/')) actualModel = model.replace('direct/', '');
+  else if (model?.startsWith('google/')) actualModel = model.replace('google/', '');
+
+  // For non-Vercel gateways (Direct, BYO, Netlify), map to Google's actual model names
+  // Vercel gateway handles its own mapping internally
+  if (gatewayType !== 'vercel') {
+    // Map Vercel-style names to Google's actual API model names
+    if (actualModel === 'gemini-3-pro-image') {
+      actualModel = 'gemini-3-pro-image-preview';
+    }
+    // Add more mappings as needed
+  }
+
+  return actualModel;
 }
 
 // Supabase configuration - REQUIRED for security
@@ -322,7 +334,7 @@ exports.handler = async (event) => {
 
     // Determine which gateway to use based on model prefix
     const gatewayType = getGatewayType(model);
-    const actualModel = getActualModelId(model);
+    const actualModel = getActualModelId(model, gatewayType);
 
     // Get user's BYO API key if they have one
     const userByoKey = userProfile?.gemini_api_key;

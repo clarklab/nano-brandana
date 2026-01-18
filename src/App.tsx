@@ -149,6 +149,9 @@ function App() {
   const prePurchaseTokensRef = useRef<number | null>(null);
   const isPollingForTokensRef = useRef(false);
 
+  // Throttled processing status log (every 5s)
+  const lastPollLogRef = useRef(0);
+
   // Handle payment success redirect - refresh profile to get updated token balance
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -834,37 +837,25 @@ function App() {
 
   // Check if processing is complete
   useEffect(() => {
-    const statusSummary = workItems.map(item => ({
-      name: getInputDisplayName(item.input),
-      status: item.status
-    }));
-    console.log('Processing check:', {
-      isProcessing,
-      workItemsLength: workItems.length,
-      workItemStatuses: statusSummary
-    });
-    console.log('Individual statuses:', statusSummary);
-
     if (!isProcessing) return;
+
+    // Throttled status log every 5 seconds
+    const now = Date.now();
+    if (now - lastPollLogRef.current >= 5000) {
+      const statusCounts = workItems.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('Processing status:', statusCounts);
+      lastPollLogRef.current = now;
+    }
 
     const allDone = workItems.every(
       item => item.status === 'completed' || item.status === 'failed'
     );
 
-    console.log('All done check:', {
-      allDone,
-      workItemsLength: workItems.length,
-      shouldComplete: allDone && workItems.length > 0,
-      detailedStatuses: workItems.map(item => ({
-        name: getInputDisplayName(item.input),
-        status: item.status,
-        hasResult: !!item.result,
-        hasImages: !!item.result?.images?.length
-      }))
-    });
-
     if (allDone && workItems.length > 0) {
-      console.log('Setting isProcessing to false - job complete!');
+      console.log('Job complete!');
       
       // Final validation check - ensure all completed items have valid images
       const completedItems = workItems.filter(item => item.status === 'completed');
@@ -1198,18 +1189,7 @@ function App() {
                   totalElapsed={totalElapsed}
                   totalTokens={totalTokens}
                   hourlyRate={profile?.hourly_rate}
-                  hasCompletedWork={(() => {
-                    const hasWork = workItems.some(item => item.status === 'completed' || item.status === 'failed');
-                    console.log('hasCompletedWork calculation:', {
-                      hasWork,
-                      workItemsCount: workItems.length,
-                      statuses: workItems.map(item => ({
-                        name: getInputDisplayName(item.input),
-                        status: item.status
-                      }))
-                    });
-                    return hasWork;
-                  })()}
+                  hasCompletedWork={workItems.some(item => item.status === 'completed' || item.status === 'failed')}
                   workItems={workItems}
                 />
 

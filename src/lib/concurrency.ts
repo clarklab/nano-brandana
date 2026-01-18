@@ -115,27 +115,13 @@ export function createBatchProcessor(
           try {
             const result = await processItem(item);
             if (!abortController?.signal.aborted) {
-              console.log('Batch processor - assigning result:', {
-                inputName: getInputDisplayName(item.input),
-                beforeStatus: item.status,
-                resultStatus: result.status
-              });
               Object.assign(item, result);
-              console.log('Batch processor - after assign:', {
-                inputName: getInputDisplayName(item.input),
-                afterStatus: item.status
-              });
               notifyUpdate();
-              
+
               // Check if all items are done and force another update
               const allDone = items.every(i => i.status === 'completed' || i.status === 'failed');
-              console.log('Batch processor - all done check:', { allDone, itemCount: items.length });
               if (allDone) {
-                console.log('Batch processor - forcing final update');
-                setTimeout(() => {
-                  console.log('Batch processor - executing final notifyUpdate');
-                  notifyUpdate();
-                }, 100);
+                setTimeout(() => notifyUpdate(), 100);
               }
             }
           } catch (error) {

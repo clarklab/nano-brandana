@@ -32,7 +32,6 @@ export const Timer: React.FC<TimerProps> = ({
   hourlyRate,
   workItems = []
 }) => {
-  console.log('Timer render:', { isRunning, hasCompletedWork, startTime });
   const [currentTime, setCurrentTime] = useState(Date.now());
 
   useEffect(() => {
@@ -88,12 +87,6 @@ export const Timer: React.FC<TimerProps> = ({
   // Calculate money saved based on hourly rate
   const effectiveHourlyRate = hourlyRate ?? DEFAULT_HOURLY_RATE;
   const totalMoneySaved = calculateMoneySaved(totalTimeSavedMinutes, effectiveHourlyRate);
-
-  console.log('Timer metrics - successful items count:', successfulItems.length);
-  console.log('Timer metrics - total time saved minutes:', totalTimeSavedMinutes);
-  console.log('Timer metrics - formatted time:', formatTimeSaved(totalTimeSavedMinutes));
-  console.log('Timer metrics - money saved:', totalMoneySaved, 'at rate:', effectiveHourlyRate);
-  console.log('Timer metrics - all statuses:', workItems.map(item => item.status));
 
   return (
     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">

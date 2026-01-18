@@ -569,25 +569,36 @@ exports.handler = async (event) => {
     if (gatewayType === 'netlify') {
       // ========== NETLIFY AI GATEWAY - Use @google/genai SDK ==========
       // Try to find an API key from various Netlify-injected env vars
+      // Fall back to GOOGLE_DIRECT_API_KEY if Netlify doesn't inject credentials
       const netlifyApiKey = process.env.GOOGLE_API_KEY ||
                             process.env.GEMINI_API_KEY ||
                             process.env.GOOGLE_GEMINI_API_KEY ||
-                            process.env.NETLIFY_AI_API_KEY;
+                            process.env.NETLIFY_AI_API_KEY ||
+                            process.env.GOOGLE_DIRECT_API_KEY; // Fallback
+
+      const apiKeySource = process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' :
+                           process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' :
+                           process.env.GOOGLE_GEMINI_API_KEY ? 'GOOGLE_GEMINI_API_KEY' :
+                           process.env.NETLIFY_AI_API_KEY ? 'NETLIFY_AI_API_KEY' :
+                           process.env.GOOGLE_DIRECT_API_KEY ? 'GOOGLE_DIRECT_API_KEY (fallback)' :
+                           'NONE';
 
       console.log('Netlify SDK config:', {
         hasApiKey: !!netlifyApiKey,
-        apiKeySource: netlifyApiKey ? (
-          process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' :
-          process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' :
-          process.env.GOOGLE_GEMINI_API_KEY ? 'GOOGLE_GEMINI_API_KEY' :
-          'NETLIFY_AI_API_KEY'
-        ) : 'NONE',
+        apiKeySource,
+        usingFallback: apiKeySource.includes('fallback'),
       });
 
-      // Pass API key explicitly if found, otherwise let SDK try ADC
-      const ai = netlifyApiKey
-        ? new GoogleGenAI({ apiKey: netlifyApiKey })
-        : new GoogleGenAI({});
+      if (!netlifyApiKey) {
+        console.error('ERROR: No API key available for Netlify gateway');
+        return {
+          statusCode: 500,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Netlify AI Gateway credentials not available. Please contact support.' }),
+        };
+      }
+
+      const ai = new GoogleGenAI({ apiKey: netlifyApiKey });
 
       console.log('Calling Netlify AI Gateway via @google/genai SDK...');
 

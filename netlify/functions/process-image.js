@@ -165,6 +165,19 @@ exports.handler = async (event) => {
     hasSupabase: !!supabaseAdmin,
   });
 
+  // DEBUG: Log all potential Netlify AI-injected env vars
+  console.log('Netlify AI env vars check:', {
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? 'SET' : 'NOT SET',
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET',
+    GOOGLE_GEMINI_API_KEY: process.env.GOOGLE_GEMINI_API_KEY ? 'SET' : 'NOT SET',
+    GOOGLE_GEMINI_BASE_URL: process.env.GOOGLE_GEMINI_BASE_URL ? 'SET' : 'NOT SET',
+    NETLIFY_AI_API_KEY: process.env.NETLIFY_AI_API_KEY ? 'SET' : 'NOT SET',
+    // List any env vars containing GOOGLE, GEMINI, or AI
+    allGoogleVars: Object.keys(process.env).filter(k => k.includes('GOOGLE')),
+    allGeminiVars: Object.keys(process.env).filter(k => k.includes('GEMINI')),
+    allAIVars: Object.keys(process.env).filter(k => k.includes('AI') && !k.includes('FAIL')),
+  });
+
   // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
@@ -555,8 +568,26 @@ exports.handler = async (event) => {
 
     if (gatewayType === 'netlify') {
       // ========== NETLIFY AI GATEWAY - Use @google/genai SDK ==========
-      // Empty config lets Netlify auto-inject credentials via GOOGLE_GEMINI_BASE_URL
-      const ai = new GoogleGenAI({});
+      // Try to find an API key from various Netlify-injected env vars
+      const netlifyApiKey = process.env.GOOGLE_API_KEY ||
+                            process.env.GEMINI_API_KEY ||
+                            process.env.GOOGLE_GEMINI_API_KEY ||
+                            process.env.NETLIFY_AI_API_KEY;
+
+      console.log('Netlify SDK config:', {
+        hasApiKey: !!netlifyApiKey,
+        apiKeySource: netlifyApiKey ? (
+          process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' :
+          process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' :
+          process.env.GOOGLE_GEMINI_API_KEY ? 'GOOGLE_GEMINI_API_KEY' :
+          'NETLIFY_AI_API_KEY'
+        ) : 'NONE',
+      });
+
+      // Pass API key explicitly if found, otherwise let SDK try ADC
+      const ai = netlifyApiKey
+        ? new GoogleGenAI({ apiKey: netlifyApiKey })
+        : new GoogleGenAI({});
 
       console.log('Calling Netlify AI Gateway via @google/genai SDK...');
 

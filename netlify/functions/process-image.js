@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { GoogleGenAI } = require('@google/genai');
 
 // Vercel AI Gateway (OpenAI-compatible format)
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
@@ -350,22 +351,9 @@ exports.handler = async (event) => {
         };
       }
     } else if (gatewayType === 'netlify') {
-      if (!NETLIFY_GEMINI_BASE_URL) {
-        console.error('ERROR: GOOGLE_GEMINI_BASE_URL not injected - Netlify AI Gateway not available');
-        return {
-          statusCode: 500,
-          headers: securityHeaders,
-          body: JSON.stringify({ error: 'Netlify AI Gateway not available. This feature requires deployment to Netlify with AI Gateway enabled.' }),
-        };
-      }
-      if (!NETLIFY_GEMINI_KEY) {
-        console.error('ERROR: Netlify AI Gateway key not available');
-        return {
-          statusCode: 500,
-          headers: securityHeaders,
-          body: JSON.stringify({ error: 'Netlify AI Gateway API key not configured.' }),
-        };
-      }
+      // Netlify AI Gateway uses @google/genai SDK with auto-injected credentials
+      // No manual env var check needed - SDK handles this automatically
+      console.log('Using Netlify AI Gateway with @google/genai SDK (auto-injected credentials)');
     } else if (gatewayType === 'direct') {
       if (!GOOGLE_DIRECT_KEY) {
         console.error('ERROR: GOOGLE_DIRECT_API_KEY or GEMINI_API_KEY not configured');
@@ -429,14 +417,12 @@ exports.handler = async (event) => {
       }
 
     } else if (gatewayType === 'netlify') {
-      // ========== NETLIFY AI GATEWAY (Google GenAI format via Netlify's proxy) ==========
-      endpoint = `${NETLIFY_GEMINI_BASE_URL}/v1beta/models/${actualModel}:generateContent`;
-      requestHeaders = {
-        'x-goog-api-key': NETLIFY_GEMINI_KEY,
-        'Content-Type': 'application/json',
-      };
+      // ========== NETLIFY AI GATEWAY (uses @google/genai SDK with auto-injected credentials) ==========
+      // SDK call is handled separately below - just prepare parts here
+      endpoint = null; // Not used - SDK handles this
+      requestHeaders = null;
 
-      // Build parts array for Google GenAI format
+      // Build parts array for Google GenAI SDK format
       const parts = [{ text: instruction }];
 
       // Add all main images as inlineData
@@ -455,17 +441,14 @@ exports.handler = async (event) => {
         }
       }
 
+      // Store parts for SDK call (requestBody used as carrier)
       requestBody = {
-        contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
+        _sdkParts: parts,
+        _sdkConfig: {
+          responseModalities: ['Text', 'Image'],
+          ...(aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio) && { aspectRatio }),
         },
       };
-
-      // Add image configuration if specified
-      if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
-        requestBody.generationConfig.aspectRatio = aspectRatio;
-      }
 
     } else if (gatewayType === 'direct') {
       // ========== GOOGLE DIRECT API (your own key, no gateway) ==========
@@ -555,7 +538,7 @@ exports.handler = async (event) => {
     // Log request details (without sensitive data)
     console.log('API Request:', {
       gateway: gatewayType,
-      endpoint,
+      endpoint: gatewayType === 'netlify' ? '(@google/genai SDK)' : endpoint,
       model: actualModel,
       stream,
       imageSize,
@@ -568,93 +551,163 @@ exports.handler = async (event) => {
       instructionLength: instruction?.length,
     });
 
-    // Call the selected AI Gateway
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: requestHeaders,
-      body: JSON.stringify(requestBody),
-    });
+    let result;
 
-    // Log response details
-    console.log('API Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries()),
-    });
+    if (gatewayType === 'netlify') {
+      // ========== NETLIFY AI GATEWAY - Use @google/genai SDK ==========
+      // Empty config lets Netlify auto-inject credentials via GOOGLE_GEMINI_BASE_URL
+      const ai = new GoogleGenAI({});
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('AI Gateway error details:', {
+      console.log('Calling Netlify AI Gateway via @google/genai SDK...');
+
+      try {
+        const sdkResponse = await ai.models.generateContent({
+          model: actualModel,
+          contents: [
+            {
+              role: 'user',
+              parts: requestBody._sdkParts,
+            },
+          ],
+          config: requestBody._sdkConfig,
+        });
+
+        console.log('Netlify SDK Response received:', {
+          hasResponse: !!sdkResponse,
+          hasText: !!sdkResponse?.text,
+          hasCandidates: !!sdkResponse?.candidates,
+        });
+
+        // Convert SDK response to match our expected format
+        result = {
+          candidates: sdkResponse.candidates,
+          usageMetadata: sdkResponse.usageMetadata,
+        };
+      } catch (sdkError) {
+        console.error('Netlify SDK error:', sdkError);
+
+        const errorElapsed = Date.now() - startTime;
+
+        // Log error
+        if (userId) {
+          await logJob({
+            userId,
+            requestId: body.requestId,
+            batchId,
+            mode,
+            imageSize,
+            model,
+            imagesSubmitted: allImages.length,
+            instructionLength: instruction?.length,
+            totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
+            imagesReturned: 0,
+            elapsedMs: errorElapsed,
+            status: 'error',
+            errorCode: sdkError.status || '500',
+            errorMessage: (sdkError.message || 'SDK error').substring(0, 500),
+            tokenBalanceBefore: userProfile?.tokens_remaining,
+            tokenBalanceAfter: userProfile?.tokens_remaining,
+          });
+        }
+
+        return {
+          statusCode: sdkError.status || 500,
+          headers: securityHeaders,
+          body: JSON.stringify({
+            error: `Netlify AI Gateway error: ${sdkError.message || 'Unknown error'}`,
+          }),
+        };
+      }
+    } else {
+      // ========== OTHER GATEWAYS - Use fetch ==========
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody),
+      });
+
+      // Log response details
+      console.log('API Response:', {
         status: response.status,
         statusText: response.statusText,
-        error,
         headers: Object.fromEntries(response.headers.entries()),
       });
 
-      const errorElapsed = Date.now() - startTime;
-
-      // Log error for all gateway failures
-      if (userId) {
-        await logJob({
-          userId,
-          requestId: body.requestId,
-          batchId,
-          mode,
-          imageSize,
-          model,
-          imagesSubmitted: allImages.length,
-          instructionLength: instruction?.length,
-          totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
-          imagesReturned: 0,
-          elapsedMs: errorElapsed,
-          status: 'error',
-          errorCode: String(response.status),
-          errorMessage: error.substring(0, 500),
-          tokenBalanceBefore: userProfile?.tokens_remaining,
-          tokenBalanceAfter: userProfile?.tokens_remaining,
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('AI Gateway error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          error,
+          headers: Object.fromEntries(response.headers.entries()),
         });
-      }
 
-      if (response.status === 403) {
-        // Check if it's the free credits restriction error
-        if (error.includes('Free credits temporarily have restricted access')) {
+        const errorElapsed = Date.now() - startTime;
+
+        // Log error for all gateway failures
+        if (userId) {
+          await logJob({
+            userId,
+            requestId: body.requestId,
+            batchId,
+            mode,
+            imageSize,
+            model,
+            imagesSubmitted: allImages.length,
+            instructionLength: instruction?.length,
+            totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
+            imagesReturned: 0,
+            elapsedMs: errorElapsed,
+            status: 'error',
+            errorCode: String(response.status),
+            errorMessage: error.substring(0, 500),
+            tokenBalanceBefore: userProfile?.tokens_remaining,
+            tokenBalanceAfter: userProfile?.tokens_remaining,
+          });
+        }
+
+        if (response.status === 403) {
+          // Check if it's the free credits restriction error
+          if (error.includes('Free credits temporarily have restricted access')) {
+            return {
+              statusCode: 403,
+              headers: securityHeaders,
+              body: JSON.stringify({
+                error: 'Vercel AI Gateway free credits are temporarily restricted due to abuse.',
+                message: 'To continue using this service, you need to purchase paid credits. Visit https://vercel.com/docs/ai-gateway/pricing for more information.',
+              }),
+            };
+          }
+
           return {
             statusCode: 403,
             headers: securityHeaders,
             body: JSON.stringify({
-              error: 'Vercel AI Gateway free credits are temporarily restricted due to abuse.',
-              message: 'To continue using this service, you need to purchase paid credits. Visit https://vercel.com/docs/ai-gateway/pricing for more information.',
+              error: 'Authentication failed. Please check your API key.',
             }),
           };
         }
 
+        if (response.status === 429) {
+          return {
+            statusCode: 429,
+            headers: securityHeaders,
+            body: JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          };
+        }
+
         return {
-          statusCode: 403,
+          statusCode: response.status,
           headers: securityHeaders,
           body: JSON.stringify({
-            error: 'Authentication failed. Please check your API key.',
+            error: `AI Gateway error: ${response.statusText}`,
           }),
         };
       }
 
-      if (response.status === 429) {
-        return {
-          statusCode: 429,
-          headers: securityHeaders,
-          body: JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-        };
-      }
-
-      return {
-        statusCode: response.status,
-        headers: securityHeaders,
-        body: JSON.stringify({
-          error: `AI Gateway error: ${response.statusText}`,
-        }),
-      };
+      result = await response.json();
     }
 
-    const result = await response.json();
     const elapsed = Date.now() - startTime;
 
     // Extract generated images and content based on gateway format

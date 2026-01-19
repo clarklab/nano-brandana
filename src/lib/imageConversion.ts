@@ -13,7 +13,7 @@ export interface FormatSettings {
 }
 
 export const FORMAT_SETTINGS: Record<FormatKey, FormatSettings> = {
-  WEBP: { format: 'image/webp', quality: 1.0, extension: 'webp' },
+  WEBP: { format: 'image/webp', quality: 0.8, extension: 'webp' },
   PNG: { format: 'image/png', quality: 1.0, extension: 'png' },
   JPG: { format: 'image/jpeg', quality: 1.0, extension: 'jpg' },
 };
@@ -21,7 +21,7 @@ export const FORMAT_SETTINGS: Record<FormatKey, FormatSettings> = {
 // Relative size estimates vs PNG baseline (rough approximations)
 export const SIZE_ESTIMATES: Record<FormatKey, number> = {
   PNG: 1.0,
-  WEBP: 0.7, // ~30% smaller than PNG
+  WEBP: 0.5, // ~50% smaller than PNG (80% quality)
   JPG: 0.5, // ~50% smaller than PNG
 };
 

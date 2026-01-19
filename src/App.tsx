@@ -922,7 +922,7 @@ function App() {
           images.push({
             id: `${item.id}-${variantIndex}`,
             base64,
-            originalFilename: `${baseName}_edited${item.result!.images.length > 1 ? `_v${variantIndex + 1}` : ''}`,
+            originalFilename: `${baseName}_peel${item.result!.images.length > 1 ? `_v${variantIndex + 1}` : ''}`,
           });
         });
       });

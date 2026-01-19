@@ -77,7 +77,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${fileBaseName}_edited_${index + 1}.png`;
+    a.download = `${fileBaseName}_peel_${index + 1}.png`;
     a.click();
     URL.revokeObjectURL(url);
   };

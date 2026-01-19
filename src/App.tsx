@@ -1052,6 +1052,11 @@ function App() {
           <div className="flex items-center gap-3">
             <img src="/peel.svg" alt="Peel" className="size-7 md:size-8 dark:invert" />
             <h1 className="text-xl md:text-2xl font-medium font-display tracking-tight">Peel</h1>
+            {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+              <span className="bg-yellow-400 text-black text-2xs px-1.5 py-0.5 rounded font-mono font-bold">
+                DEV
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">

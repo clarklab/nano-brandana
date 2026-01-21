@@ -329,7 +329,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             <div className="grid grid-cols-1 gap-2">
               {inputs.map((input, index) => {
                 // Check if this is a newly duplicated prompt (last prompt item when duplicatedFromId is set)
-                const isNewDuplicate = duplicatedFromId && input.type === 'prompt' &&
+                const isNewDuplicate = duplicatedFromId && input.type === 'text' &&
                   index === inputs.length - 1;
                 return (
                 <div

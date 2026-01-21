@@ -39,8 +39,23 @@ const formatTokenCount = (count: number): string => {
 };
 
 // Check if using Edge v2 (no timeout issues, can be more aggressive)
+// Also checks URL param so batch processor gets correct settings on first load
 const isUsingEdgeV2 = () => {
-  return typeof window !== 'undefined' && localStorage.getItem('use-edge-v2') === 'true';
+  if (typeof window === 'undefined') return false;
+
+  // Check URL param first (matches api.ts behavior)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('edge-v2') === 'true') {
+    localStorage.setItem('use-edge-v2', 'true');
+    return true;
+  }
+  if (urlParams.get('edge-v2') === 'false') {
+    localStorage.removeItem('use-edge-v2');
+    return false;
+  }
+
+  // Fall back to localStorage
+  return localStorage.getItem('use-edge-v2') === 'true';
 };
 
 // Dynamic concurrency based on batch size and endpoint

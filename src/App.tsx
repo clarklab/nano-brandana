@@ -38,24 +38,24 @@ const formatTokenCount = (count: number): string => {
   }
 };
 
-// Check if using Edge v2 (no timeout issues, can be more aggressive)
-// Also checks URL param so batch processor gets correct settings on first load
+// Edge v2 is now the default (no timeout issues, can be more aggressive)
+// Disable via ?edge-v2=false as escape hatch
 const isUsingEdgeV2 = () => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true; // Default to v2
 
-  // Check URL param first (matches api.ts behavior)
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('edge-v2') === 'true') {
-    localStorage.setItem('use-edge-v2', 'true');
-    return true;
-  }
+  // Only check for explicit disable
   if (urlParams.get('edge-v2') === 'false') {
-    localStorage.removeItem('use-edge-v2');
+    localStorage.setItem('use-edge-v2', 'false');
+    return false;
+  }
+  // Check if explicitly disabled in localStorage
+  if (localStorage.getItem('use-edge-v2') === 'false') {
     return false;
   }
 
-  // Fall back to localStorage
-  return localStorage.getItem('use-edge-v2') === 'true';
+  // Default: use Edge v2
+  return true;
 };
 
 // Dynamic concurrency based on batch size and endpoint

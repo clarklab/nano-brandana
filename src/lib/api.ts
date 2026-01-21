@@ -1,23 +1,22 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
-// Feature flag for Edge Function v2 endpoint (no timeout on upstream waits)
-// Enable via localStorage: localStorage.setItem('use-edge-v2', 'true')
-// Or via URL param: ?edge-v2=true (will set localStorage)
+// Edge Function v2 is now the default (no timeout on upstream waits)
+// Disable via URL param: ?edge-v2=false (escape hatch for rollback)
 function shouldUseEdgeV2(): boolean {
-  // Check URL param first (allows easy testing via link)
   if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('edge-v2') === 'true') {
-      localStorage.setItem('use-edge-v2', 'true');
-      return true;
-    }
+    // Only check for explicit disable
     if (urlParams.get('edge-v2') === 'false') {
-      localStorage.removeItem('use-edge-v2');
+      localStorage.setItem('use-edge-v2', 'false');
+      return false;
+    }
+    // Check if explicitly disabled in localStorage
+    if (localStorage.getItem('use-edge-v2') === 'false') {
       return false;
     }
   }
-  // Check localStorage
-  return typeof window !== 'undefined' && localStorage.getItem('use-edge-v2') === 'true';
+  // Default: use Edge v2
+  return true;
 }
 
 export interface ProcessImageRequest {
@@ -89,14 +88,14 @@ export async function processImage(
     requestId: generateRequestId(),
   };
 
-  // Choose endpoint based on feature flag
+  // Edge v2 is default; v1 is fallback via ?edge-v2=false
   const useEdgeV2 = shouldUseEdgeV2();
   const endpoint = useEdgeV2
-    ? '/api/process-image-v2'           // Edge Function (no timeout)
-    : '/.netlify/functions/process-image'; // Original Node.js function
+    ? '/api/process-image-v2'           // Edge Function (no timeout) - default
+    : '/.netlify/functions/process-image'; // Legacy Node.js function
 
-  if (useEdgeV2) {
-    console.log('[API] Using Edge Function v2 endpoint');
+  if (!useEdgeV2) {
+    console.log('[API] Using legacy v1 endpoint (edge-v2=false)');
   }
 
   const response = await fetch(endpoint, {

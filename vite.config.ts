@@ -9,6 +9,10 @@ export default defineConfig({
       '/.netlify/functions': {
         target: 'http://localhost:8889',
         changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8889',
+        changeOrigin: true,
       }
     }
   }

@@ -34,6 +34,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   const [showPromptInput, setShowPromptInput] = useState(false);
   const [promptText, setPromptText] = useState('');
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const [duplicatedFromId, setDuplicatedFromId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ file: File; name: string; id: string; displayName?: string } | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState('');
   const [showModeInfo, setShowModeInfo] = useState(false);
@@ -67,6 +68,12 @@ export const InputPanel: React.FC<InputPanelProps> = ({
       console.error('Failed to copy prompt:', err);
     }
   }, []);
+
+  const handleDuplicatePrompt = useCallback((prompt: string, sourceId: string) => {
+    setDuplicatedFromId(sourceId);
+    onPromptsAdded([prompt]);
+    setTimeout(() => setDuplicatedFromId(null), 400);
+  }, [onPromptsAdded]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -320,10 +327,17 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         ) : (
           <div className="h-full overflow-y-auto p-3">
             <div className="grid grid-cols-1 gap-2">
-              {inputs.map((input) => (
+              {inputs.map((input, index) => {
+                // Check if this is a newly duplicated prompt (last prompt item when duplicatedFromId is set)
+                const isNewDuplicate = duplicatedFromId && input.type === 'prompt' &&
+                  index === inputs.length - 1;
+                return (
                 <div
                   key={input.id}
-                  className="relative group bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                  className={`relative group bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 ${isNewDuplicate ? 'animate-drop-in' : ''}`}
+                  style={isNewDuplicate ? {
+                    animation: 'dropIn 0.3s ease-out forwards',
+                  } : undefined}
                 >
                   {input.type === 'image' ? (
                     <div
@@ -369,7 +383,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                           <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2">{input.prompt}</p>
                         </div>
                       </div>
-                      <div className="mt-2 flex justify-end">
+                      <div className="mt-2 flex justify-end gap-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -381,7 +395,19 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                           <span className="material-symbols-outlined text-[14px]">
                             {copiedPromptId === input.id ? 'check' : 'content_copy'}
                           </span>
-                          <span>Copy</span>
+                          <span>Copy Text</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            playBlip();
+                            handleDuplicatePrompt(input.prompt, input.id);
+                          }}
+                          className="btn-ghost py-1 px-2 text-xs"
+                          title="Duplicate prompt"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">control_point_duplicate</span>
+                          <span>Duplicate</span>
                         </button>
                       </div>
                     </div>
@@ -398,7 +424,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
                     </svg>
                   </button>
                 </div>
-              ))}
+              );
+              })}
             </div>
             <div className="mt-4 space-y-2">
               <label className="cursor-pointer block">

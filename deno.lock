@@ -1,16 +1,31 @@
 {
   "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.91.0",
+    "https://esm.sh/iceberg-js@^0.8.1?target=denonext": "https://esm.sh/iceberg-js@0.8.1?target=denonext"
+  },
   "remote": {
     "https://edge.netlify.com/": "fd941d61d88673d5f28aab283fb86fcc50f08a3bc80ee5470498fcfa88c65cfb",
     "https://edge.netlify.com/bootstrap/config.ts": "6a2ce0e544e15e8f8883a5c18da5948e37fd0f2619f68cb31f3af53c51817025",
     "https://edge.netlify.com/bootstrap/context.ts": "e97240232121e2f369f6546ce961490f34d961ea1ea54be3ff09633e3f08373f",
     "https://edge.netlify.com/bootstrap/cookie.ts": "8b0baae708989ca183c6f3b4ab3d029e6abcbc2e43f93edeb0ff447b3bbc3a05",
     "https://edge.netlify.com/bootstrap/edge_function.ts": "b8253e86aa83c67341f5cfedeba5049d77fbf84dcab7eceff7566b7728ae9b39",
-    "https://edge.netlify.com/bootstrap/globals/types.ts": "eaa6148ded3121d8dee62dd91c86e7fe76601df0f3ca8d7962243a30f4c8935f"
+    "https://edge.netlify.com/bootstrap/globals/types.ts": "eaa6148ded3121d8dee62dd91c86e7fe76601df0f3ca8d7962243a30f4c8935f",
+    "https://esm.sh/@supabase/auth-js@2.91.0/denonext/auth-js.mjs": "7700cb9dc2a50fb95f8f3eccd9c51723e501c1a7148d6ee28699e6fa62ee1083",
+    "https://esm.sh/@supabase/functions-js@2.91.0/denonext/functions-js.mjs": "5bb0f716ac0f6d3fe981ef663457d1f6fbebe53adaef6205cbee4d2e2c5a78a6",
+    "https://esm.sh/@supabase/postgrest-js@2.91.0/denonext/postgrest-js.mjs": "a08f9f5b385c64cfa1d580e883f694dd7229d7f91c7cfc7e21ec998977a71a8e",
+    "https://esm.sh/@supabase/realtime-js@2.91.0/denonext/realtime-js.mjs": "83b9a07c104252ff37fbb68419b479fb02dcb062edeb3354c414002e905cbbd7",
+    "https://esm.sh/@supabase/storage-js@2.91.0/denonext/storage-js.mjs": "6a9dd0bb74db85b4c65837bdcca98478ac828e35b566e4d328e9d62b54e805f2",
+    "https://esm.sh/@supabase/supabase-js@2.91.0": "c0c9a7e3a3eb32cba766252b703ab34312fa13e231066ef63795e5f6ec8630e9",
+    "https://esm.sh/@supabase/supabase-js@2.91.0/denonext/supabase-js.mjs": "688d3376174f9d0a809610200f176f323d9d3411c117b22f2e44863dbed89b10",
+    "https://esm.sh/iceberg-js@0.8.1/denonext/iceberg-js.mjs": "d839d81a2e3966500ca2cdd0c1cb458e9608bacfc91f7bb67a69b2e878dcdb4f",
+    "https://esm.sh/iceberg-js@0.8.1?target=denonext": "58c849d7fe2bf4eca4a84eb501e83c161a7d8c34ca1bec15a962b3bec3062633",
+    "https://esm.sh/tslib@2.8.1/denonext/tslib.mjs": "c38da5dd6da6281964435002ce204cd586634fe3bdfb24a0ee116f48cf3292e9"
   },
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@google/genai@^1.37.0",
         "npm:@netlify/functions@^4.2.5",
         "npm:@polar-sh/sdk@~0.42.1",
         "npm:@supabase/auth-ui-react@~0.4.7",

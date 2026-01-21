@@ -1,5 +1,25 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
+// Feature flag for Edge Function v2 endpoint (no timeout on upstream waits)
+// Enable via localStorage: localStorage.setItem('use-edge-v2', 'true')
+// Or via URL param: ?edge-v2=true (will set localStorage)
+function shouldUseEdgeV2(): boolean {
+  // Check URL param first (allows easy testing via link)
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('edge-v2') === 'true') {
+      localStorage.setItem('use-edge-v2', 'true');
+      return true;
+    }
+    if (urlParams.get('edge-v2') === 'false') {
+      localStorage.removeItem('use-edge-v2');
+      return false;
+    }
+  }
+  // Check localStorage
+  return typeof window !== 'undefined' && localStorage.getItem('use-edge-v2') === 'true';
+}
+
 export interface ProcessImageRequest {
   image?: string; // Optional - omit for text-only generation
   images?: string[]; // Multiple images for Single Job mode
@@ -69,7 +89,17 @@ export async function processImage(
     requestId: generateRequestId(),
   };
 
-  const response = await fetch('/.netlify/functions/process-image', {
+  // Choose endpoint based on feature flag
+  const useEdgeV2 = shouldUseEdgeV2();
+  const endpoint = useEdgeV2
+    ? '/api/process-image-v2'           // Edge Function (no timeout)
+    : '/.netlify/functions/process-image'; // Original Node.js function
+
+  if (useEdgeV2) {
+    console.log('[API] Using Edge Function v2 endpoint');
+  }
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers,
     body: JSON.stringify(requestWithId),

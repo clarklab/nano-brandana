@@ -580,25 +580,25 @@ export const Chat: React.FC<ChatProps> = ({
 
         {/* Chat input with integrated Generate button */}
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="relative">
-            <textarea
-              ref={textareaRef}
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "Enter number..." : waitingForPreset.validationType === 'color' ? "Enter color..." : "Enter response...") : "Enter instruction..."}
-              disabled={isProcessing}
-              className="w-full resize-none h-24 p-3 pb-8 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-              rows={3}
-            />
-            {/* Send as chat button - subtle, right-aligned */}
+          <textarea
+            ref={textareaRef}
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={waitingForPreset ? (waitingForPreset.validationType === 'number' ? "Enter number..." : waitingForPreset.validationType === 'color' ? "Enter color..." : "Enter response...") : "Enter instruction..."}
+            disabled={isProcessing}
+            className="w-full resize-none h-20 p-3 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+            rows={3}
+          />
+          {/* Send as chat button - in its own row below textarea */}
+          <div className="flex justify-end px-3 pb-2">
             <button
               onClick={() => {
                 playClick();
                 handleSend();
               }}
               disabled={!instruction.trim() || isProcessing}
-              className={`absolute bottom-2 right-3 text-xs font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 ${
+              className={`text-xs font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 ${
                 instruction.trim() && !isProcessing
                   ? 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                   : 'text-slate-400 dark:text-slate-500'

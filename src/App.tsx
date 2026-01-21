@@ -38,14 +38,31 @@ const formatTokenCount = (count: number): string => {
   }
 };
 
-// Dynamic concurrency based on batch size to reduce server load
+// Check if using Edge v2 (no timeout issues, can be more aggressive)
+const isUsingEdgeV2 = () => {
+  return typeof window !== 'undefined' && localStorage.getItem('use-edge-v2') === 'true';
+};
+
+// Dynamic concurrency based on batch size and endpoint
+// Edge v2 has no timeout, so we can run more in parallel
 const getConcurrencyLimit = (batchSize: number) => {
+  if (isUsingEdgeV2()) {
+    // Edge v2: Aggressive concurrency (no timeout concerns)
+    // If we hit 429 rate limits, retry logic will handle it
+    return 8; // Let's see how many we can push!
+  }
+  // Original v1: Conservative to avoid timeouts
   if (batchSize >= 10) return 1; // Large batches: sequential processing
   if (batchSize >= 5) return 2;  // Medium batches: low concurrency
   return BASE_CONCURRENCY;       // Small batches: normal concurrency
 };
 
 const getStaggerDelay = (batchSize: number) => {
+  if (isUsingEdgeV2()) {
+    // Edge v2: Minimal delays, let concurrency do the work
+    return 100; // Just enough to not slam the server at once
+  }
+  // Original v1: Longer delays to avoid overwhelming server
   if (batchSize >= 10) return 2000; // 2 second delays for large batches
   if (batchSize >= 5) return 1000;  // 1 second delays for medium batches
   return 500;                       // 500ms delays for small batches
@@ -1279,9 +1296,8 @@ function App() {
                     playBlip();
                     setShowCancelConfirm(true);
                   }}
-                  className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1.5 transition-colors"
+                  className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors"
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel_presentation</span>
                   Cancel
                 </button>
               )}

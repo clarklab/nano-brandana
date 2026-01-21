@@ -28,6 +28,11 @@
   publish = "dist"
   autoLaunch = false
 
+# Edge Function for process-image-v2 (no timeout on upstream waits)
+[[edge_functions]]
+  path = "/api/process-image-v2"
+  function = "process-image"
+
 # Security headers for all responses
 [[headers]]
   for = "/*"

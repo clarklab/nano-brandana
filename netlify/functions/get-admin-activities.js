@@ -205,15 +205,15 @@ export const handler = async (event, context) => {
     if (activityType === 'all' || activityType === 'jobs') {
       let jobQuery = adminSupabase
         .from('job_logs')
-        .select('*, profiles(email)')  // Left join - show jobs even without profile
+        .select('*')
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (userEmail) {
-        // Filter on email only if profile exists
-        jobQuery = jobQuery.or(`profiles.email.ilike.%${userEmail}%,user_id.is.null`);
-      }
+      // Note: email filter disabled - no direct FK from job_logs to profiles
+      // if (userEmail) {
+      //   jobQuery = jobQuery.or(`profiles.email.ilike.%${userEmail}%,user_id.is.null`);
+      // }
 
       if (statusFilter !== 'all') {
         jobQuery = jobQuery.eq('status', statusFilter);
@@ -221,14 +221,19 @@ export const handler = async (event, context) => {
 
       const { data: jobLogs, error: jobError } = await jobQuery;
 
-      if (!jobError && jobLogs) {
+      if (jobError) {
+        console.error('Job logs query error:', jobError.message, jobError.details, jobError.hint);
+      }
+
+      if (jobLogs) {
+        console.log('Job logs fetched:', jobLogs.length);
         jobLogs.forEach(job => {
           activities.push({
             id: job.id,
             timestamp: job.created_at,
             type: 'job',
             subtype: job.mode,
-            email: job.profiles?.email,
+            // email omitted - no FK join available
             user_id: job.user_id,
             batch_id: job.batch_id,
             status: job.status,
@@ -250,15 +255,15 @@ export const handler = async (event, context) => {
     if (activityType === 'all' || activityType === 'purchases') {
       let purchaseQuery = adminSupabase
         .from('token_purchases')
-        .select('*, profiles(email)')  // Left join - show purchases even without profile
+        .select('*')
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (userEmail) {
-        // Filter on email only if profile exists
-        purchaseQuery = purchaseQuery.or(`profiles.email.ilike.%${userEmail}%,user_id.is.null`);
-      }
+      // Note: email filter disabled - no direct FK from token_purchases to profiles
+      // if (userEmail) {
+      //   purchaseQuery = purchaseQuery.or(`profiles.email.ilike.%${userEmail}%,user_id.is.null`);
+      // }
 
       if (statusFilter !== 'all') {
         purchaseQuery = purchaseQuery.eq('status', statusFilter === 'success' ? 'completed' : statusFilter);
@@ -266,14 +271,19 @@ export const handler = async (event, context) => {
 
       const { data: purchases, error: purchaseError } = await purchaseQuery;
 
-      if (!purchaseError && purchases) {
+      if (purchaseError) {
+        console.error('Purchases query error:', purchaseError.message, purchaseError.details, purchaseError.hint);
+      }
+
+      if (purchases) {
+        console.log('Purchases fetched:', purchases.length);
         purchases.forEach(purchase => {
           activities.push({
             id: purchase.id,
             timestamp: purchase.created_at,
             type: 'purchase',
             subtype: purchase.payment_provider,
-            email: purchase.profiles?.email,
+            // email omitted - no FK join available
             user_id: purchase.user_id,
             status: purchase.status === 'completed' ? 'success' : purchase.status,
             amount_usd: purchase.amount_usd,

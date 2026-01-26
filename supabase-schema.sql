@@ -113,7 +113,7 @@ CREATE TABLE public.job_logs (
   elapsed_ms INTEGER,
 
   -- Status
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'error')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'error', 'warning')),
   error_code TEXT,
   error_message TEXT,
 

@@ -478,7 +478,14 @@ export default async function handler(request: Request, _context: Context) {
       }
     }
 
-    // Log successful job
+    // Determine job status - warning if API worked but no images returned
+    const noImagesReturned = generatedImages.length === 0;
+    const jobStatus = noImagesReturned ? 'warning' : 'success';
+    const warningReason = noImagesReturned && content
+      ? content.substring(0, 500)
+      : (noImagesReturned ? 'Model returned no images' : null);
+
+    // Log job with appropriate status
     await logJob(supabase, {
       userId,
       requestId,
@@ -494,7 +501,9 @@ export default async function handler(request: Request, _context: Context) {
       completionTokens,
       totalTokens: tokensUsed,
       elapsedMs: elapsed,
-      status: 'success',
+      status: jobStatus,
+      errorCode: noImagesReturned ? 'NO_IMAGES' : null,
+      errorMessage: warningReason,
       tokensCharged,
       tokenBalanceBefore: userProfile?.tokens_remaining,
       tokenBalanceAfter: newTokenBalance,

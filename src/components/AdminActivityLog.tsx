@@ -38,6 +38,7 @@ interface ActivityStats {
   purchases: number;
   success: number;
   error: number;
+  warning: number;
   pending: number;
 }
 
@@ -82,6 +83,7 @@ export function AdminActivityLog({ isOpen, onClose }: AdminActivityLogProps) {
     purchases: 0,
     success: 0,
     error: 0,
+    warning: 0,
     pending: 0,
   });
   const [filters, setFilters] = useState<ActivityFilters>({
@@ -139,6 +141,7 @@ export function AdminActivityLog({ isOpen, onClose }: AdminActivityLogProps) {
         purchases: 0,
         success: 0,
         error: 0,
+        warning: 0,
         pending: 0,
       });
 
@@ -254,6 +257,8 @@ export function AdminActivityLog({ isOpen, onClose }: AdminActivityLogProps) {
         return <span className="px-2 py-0.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded">Success</span>;
       case 'error':
         return <span className="px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">Error</span>;
+      case 'warning':
+        return <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded">No Images</span>;
       case 'pending':
         return <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">Pending</span>;
       case 'completed':
@@ -379,6 +384,10 @@ export function AdminActivityLog({ isOpen, onClose }: AdminActivityLogProps) {
             <div className="text-xl font-bold text-red-600 dark:text-red-400">{stats.error}</div>
             <div className="text-xs text-slate-500">Errors</div>
           </div>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3">
+            <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{stats.warning || 0}</div>
+            <div className="text-xs text-slate-500">No Images</div>
+          </div>
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
             <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{stats.pending}</div>
             <div className="text-xs text-slate-500">Pending</div>
@@ -399,12 +408,16 @@ export function AdminActivityLog({ isOpen, onClose }: AdminActivityLogProps) {
               };
               const isError = activity.status === 'error';
 
+              const isWarning = activity.status === 'warning';
+
               return (
                 <div
                   key={activity.id}
                   className={`flex flex-col gap-2 px-4 py-3 rounded-lg border ${
                     isError
                       ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+                      : isWarning
+                      ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800'
                       : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
                   }`}
                 >
@@ -424,9 +437,9 @@ export function AdminActivityLog({ isOpen, onClose }: AdminActivityLogProps) {
                   {/* Second row: Activity details */}
                   {renderActivityDetails(activity)}
 
-                  {/* Error message if present */}
+                  {/* Error/warning message if present */}
                   {(activity.error_code || activity.error_message) && (
-                    <div className="text-xs text-red-600 dark:text-red-400 font-mono">
+                    <div className={`text-xs font-mono ${isWarning ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
                       {activity.error_code && <span className="font-bold">{activity.error_code}: </span>}
                       {activity.error_message}
                     </div>

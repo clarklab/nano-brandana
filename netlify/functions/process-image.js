@@ -812,7 +812,14 @@ exports.handler = async (event) => {
       newTokenBalance = userProfile?.tokens_remaining || null;
     }
 
-    // Log successful job
+    // Determine job status - warning if API worked but no images returned
+    const noImagesReturned = generatedImages.length === 0;
+    const jobStatus = noImagesReturned ? 'warning' : 'success';
+    const warningReason = noImagesReturned && content
+      ? content.substring(0, 500)
+      : (noImagesReturned ? 'Model returned no images' : null);
+
+    // Log job with appropriate status
     if (userId) {
       await logJob({
         userId,
@@ -829,7 +836,9 @@ exports.handler = async (event) => {
         completionTokens,
         totalTokens: tokensUsed,
         elapsedMs: elapsed,
-        status: 'success',
+        status: jobStatus,
+        errorCode: noImagesReturned ? 'NO_IMAGES' : null,
+        errorMessage: warningReason,
         tokensCharged, // 0 for BYO, tokensUsed otherwise
         tokenBalanceBefore: userProfile?.tokens_remaining,
         tokenBalanceAfter: newTokenBalance,

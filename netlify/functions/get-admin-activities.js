@@ -308,6 +308,7 @@ export const handler = async (event, context) => {
       purchases: limitedActivities.filter(a => a.type === 'purchase').length,
       success: limitedActivities.filter(a => a.status === 'success').length,
       error: limitedActivities.filter(a => a.status === 'error').length,
+      warning: limitedActivities.filter(a => a.status === 'warning').length,
       pending: limitedActivities.filter(a => a.status === 'pending').length,
     };
 

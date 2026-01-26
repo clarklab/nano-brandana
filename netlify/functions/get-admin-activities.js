@@ -205,13 +205,14 @@ export const handler = async (event, context) => {
     if (activityType === 'all' || activityType === 'jobs') {
       let jobQuery = adminSupabase
         .from('job_logs')
-        .select('*, profiles!inner(email)')
+        .select('*, profiles(email)')  // Left join - show jobs even without profile
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (userEmail) {
-        jobQuery = jobQuery.ilike('profiles.email', `%${userEmail}%`);
+        // Filter on email only if profile exists
+        jobQuery = jobQuery.or(`profiles.email.ilike.%${userEmail}%,user_id.is.null`);
       }
 
       if (statusFilter !== 'all') {
@@ -249,13 +250,14 @@ export const handler = async (event, context) => {
     if (activityType === 'all' || activityType === 'purchases') {
       let purchaseQuery = adminSupabase
         .from('token_purchases')
-        .select('*, profiles!inner(email)')
+        .select('*, profiles(email)')  // Left join - show purchases even without profile
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (userEmail) {
-        purchaseQuery = purchaseQuery.ilike('profiles.email', `%${userEmail}%`);
+        // Filter on email only if profile exists
+        purchaseQuery = purchaseQuery.or(`profiles.email.ilike.%${userEmail}%,user_id.is.null`);
       }
 
       if (statusFilter !== 'all') {

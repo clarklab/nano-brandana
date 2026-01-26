@@ -43,7 +43,7 @@ function getActualModelId(model: string | undefined, gatewayType: string): strin
 // Helper to log job to Supabase
 async function logJob(supabase: SupabaseClient, params: Record<string, unknown>) {
   try {
-    await supabase.rpc('log_job', {
+    const { data, error } = await supabase.rpc('log_job', {
       p_user_id: params.userId,
       p_request_id: params.requestId || `auto-${Date.now()}`,
       p_mode: params.mode || 'batch',
@@ -65,6 +65,12 @@ async function logJob(supabase: SupabaseClient, params: Record<string, unknown>)
       p_token_balance_after: params.tokenBalanceAfter || null,
       p_batch_id: params.batchId || null,
     });
+
+    if (error) {
+      console.error('Job logging error:', error.message, error.details, error.hint);
+    } else {
+      console.log('Job logged successfully:', data);
+    }
   } catch (err) {
     console.error('Job logging failed:', err);
   }
@@ -170,6 +176,25 @@ export default async function handler(request: Request, _context: Context) {
 
     // Check token balance
     if (!profile || profile.tokens_remaining < 500) {
+      // Log insufficient tokens error
+      await logJob(supabase, {
+        userId,
+        requestId: `insufficient-${Date.now()}`,
+        mode: 'batch',
+        imageSize: '1K',
+        model: 'unknown',
+        imagesSubmitted: 0,
+        instructionLength: 0,
+        totalInputBytes: 0,
+        imagesReturned: 0,
+        elapsedMs: 0,
+        status: 'error',
+        errorCode: '402',
+        errorMessage: 'Insufficient tokens',
+        tokenBalanceBefore: profile?.tokens_remaining || 0,
+        tokenBalanceAfter: profile?.tokens_remaining || 0,
+      });
+
       return new Response(
         JSON.stringify({
           error: 'Insufficient tokens',
@@ -496,6 +521,28 @@ export default async function handler(request: Request, _context: Context) {
 
   } catch (error) {
     console.error('Edge Function error:', error);
+
+    // Log the error to job_logs
+    if (userId) {
+      await logJob(supabase, {
+        userId,
+        requestId: `error-${Date.now()}`,
+        mode: 'batch',
+        imageSize: '1K',
+        model: 'unknown',
+        imagesSubmitted: 0,
+        instructionLength: 0,
+        totalInputBytes: 0,
+        imagesReturned: 0,
+        elapsedMs: 0,
+        status: 'error',
+        errorCode: '500',
+        errorMessage: error instanceof Error ? error.message : 'Internal server error',
+        tokenBalanceBefore: userProfile?.tokens_remaining,
+        tokenBalanceAfter: userProfile?.tokens_remaining,
+      });
+    }
+
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: corsHeaders }

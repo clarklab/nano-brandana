@@ -861,6 +861,28 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Function error:', error);
+
+    // Log the error to job_logs
+    if (userId) {
+      await logJob({
+        userId,
+        requestId: `error-${Date.now()}`,
+        mode: 'batch',
+        imageSize: '1K',
+        model: IMAGE_MODEL_ID,
+        imagesSubmitted: 0,
+        instructionLength: 0,
+        totalInputBytes: 0,
+        imagesReturned: 0,
+        elapsedMs: 0,
+        status: 'error',
+        errorCode: '500',
+        errorMessage: (error?.message || 'Internal server error').substring(0, 500),
+        tokenBalanceBefore: userProfile?.tokens_remaining,
+        tokenBalanceAfter: userProfile?.tokens_remaining,
+      });
+    }
+
     return {
       statusCode: 500,
       headers: securityHeaders,

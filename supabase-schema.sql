@@ -92,7 +92,7 @@ CREATE TABLE public.job_logs (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
 
   -- Job configuration
-  mode TEXT NOT NULL CHECK (mode IN ('batch', 'singleJob')),
+  mode TEXT NOT NULL CHECK (mode IN ('batch', 'singleJob', 'resize')),
   image_size TEXT CHECK (image_size IN ('1K', '2K', '4K')),
   model TEXT,
 

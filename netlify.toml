@@ -33,6 +33,16 @@
   path = "/api/process-image-v2"
   function = "process-image"
 
+# Async job queue - enqueue jobs instantly
+[[edge_functions]]
+  path = "/api/enqueue-job"
+  function = "enqueue-job"
+
+# Async job queue - poll for job status
+[[edge_functions]]
+  path = "/api/job-status"
+  function = "job-status"
+
 # Security headers for all responses
 [[headers]]
   for = "/*"

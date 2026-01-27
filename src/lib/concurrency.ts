@@ -1,4 +1,5 @@
 import pLimit from 'p-limit';
+import { enqueueJob, getJobStatus, EnqueueJobRequest } from './api';
 
 // Base input types - original inputs from user (image or text)
 export type ImageInputItem = { type: 'image'; file: File; id: string; displayName?: string };
@@ -37,6 +38,9 @@ export interface WorkItem {
   startTime?: number;
   endTime?: number;
   expectedImageCount?: number; // Track expected duplicate count
+  // Async job queue fields
+  jobId?: string; // Server-side job ID for async processing
+  requestId?: string; // Client-generated request ID
 }
 
 export interface BatchProcessor {
@@ -329,5 +333,415 @@ export function createBatchProcessor(
     isProcessing() {
       return processing;
     }
+  };
+}
+
+// === Async Batch Processor ===
+// Uses the async job queue to avoid timeout issues
+
+export interface AsyncBatchProcessorOptions {
+  /** Concurrency for enqueue requests (default: 5) */
+  enqueueConcurrency?: number;
+  /** Polling interval in ms (default: 3000) */
+  pollInterval?: number;
+  /** Delay between enqueue requests in ms (default: 200) */
+  staggerDelay?: number;
+  /** Function to convert WorkItem to base64 images */
+  getImagesFromItem: (item: WorkItem) => Promise<string[]>;
+  /** Function to get reference images as base64 */
+  getReferenceImages?: (item: WorkItem) => Promise<string[]>;
+  /** Model to use */
+  model?: string;
+}
+
+export interface AsyncBatchProcessor extends BatchProcessor {
+  /** Get token balance from last enqueue response */
+  getTokensRemaining(): number | null;
+}
+
+/**
+ * Creates a batch processor that uses the async job queue.
+ * Jobs are enqueued instantly and polled for results.
+ */
+export function createAsyncBatchProcessor(
+  options: AsyncBatchProcessorOptions
+): AsyncBatchProcessor {
+  const {
+    enqueueConcurrency = 5,
+    pollInterval = 3000,
+    staggerDelay = 200,
+    getImagesFromItem,
+    getReferenceImages,
+    model,
+  } = options;
+
+  const limit = pLimit(enqueueConcurrency);
+  const items: WorkItem[] = [];
+  let updateCallbacks: ((items: WorkItem[]) => void)[] = [];
+  let processing = false;
+  let abortController: AbortController | null = null;
+  let pollIntervalId: ReturnType<typeof setInterval> | null = null;
+  let tokensRemaining: number | null = null;
+
+  const notifyUpdate = () => {
+    updateCallbacks.forEach(cb => cb([...items]));
+  };
+
+  // Poll all processing jobs for status updates
+  const pollJobs = async () => {
+    const processingItems = items.filter(
+      item => item.status === 'processing' && item.jobId
+    );
+
+    if (processingItems.length === 0) {
+      // No more processing items, stop polling
+      if (pollIntervalId) {
+        clearInterval(pollIntervalId);
+        pollIntervalId = null;
+      }
+
+      // Check if all items are done
+      const allDone = items.every(
+        i => i.status === 'completed' || i.status === 'failed'
+      );
+      if (allDone && items.length > 0) {
+        processing = false;
+        notifyUpdate();
+      }
+      return;
+    }
+
+    // Poll all processing jobs in parallel
+    await Promise.allSettled(
+      processingItems.map(async (item) => {
+        if (!item.jobId || abortController?.signal.aborted) return;
+
+        try {
+          const status = await getJobStatus(item.jobId);
+
+          if (abortController?.signal.aborted) return;
+
+          if (status.status === 'completed') {
+            item.status = 'completed';
+            item.endTime = Date.now();
+            item.result = {
+              images: status.images || [],
+              content: status.content,
+              elapsed: status.elapsed,
+              usage: status.usage,
+            };
+            notifyUpdate();
+          } else if (status.status === 'failed' || status.status === 'timeout') {
+            item.status = 'failed';
+            item.endTime = Date.now();
+            item.error = status.error || 'Job failed';
+            notifyUpdate();
+          }
+          // For 'pending' or 'processing', keep polling
+        } catch (err) {
+          console.error('Poll error for job', item.jobId, err);
+          // Don't fail the item on transient poll errors
+        }
+      })
+    );
+  };
+
+  // Enqueue a single item
+  const enqueueItem = async (item: WorkItem): Promise<void> => {
+    if (abortController?.signal.aborted) return;
+
+    item.status = 'processing';
+    item.startTime = Date.now();
+    notifyUpdate();
+
+    try {
+      // Get images from the work item
+      const images = await getImagesFromItem(item);
+      const referenceImages = getReferenceImages
+        ? await getReferenceImages(item)
+        : [];
+
+      if (abortController?.signal.aborted) return;
+
+      // Build enqueue request
+      const request: EnqueueJobRequest = {
+        instruction: item.instruction,
+        images: images.length > 0 ? images : undefined,
+        referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+        imageSize: item.imageSize,
+        aspectRatio: item.aspectRatio || undefined,
+        mode: 'batch',
+        batchId: item.batchId,
+        model,
+      };
+
+      // Enqueue the job
+      const response = await enqueueJob(request);
+
+      if (abortController?.signal.aborted) return;
+
+      // Store job ID for polling
+      item.jobId = response.jobId;
+      item.requestId = response.requestId;
+      tokensRemaining = response.tokens_remaining;
+
+      console.log('Job enqueued:', {
+        itemId: item.id,
+        jobId: response.jobId,
+        tokensRemaining,
+      });
+
+      notifyUpdate();
+    } catch (err) {
+      if (abortController?.signal.aborted) return;
+
+      item.status = 'failed';
+      item.endTime = Date.now();
+      item.error = err instanceof Error ? err.message : 'Failed to enqueue job';
+      notifyUpdate();
+    }
+  };
+
+  // Process all queued items
+  const processQueue = async () => {
+    if (!processing) return;
+
+    const queuedItems = items.filter(item => item.status === 'queued');
+    if (queuedItems.length === 0) {
+      // No queued items, but might have processing items
+      const hasProcessing = items.some(item => item.status === 'processing');
+      if (!hasProcessing) {
+        processing = false;
+      }
+      return;
+    }
+
+    abortController = new AbortController();
+
+    // Enqueue all items with concurrency limit
+    await Promise.all(
+      queuedItems.map((item, index) =>
+        limit(async () => {
+          if (abortController?.signal.aborted) return;
+
+          // Stagger requests to avoid overwhelming the server
+          if (index > 0 && staggerDelay > 0) {
+            await new Promise(resolve => setTimeout(resolve, index * staggerDelay));
+          }
+
+          if (abortController?.signal.aborted) return;
+
+          await enqueueItem(item);
+        })
+      )
+    );
+
+    // Start polling if not already polling
+    if (!pollIntervalId && !abortController?.signal.aborted) {
+      pollIntervalId = setInterval(pollJobs, pollInterval);
+      // Also poll immediately
+      pollJobs();
+    }
+  };
+
+  return {
+    addItems(newItems) {
+      const itemsToAdd = newItems.map((item, index) => ({
+        ...item,
+        id: `${Date.now()}-${index}`,
+        status: 'queued' as const,
+        retries: 0,
+      }));
+      items.push(...itemsToAdd);
+      notifyUpdate();
+    },
+
+    start() {
+      processing = true;
+      processQueue();
+    },
+
+    stop() {
+      processing = false;
+      abortController?.abort();
+
+      if (pollIntervalId) {
+        clearInterval(pollIntervalId);
+        pollIntervalId = null;
+      }
+
+      // Reset queued and processing items
+      items.forEach(item => {
+        if (item.status === 'processing' || item.status === 'queued') {
+          item.status = 'queued';
+          item.jobId = undefined;
+        }
+      });
+      notifyUpdate();
+    },
+
+    getItems() {
+      return [...items];
+    },
+
+    onUpdate(callback) {
+      updateCallbacks.push(callback);
+      return () => {
+        updateCallbacks = updateCallbacks.filter(cb => cb !== callback);
+      };
+    },
+
+    retryItem(itemId: string) {
+      const item = items.find(i => i.id === itemId);
+      if (item && (item.status === 'failed' || item.status === 'completed')) {
+        console.log('Retrying item:', getInputDisplayName(item.input));
+        item.status = 'queued';
+        item.error = undefined;
+        item.result = undefined;
+        item.startTime = undefined;
+        item.endTime = undefined;
+        item.jobId = undefined;
+        item.retries = (item.retries || 0) + 1;
+        notifyUpdate();
+
+        if (!processing) {
+          processing = true;
+          processQueue();
+        }
+
+        // Restart polling if not polling
+        if (!pollIntervalId) {
+          pollIntervalId = setInterval(pollJobs, pollInterval);
+        }
+      }
+    },
+
+    redoItem(itemId: string): string | null {
+      const item = items.find(i => i.id === itemId);
+      if (item && (item.status === 'failed' || item.status === 'completed')) {
+        const newId = `${Date.now()}-redo-${Math.random().toString(36).substring(2, 7)}`;
+        const newItem: WorkItem = {
+          id: newId,
+          input: item.input,
+          instruction: item.instruction,
+          imageSize: item.imageSize,
+          aspectRatio: item.aspectRatio,
+          customWidth: item.customWidth,
+          customHeight: item.customHeight,
+          batchId: item.batchId,
+          status: 'queued',
+          retries: 0,
+        };
+
+        const originalIndex = items.indexOf(item);
+        items.splice(originalIndex + 1, 0, newItem);
+        notifyUpdate();
+
+        if (!processing) {
+          processing = true;
+          processQueue();
+        }
+
+        if (!pollIntervalId) {
+          pollIntervalId = setInterval(pollJobs, pollInterval);
+        }
+
+        return newId;
+      }
+      return null;
+    },
+
+    createRedoFromItem(sourceItem: WorkItem): string {
+      const newId = `${Date.now()}-redo-${Math.random().toString(36).substring(2, 7)}`;
+      const newItem: WorkItem = {
+        id: newId,
+        input: sourceItem.input,
+        instruction: sourceItem.instruction,
+        imageSize: sourceItem.imageSize,
+        aspectRatio: sourceItem.aspectRatio,
+        customWidth: sourceItem.customWidth,
+        customHeight: sourceItem.customHeight,
+        batchId: sourceItem.batchId,
+        status: 'queued',
+        retries: 0,
+      };
+
+      items.push(newItem);
+      notifyUpdate();
+
+      if (!processing) {
+        processing = true;
+        processQueue();
+      }
+
+      if (!pollIntervalId) {
+        pollIntervalId = setInterval(pollJobs, pollInterval);
+      }
+
+      return newId;
+    },
+
+    createRedoFromItemWithInstruction(sourceItem: WorkItem, instruction: string): string {
+      const newId = `${Date.now()}-redo-${Math.random().toString(36).substring(2, 7)}`;
+      const newItem: WorkItem = {
+        id: newId,
+        input: sourceItem.input,
+        instruction: instruction,
+        imageSize: sourceItem.imageSize,
+        aspectRatio: sourceItem.aspectRatio,
+        customWidth: sourceItem.customWidth,
+        customHeight: sourceItem.customHeight,
+        batchId: sourceItem.batchId,
+        status: 'queued',
+        retries: 0,
+      };
+
+      items.push(newItem);
+      notifyUpdate();
+
+      if (!processing) {
+        processing = true;
+        processQueue();
+      }
+
+      if (!pollIntervalId) {
+        pollIntervalId = setInterval(pollJobs, pollInterval);
+      }
+
+      return newId;
+    },
+
+    replaceAndRedoItem(sourceItem: WorkItem, instruction: string): void {
+      const item = items.find(i => i.id === sourceItem.id);
+      if (item && (item.status === 'failed' || item.status === 'completed')) {
+        item.instruction = instruction;
+        item.status = 'queued';
+        item.error = undefined;
+        item.result = undefined;
+        item.startTime = undefined;
+        item.endTime = undefined;
+        item.jobId = undefined;
+        item.retries = 0;
+
+        notifyUpdate();
+
+        if (!processing) {
+          processing = true;
+          processQueue();
+        }
+
+        if (!pollIntervalId) {
+          pollIntervalId = setInterval(pollJobs, pollInterval);
+        }
+      }
+    },
+
+    isProcessing() {
+      return processing;
+    },
+
+    getTokensRemaining() {
+      return tokensRemaining;
+    },
   };
 }

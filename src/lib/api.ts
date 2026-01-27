@@ -63,6 +63,116 @@ function generateRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+// === Async Job Queue API ===
+
+export interface EnqueueJobRequest {
+  image?: string;
+  images?: string[];
+  referenceImages?: string[];
+  instruction: string;
+  model?: string;
+  imageSize?: '1K' | '2K' | '4K';
+  aspectRatio?: string | null;
+  mode?: 'batch' | 'singleJob';
+  batchId?: string;
+  requestId?: string;
+}
+
+export interface EnqueueJobResponse {
+  jobId: string;
+  requestId: string;
+  status: 'pending';
+  tokens_remaining: number;
+}
+
+export interface JobStatusResponse {
+  jobId: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'timeout';
+  elapsed: number;
+  retryAfter: number;
+  retryCount: number;
+  // Present when completed
+  images?: string[];
+  content?: string;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  // Present when failed/timeout
+  error?: string;
+  errorCode?: string;
+}
+
+export async function enqueueJob(
+  request: EnqueueJobRequest
+): Promise<EnqueueJobResponse> {
+  // Get auth token if Supabase is configured
+  let authToken: string | undefined;
+  if (isSupabaseConfigured) {
+    const { data: { session } } = await supabase.auth.getSession();
+    authToken = session?.access_token;
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch('/api/enqueue-job', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new APIError(
+      error.error || error.message || `HTTP ${response.status}`,
+      response.status,
+      error.details
+    );
+  }
+
+  return response.json();
+}
+
+export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
+  // Get auth token if Supabase is configured
+  let authToken: string | undefined;
+  if (isSupabaseConfigured) {
+    const { data: { session } } = await supabase.auth.getSession();
+    authToken = session?.access_token;
+  }
+
+  const headers: Record<string, string> = {};
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`/api/job-status?jobId=${encodeURIComponent(jobId)}`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new APIError(
+      error.error || `HTTP ${response.status}`,
+      response.status,
+      error.details
+    );
+  }
+
+  return response.json();
+}
+
+// === Synchronous API (legacy) ===
+
 export async function processImage(
   request: ProcessImageRequest
 ): Promise<ProcessImageResponse> {

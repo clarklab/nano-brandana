@@ -10,10 +10,10 @@ import { AuthModal } from './components/AuthModal';
 import { AccountModal } from './components/AccountModal';
 import { RedoModal } from './components/RedoModal';
 import { DownloadModal, DownloadImage } from './components/DownloadModal';
-import { WorkItem, InputItem, BaseInputItem, createBatchProcessor, getInputDisplayName } from './lib/concurrency';
+import { WorkItem, InputItem, BaseInputItem, createAsyncBatchProcessor, getInputDisplayName } from './lib/concurrency';
 import { fileToBase64, resizeImage, base64ToBlob, resizeBase64ToExact } from './lib/base64';
 import { resizeImageLocally } from './lib/imageResize';
-import { processImage, retryWithBackoff, validateImageData, logResizeJob } from './lib/api';
+import { logResizeJob, validateImageData } from './lib/api';
 import { useAuth } from './contexts/AuthContext';
 import { useSounds } from './lib/sounds';
 import { useAnimatedNumber } from './hooks/useAnimatedNumber';
@@ -269,74 +269,30 @@ function App() {
     { duration: 1500, onComplete: tokenAnimation?.isAnimating ? handleAnimationComplete : undefined }
   );
 
-  // Create batch processor with dynamic settings
+  // Create async batch processor with dynamic settings
   const batchProcessor = React.useMemo(() => {
     const concurrency = getConcurrencyLimit(inputs.length);
     const staggerDelay = getStaggerDelay(inputs.length);
 
-    console.log('Creating batch processor:', {
+    console.log('Creating async batch processor:', {
       inputCount: inputs.length,
       concurrency,
       staggerDelay
     });
 
-    return createBatchProcessor(async (item: WorkItem) => {
-      try {
-        // Handle resize-only jobs (local processing, no API call)
-        if (item.resizeOnly && item.input.type === 'image') {
-          const startTime = Date.now();
-          const inputName = getInputDisplayName(item.input);
-          console.log('Local resize for:', inputName, 'with imageSize:', item.imageSize, 'aspectRatio:', item.aspectRatio);
+    return createAsyncBatchProcessor({
+      enqueueConcurrency: concurrency,
+      staggerDelay,
+      model: currentModel,
 
-          try {
-            const result = await resizeImageLocally(item.input.file, {
-              imageSize: item.imageSize,
-              aspectRatio: item.aspectRatio,
-              customWidth: item.customWidth,
-              customHeight: item.customHeight,
-            });
-
-            const elapsed = Date.now() - startTime;
-            console.log('Local resize completed for:', inputName, 'in', elapsed, 'ms');
-
-            item.status = 'completed';
-            item.result = {
-              images: [result.base64],
-              elapsed,
-              usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-              imageSize: item.imageSize || '1K',
-            };
-            item.endTime = Date.now();
-
-            // Log to database (fire and forget)
-            logResizeJob({
-              batchId: item.batchId,
-              imageSize: item.imageSize,
-              imagesCount: 1,
-              elapsedMs: elapsed,
-              aspectRatio: item.aspectRatio,
-              customWidth: item.customWidth,
-              customHeight: item.customHeight,
-            });
-
-            return item;
-          } catch (err) {
-            console.error('Local resize failed for:', inputName, err);
-            item.status = 'failed';
-            item.error = err instanceof Error ? err.message : 'Resize failed';
-            item.endTime = Date.now();
-            return item;
-          }
-        }
-
-        let base64: string | undefined;
-        let base64Array: string[] | undefined;
+      // Convert WorkItem to base64 images for the API
+      getImagesFromItem: async (item: WorkItem): Promise<string[]> => {
         const inputId = item.input.id;
 
         // Handle composite inputs (Single Job mode)
         if (item.input.type === 'composite') {
           const imageItems = item.input.items.filter(i => i.type === 'image') as { type: 'image'; file: File; id: string }[];
-          base64Array = [];
+          const base64Array: string[] = [];
 
           for (const imgItem of imageItems) {
             let imgBase64 = inputToBase64Map.get(imgItem.id);
@@ -359,11 +315,12 @@ function App() {
             }
             base64Array.push(imgBase64);
           }
+          return base64Array;
         }
+
         // Handle single image inputs
-        else if (item.input.type === 'image') {
-          // Get or create base64 for file
-          base64 = inputToBase64Map.get(inputId);
+        if (item.input.type === 'image') {
+          let base64 = inputToBase64Map.get(inputId);
           if (!base64) {
             base64 = await fileToBase64(item.input.file);
 
@@ -381,129 +338,120 @@ function App() {
 
             setInputToBase64Map(prev => new Map(prev).set(inputId, base64!));
           }
+          return [base64];
         }
-        // For text inputs, both base64 and base64Array remain undefined
 
-        // Fetch and convert reference images if present
-        let referenceImages: string[] | undefined;
-        if (item.referenceImageUrls && item.referenceImageUrls.length > 0) {
-          referenceImages = [];
-          for (const url of item.referenceImageUrls) {
-            try {
-              // Fetch the image from the URL
-              const response = await fetch(url);
-              const blob = await response.blob();
+        // Text inputs have no images
+        return [];
+      },
 
-              // Convert blob to base64
-              const base64Ref = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              });
+      // Fetch and convert reference images
+      getReferenceImages: async (item: WorkItem): Promise<string[]> => {
+        if (!item.referenceImageUrls || item.referenceImageUrls.length === 0) {
+          return [];
+        }
 
-              referenceImages.push(base64Ref);
-            } catch (err) {
-              console.error('Failed to fetch reference image:', url, err);
-              // Continue without this reference image rather than failing
-            }
+        const referenceImages: string[] = [];
+        for (const url of item.referenceImageUrls) {
+          try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const base64Ref = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            referenceImages.push(base64Ref);
+          } catch (err) {
+            console.error('Failed to fetch reference image:', url, err);
           }
         }
+        return referenceImages;
+      },
 
+      // Handle resize-only jobs locally (no API call needed)
+      processLocally: async (item: WorkItem): Promise<WorkItem> => {
+        if (!item.resizeOnly || item.input.type !== 'image') {
+          throw new Error('Item cannot be processed locally');
+        }
+
+        const startTime = Date.now();
         const inputName = getInputDisplayName(item.input);
-        console.log('Starting API call for:', inputName, 'with imageSize:', item.imageSize, 'aspectRatio:', item.aspectRatio, 'images:', base64Array?.length || (base64 ? 1 : 0), 'reference images:', referenceImages?.length || 0);
-        const result = await retryWithBackoff(
-          () => processImage({
-            image: base64, // undefined for text-only or composite
-            images: base64Array, // array for composite (Single Job mode)
-            referenceImages, // Reference images from presets
-            instruction: item.instruction,
-            model: currentModel,
-            imageSize: item.imageSize || '1K',
-            aspectRatio: item.aspectRatio,
-            mode: item.input.type === 'composite' ? 'singleJob' : 'batch',
-            batchId: item.batchId,
-          }),
-          3, // maxRetries
-          1000, // initialDelay
-          (result) => {
-            // Validator function - check if result has valid images
-            if (!result.images || result.images.length === 0) {
-              console.error('No images in result for:', inputName);
-              return false;
-            }
+        console.log('Local resize for:', inputName, 'with imageSize:', item.imageSize, 'aspectRatio:', item.aspectRatio);
 
-            const invalidImages = result.images.filter(img => !validateImageData(img));
-            if (invalidImages.length > 0) {
-              console.error('Invalid images detected for:', inputName, invalidImages.length, 'out of', result.images.length);
-              return false;
-            }
+        const result = await resizeImageLocally(item.input.file, {
+          imageSize: item.imageSize,
+          aspectRatio: item.aspectRatio,
+          customWidth: item.customWidth,
+          customHeight: item.customHeight,
+        });
 
-            // Check if we got the expected number of duplicates
-            const duplicateMatch = item.instruction.match(/Generate (\d+) variations/);
-            if (duplicateMatch) {
-              const expectedCount = parseInt(duplicateMatch[1]);
-              if (result.images.length < expectedCount) {
-                console.warn(`Expected ${expectedCount} variations but got ${result.images.length} for:`, inputName);
-                // Allow partial results but log the discrepancy
-                // We don't fail validation to avoid endless retries
-              }
-            }
+        const elapsed = Date.now() - startTime;
+        console.log('Local resize completed for:', inputName, 'in', elapsed, 'ms');
 
-            console.log('Image validation passed for:', inputName, result.images.length, 'valid images');
-            return true;
-          }
-        );
-        console.log('API call completed for:', inputName, result);
+        item.status = 'completed';
+        item.result = {
+          images: [result.base64],
+          elapsed,
+          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+          imageSize: item.imageSize || '1K',
+        };
+        item.endTime = Date.now();
 
-        // If custom dimensions were specified, resize images to exact size
-        if (item.customWidth && item.customHeight && result.images && result.images.length > 0) {
+        // Log to database (fire and forget)
+        logResizeJob({
+          batchId: item.batchId,
+          imageSize: item.imageSize,
+          imagesCount: 1,
+          elapsedMs: elapsed,
+          aspectRatio: item.aspectRatio,
+          customWidth: item.customWidth,
+          customHeight: item.customHeight,
+        });
+
+        return item;
+      },
+
+      // Handle job completion (update token counts, apply custom resize)
+      onJobComplete: async (item: WorkItem, tokensRemaining: number | null) => {
+        const inputName = getInputDisplayName(item.input);
+        console.log('Job completed:', inputName);
+
+        // Apply custom dimensions resize if specified
+        if (item.customWidth && item.customHeight && item.result?.images && item.result.images.length > 0) {
           console.log('Resizing images to custom size:', item.customWidth, 'x', item.customHeight);
           try {
             const resizedImages = await Promise.all(
-              result.images.map(img => resizeBase64ToExact(img, item.customWidth!, item.customHeight!))
+              item.result.images.map(img => resizeBase64ToExact(img, item.customWidth!, item.customHeight!))
             );
-            result.images = resizedImages;
+            item.result.images = resizedImages;
             console.log('Images resized successfully');
           } catch (resizeError) {
             console.error('Failed to resize images:', resizeError);
-            // Continue with original images if resize fails
           }
         }
 
-        item.status = 'completed';
-        item.result = result;
-        item.endTime = Date.now();
-
-        console.log('Completing item:', { inputName, status: item.status });
-
-        // Update totals - sum input + output tokens for accurate billing
+        // Update token totals
         try {
-          if (result.usage) {
-            const promptTokens = result.usage.prompt_tokens || 0;
-            const completionTokens = result.usage.completion_tokens || 0;
-            const totalTokens = result.usage.total_tokens || (promptTokens + completionTokens);
+          if (item.result?.usage) {
+            const promptTokens = item.result.usage.prompt_tokens || 0;
+            const completionTokens = item.result.usage.completion_tokens || 0;
+            const totalTokens = item.result.usage.total_tokens || (promptTokens + completionTokens);
             if (totalTokens > 0) {
               setTotalTokens(prev => prev + totalTokens);
             }
-          }
-          // Update token balance in real-time if returned from API
-          if (typeof result.tokens_remaining === 'number') {
-            updateTokenBalanceRef.current(result.tokens_remaining);
           }
         } catch (e) {
           // Ignore token counting errors
         }
 
-        return item;
-      } catch (error) {
-        item.status = 'failed';
-        item.error = error instanceof Error ? error.message : 'Unknown error';
-        item.endTime = Date.now();
-        item.retries = (item.retries || 0) + 1;
-        return item;
-      }
-    }, concurrency, staggerDelay);
+        // Update token balance from enqueue response
+        if (typeof tokensRemaining === 'number') {
+          updateTokenBalanceRef.current(tokensRemaining);
+        }
+      },
+    });
   }, [currentModel, inputToBase64Map, inputs.length]);
 
   const handleRedoItem = useCallback((itemId: string) => {

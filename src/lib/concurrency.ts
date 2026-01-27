@@ -352,6 +352,10 @@ export interface AsyncBatchProcessorOptions {
   getReferenceImages?: (item: WorkItem) => Promise<string[]>;
   /** Model to use */
   model?: string;
+  /** Optional local processor for items that should be handled client-side (e.g., resize-only) */
+  processLocally?: (item: WorkItem) => Promise<WorkItem>;
+  /** Callback when a job completes (for updating token balance, etc.) */
+  onJobComplete?: (item: WorkItem, tokensRemaining: number | null) => void;
 }
 
 export interface AsyncBatchProcessor extends BatchProcessor {
@@ -373,6 +377,8 @@ export function createAsyncBatchProcessor(
     getImagesFromItem,
     getReferenceImages,
     model,
+    processLocally,
+    onJobComplete,
   } = options;
 
   const limit = pLimit(enqueueConcurrency);
@@ -431,6 +437,7 @@ export function createAsyncBatchProcessor(
               usage: status.usage,
             };
             notifyUpdate();
+            onJobComplete?.(item, tokensRemaining);
           } else if (status.status === 'failed' || status.status === 'timeout') {
             item.status = 'failed';
             item.endTime = Date.now();
@@ -446,13 +453,32 @@ export function createAsyncBatchProcessor(
     );
   };
 
-  // Enqueue a single item
+  // Enqueue a single item (or process locally if applicable)
   const enqueueItem = async (item: WorkItem): Promise<void> => {
     if (abortController?.signal.aborted) return;
 
     item.status = 'processing';
     item.startTime = Date.now();
     notifyUpdate();
+
+    // Check if this item should be processed locally (e.g., resize-only)
+    if (processLocally && item.resizeOnly) {
+      try {
+        const result = await processLocally(item);
+        if (abortController?.signal.aborted) return;
+        Object.assign(item, result);
+        notifyUpdate();
+        onJobComplete?.(item, tokensRemaining);
+        return;
+      } catch (err) {
+        if (abortController?.signal.aborted) return;
+        item.status = 'failed';
+        item.endTime = Date.now();
+        item.error = err instanceof Error ? err.message : 'Local processing failed';
+        notifyUpdate();
+        return;
+      }
+    }
 
     try {
       // Get images from the work item

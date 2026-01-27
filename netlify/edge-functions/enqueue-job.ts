@@ -20,9 +20,12 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 
   if (origin) {
+    const siteUrl = Deno.env.get('URL') || '';
     const isAllowed = origin.includes('netlify.app') ||
                       origin.includes('localhost') ||
-                      origin === Deno.env.get('URL');
+                      origin.includes('peel.diy') ||  // Custom domain
+                      origin === siteUrl ||
+                      siteUrl.includes(origin.replace(/^https?:\/\//, ''));
     if (isAllowed) {
       headers['Access-Control-Allow-Origin'] = origin;
       headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';

@@ -112,6 +112,8 @@ function App() {
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [totalTokens, setTotalTokens] = useState(0);
   const [inputToBase64Map, setInputToBase64Map] = useState<Map<string, string>>(new Map());
+  // Ref version for useMemo callbacks (avoids recreating processor on map updates)
+  const inputToBase64MapRef = useRef<Map<string, string>>(new Map());
   const [loadingInputIds, setLoadingInputIds] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -295,7 +297,8 @@ function App() {
           const base64Array: string[] = [];
 
           for (const imgItem of imageItems) {
-            let imgBase64 = inputToBase64Map.get(imgItem.id);
+            // Use ref for reading to avoid stale closures
+            let imgBase64 = inputToBase64MapRef.current.get(imgItem.id);
             if (!imgBase64) {
               imgBase64 = await fileToBase64(imgItem.file);
 
@@ -311,6 +314,8 @@ function App() {
                 imgBase64 = await resizeImage(imgItem.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
               }
 
+              // Update both ref and state
+              inputToBase64MapRef.current.set(imgItem.id, imgBase64!);
               setInputToBase64Map(prev => new Map(prev).set(imgItem.id, imgBase64!));
             }
             base64Array.push(imgBase64);
@@ -320,7 +325,8 @@ function App() {
 
         // Handle single image inputs
         if (item.input.type === 'image') {
-          let base64 = inputToBase64Map.get(inputId);
+          // Use ref for reading to avoid stale closures
+          let base64 = inputToBase64MapRef.current.get(inputId);
           if (!base64) {
             base64 = await fileToBase64(item.input.file);
 
@@ -336,6 +342,8 @@ function App() {
               base64 = await resizeImage(item.input.file, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION);
             }
 
+            // Update both ref and state
+            inputToBase64MapRef.current.set(inputId, base64!);
             setInputToBase64Map(prev => new Map(prev).set(inputId, base64!));
           }
           return [base64];
@@ -452,7 +460,7 @@ function App() {
         }
       },
     });
-  }, [currentModel, inputToBase64Map, inputs.length]);
+  }, [currentModel, inputs.length]); // Note: inputToBase64MapRef used instead of state to avoid recreation
 
   const handleRedoItem = useCallback((itemId: string) => {
     console.log('Redo requested for item:', itemId);

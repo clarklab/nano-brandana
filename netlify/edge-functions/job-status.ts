@@ -15,9 +15,12 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 
   if (origin) {
+    const siteUrl = Deno.env.get('URL') || '';
     const isAllowed = origin.includes('netlify.app') ||
                       origin.includes('localhost') ||
-                      origin === Deno.env.get('URL');
+                      origin.includes('peel.diy') ||  // Custom domain
+                      origin === siteUrl ||
+                      siteUrl.includes(origin.replace(/^https?:\/\//, ''));
     if (isAllowed) {
       headers['Access-Control-Allow-Origin'] = origin;
       headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
@@ -164,8 +167,9 @@ export default async function handler(request: Request, _context: Context) {
 
   } catch (error) {
     console.error('Job status error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: errorMessage }),
       { status: 500, headers: corsHeaders }
     );
   }

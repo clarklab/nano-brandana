@@ -372,12 +372,60 @@ export default async function handler(request: Request, _context: Context) {
       };
     }
 
-    // Call AI Gateway - NO TIMEOUT in Edge Functions!
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: requestHeaders,
-      body: JSON.stringify(requestBody),
-    });
+    // Call AI Gateway with our own timeout (30s) to gracefully handle slow responses
+    // before Netlify's platform timeout (~36s) kills the function
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+
+      // Handle our timeout (before Netlify kills us)
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        const timeoutElapsed = Date.now() - startTime;
+        console.error('AI Gateway timeout after', timeoutElapsed, 'ms');
+
+        // Log timeout error (fire-and-forget to avoid blocking)
+        logJob(supabase, {
+          userId,
+          requestId,
+          batchId,
+          mode,
+          imageSize,
+          model,
+          imagesSubmitted: allImages.length,
+          instructionLength: instruction.length,
+          totalInputBytes: allImages.reduce((sum, img) => sum + img.length, 0),
+          imagesReturned: 0,
+          elapsedMs: timeoutElapsed,
+          status: 'error',
+          errorCode: 'TIMEOUT',
+          errorMessage: 'AI Gateway request timed out after 30 seconds',
+          tokenBalanceBefore: userProfile?.tokens_remaining,
+          tokenBalanceAfter: userProfile?.tokens_remaining,
+        }).catch(() => {}); // Ignore logging errors
+
+        return new Response(
+          JSON.stringify({
+            error: 'Request timed out. The AI service is busy - please retry.',
+            retryable: true,
+          }),
+          { status: 504, headers: corsHeaders }
+        );
+      }
+
+      // Re-throw other fetch errors
+      throw fetchError;
+    }
 
     console.log('AI Gateway response:', {
       status: response.status,

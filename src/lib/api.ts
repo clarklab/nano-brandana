@@ -171,6 +171,66 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
   return response.json();
 }
 
+// Batch job status response (keyed by jobId)
+export interface BatchJobStatusResponse {
+  jobs: Record<string, {
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'timeout' | 'not_found';
+    elapsed?: number;
+    retryCount?: number;
+    images?: string[];
+    content?: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+    error?: string;
+    errorCode?: string;
+  }>;
+}
+
+/**
+ * Get status of multiple jobs in one request.
+ * Much more efficient than polling each job individually.
+ */
+export async function getJobsStatus(jobIds: string[]): Promise<BatchJobStatusResponse> {
+  if (jobIds.length === 0) {
+    return { jobs: {} };
+  }
+
+  // Get auth token if Supabase is configured
+  let authToken: string | undefined;
+  if (isSupabaseConfigured) {
+    const { data: { session } } = await supabase.auth.getSession();
+    authToken = session?.access_token;
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch('/api/jobs-status', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ jobIds }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new APIError(
+      error.error || `HTTP ${response.status}`,
+      response.status,
+      error.details
+    );
+  }
+
+  return response.json();
+}
+
 // === Synchronous API (legacy) ===
 
 export async function processImage(

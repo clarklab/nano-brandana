@@ -1,5 +1,5 @@
 import pLimit from 'p-limit';
-import { enqueueJob, getJobStatus, EnqueueJobRequest } from './api';
+import { enqueueJob, getJobsStatus, EnqueueJobRequest } from './api';
 
 // Base input types - original inputs from user (image or text)
 export type ImageInputItem = { type: 'image'; file: File; id: string; displayName?: string };
@@ -393,7 +393,7 @@ export function createAsyncBatchProcessor(
     updateCallbacks.forEach(cb => cb([...items]));
   };
 
-  // Poll all processing jobs for status updates
+  // Poll all processing jobs for status updates (batch)
   const pollJobs = async () => {
     const processingItems = items.filter(
       item => item.status === 'processing' && item.jobId
@@ -417,40 +417,57 @@ export function createAsyncBatchProcessor(
       return;
     }
 
-    // Poll all processing jobs in parallel
-    await Promise.allSettled(
-      processingItems.map(async (item) => {
-        if (!item.jobId || abortController?.signal.aborted) return;
+    if (abortController?.signal.aborted) return;
 
-        try {
-          const status = await getJobStatus(item.jobId);
+    // Collect all job IDs to poll in one request
+    const jobIds = processingItems
+      .map(item => item.jobId)
+      .filter((id): id is string => !!id);
 
-          if (abortController?.signal.aborted) return;
+    if (jobIds.length === 0) return;
 
-          if (status.status === 'completed') {
-            item.status = 'completed';
-            item.endTime = Date.now();
-            item.result = {
-              images: status.images || [],
-              content: status.content,
-              elapsed: status.elapsed,
-              usage: status.usage,
-            };
-            notifyUpdate();
-            onJobComplete?.(item, tokensRemaining);
-          } else if (status.status === 'failed' || status.status === 'timeout') {
-            item.status = 'failed';
-            item.endTime = Date.now();
-            item.error = status.error || 'Job failed';
-            notifyUpdate();
-          }
-          // For 'pending' or 'processing', keep polling
-        } catch (err) {
-          console.error('Poll error for job', item.jobId, err);
-          // Don't fail the item on transient poll errors
+    try {
+      // Single batch request for all jobs
+      const batchStatus = await getJobsStatus(jobIds);
+
+      if (abortController?.signal.aborted) return;
+
+      let needsUpdate = false;
+
+      // Update each item based on batch response
+      for (const item of processingItems) {
+        if (!item.jobId) continue;
+
+        const status = batchStatus.jobs[item.jobId];
+        if (!status) continue;
+
+        if (status.status === 'completed') {
+          item.status = 'completed';
+          item.endTime = Date.now();
+          item.result = {
+            images: status.images || [],
+            content: status.content,
+            elapsed: status.elapsed || 0,
+            usage: status.usage,
+          };
+          needsUpdate = true;
+          onJobComplete?.(item, tokensRemaining);
+        } else if (status.status === 'failed' || status.status === 'timeout') {
+          item.status = 'failed';
+          item.endTime = Date.now();
+          item.error = status.error || 'Job failed';
+          needsUpdate = true;
         }
-      })
-    );
+        // For 'pending' or 'processing', keep polling
+      }
+
+      if (needsUpdate) {
+        notifyUpdate();
+      }
+    } catch (err) {
+      console.error('Batch poll error:', err);
+      // Don't fail items on transient poll errors
+    }
   };
 
   // Enqueue a single item (or process locally if applicable)

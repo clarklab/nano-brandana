@@ -63,6 +63,36 @@ function generateRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+// === Auth Token Cache ===
+// Cache the auth token to avoid repeated getSession() calls during polling
+
+let cachedAuthToken: string | null = null;
+let tokenExpiry: number = 0;
+
+async function getCachedAuthToken(): Promise<string | undefined> {
+  const now = Date.now();
+
+  // Return cached token if still valid (5 minute cache)
+  if (cachedAuthToken && tokenExpiry > now) {
+    return cachedAuthToken;
+  }
+
+  // Refresh token
+  if (isSupabaseConfigured) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      cachedAuthToken = session.access_token;
+      tokenExpiry = now + 5 * 60 * 1000; // Cache for 5 minutes
+      return cachedAuthToken;
+    }
+  }
+
+  // No token available
+  cachedAuthToken = null;
+  tokenExpiry = 0;
+  return undefined;
+}
+
 // === Async Job Queue API ===
 
 export interface EnqueueJobRequest {
@@ -141,12 +171,8 @@ export async function enqueueJob(
 }
 
 export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
-  // Get auth token if Supabase is configured
-  let authToken: string | undefined;
-  if (isSupabaseConfigured) {
-    const { data: { session } } = await supabase.auth.getSession();
-    authToken = session?.access_token;
-  }
+  // Use cached auth token (avoids repeated getSession calls during polling)
+  const authToken = await getCachedAuthToken();
 
   const headers: Record<string, string> = {};
 
@@ -157,66 +183,6 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
   const response = await fetch(`/api/job-status?jobId=${encodeURIComponent(jobId)}`, {
     method: 'GET',
     headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new APIError(
-      error.error || `HTTP ${response.status}`,
-      response.status,
-      error.details
-    );
-  }
-
-  return response.json();
-}
-
-// Batch job status response (keyed by jobId)
-export interface BatchJobStatusResponse {
-  jobs: Record<string, {
-    status: 'pending' | 'processing' | 'completed' | 'failed' | 'timeout' | 'not_found';
-    elapsed?: number;
-    retryCount?: number;
-    images?: string[];
-    content?: string;
-    usage?: {
-      prompt_tokens?: number;
-      completion_tokens?: number;
-      total_tokens?: number;
-    };
-    error?: string;
-    errorCode?: string;
-  }>;
-}
-
-/**
- * Get status of multiple jobs in one request.
- * Much more efficient than polling each job individually.
- */
-export async function getJobsStatus(jobIds: string[]): Promise<BatchJobStatusResponse> {
-  if (jobIds.length === 0) {
-    return { jobs: {} };
-  }
-
-  // Get auth token if Supabase is configured
-  let authToken: string | undefined;
-  if (isSupabaseConfigured) {
-    const { data: { session } } = await supabase.auth.getSession();
-    authToken = session?.access_token;
-  }
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
-
-  const response = await fetch('/api/jobs-status', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ jobIds }),
   });
 
   if (!response.ok) {

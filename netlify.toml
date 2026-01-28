@@ -38,15 +38,10 @@
   path = "/api/enqueue-job"
   function = "enqueue-job"
 
-# Async job queue - poll for job status (single)
+# Async job queue - poll for job status
 [[edge_functions]]
   path = "/api/job-status"
   function = "job-status"
-
-# Async job queue - poll for multiple job statuses (batch)
-[[edge_functions]]
-  path = "/api/jobs-status"
-  function = "jobs-status"
 
 # Security headers for all responses
 [[headers]]

@@ -1,5 +1,5 @@
 import pLimit from 'p-limit';
-import { enqueueJob, getJobsStatus, EnqueueJobRequest } from './api';
+import { enqueueJob, getJobStatus, getJobsStatus, EnqueueJobRequest } from './api';
 
 // Base input types - original inputs from user (image or text)
 export type ImageInputItem = { type: 'image'; file: File; id: string; displayName?: string };
@@ -393,7 +393,50 @@ export function createAsyncBatchProcessor(
     updateCallbacks.forEach(cb => cb([...items]));
   };
 
-  // Poll all processing jobs for status updates (batch)
+  // Track batch failures for fallback logic
+  let batchFailCount = 0;
+  const MAX_BATCH_FAILS = 2;
+
+  // Individual polling fallback (throttled to 3 concurrent)
+  const pollLimit = pLimit(3);
+
+  const pollJobsIndividual = async (processingItems: WorkItem[]) => {
+    await Promise.allSettled(
+      processingItems.map((item) =>
+        pollLimit(async () => {
+          if (!item.jobId || abortController?.signal.aborted) return;
+
+          try {
+            const status = await getJobStatus(item.jobId);
+
+            if (abortController?.signal.aborted) return;
+
+            if (status.status === 'completed') {
+              item.status = 'completed';
+              item.endTime = Date.now();
+              item.result = {
+                images: status.images || [],
+                content: status.content,
+                elapsed: status.elapsed,
+                usage: status.usage,
+              };
+              notifyUpdate();
+              onJobComplete?.(item, tokensRemaining);
+            } else if (status.status === 'failed' || status.status === 'timeout') {
+              item.status = 'failed';
+              item.endTime = Date.now();
+              item.error = status.error || 'Job failed';
+              notifyUpdate();
+            }
+          } catch (err) {
+            console.error('Individual poll error for job', item.jobId, err);
+          }
+        })
+      )
+    );
+  };
+
+  // Poll all processing jobs for status updates (batch with fallback)
   const pollJobs = async () => {
     const processingItems = items.filter(
       item => item.status === 'processing' && item.jobId
@@ -426,11 +469,21 @@ export function createAsyncBatchProcessor(
 
     if (jobIds.length === 0) return;
 
+    // If batch has failed too many times, use individual polling
+    if (batchFailCount >= MAX_BATCH_FAILS) {
+      console.log('Batch polling failed, using individual polling fallback');
+      await pollJobsIndividual(processingItems);
+      return;
+    }
+
     try {
       // Single batch request for all jobs
       const batchStatus = await getJobsStatus(jobIds);
 
       if (abortController?.signal.aborted) return;
+
+      // Reset fail count on success
+      batchFailCount = 0;
 
       let needsUpdate = false;
 
@@ -466,7 +519,13 @@ export function createAsyncBatchProcessor(
       }
     } catch (err) {
       console.error('Batch poll error:', err);
-      // Don't fail items on transient poll errors
+      batchFailCount++;
+
+      // On failure, immediately try individual polling this cycle
+      if (batchFailCount <= MAX_BATCH_FAILS) {
+        console.log(`Batch failed (${batchFailCount}/${MAX_BATCH_FAILS}), trying individual polling`);
+        await pollJobsIndividual(processingItems);
+      }
     }
   };
 

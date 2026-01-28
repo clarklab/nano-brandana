@@ -112,6 +112,7 @@ export default async function handler(request: Request, _context: Context) {
 
   try {
     // Fetch all jobs in one query
+    console.log('Fetching jobs:', { userId, jobCount: jobIds.length });
     const { data: jobs, error: fetchError } = await supabase
       .from('pending_jobs')
       .select('id, status, result_images, result_content, usage, error_code, error_message, created_at, started_at, completed_at, retry_count')
@@ -119,12 +120,22 @@ export default async function handler(request: Request, _context: Context) {
       .in('id', jobIds);
 
     if (fetchError) {
-      console.error('Batch job fetch error:', fetchError);
+      console.error('Batch job fetch error:', {
+        code: fetchError.code,
+        message: fetchError.message,
+        details: fetchError.details,
+        hint: fetchError.hint,
+      });
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch jobs' }),
+        JSON.stringify({
+          error: 'Failed to fetch jobs',
+          code: fetchError.code,
+          details: fetchError.message,
+        }),
         { status: 500, headers: corsHeaders }
       );
     }
+    console.log('Fetched jobs:', { found: jobs?.length || 0 });
 
     const now = Date.now();
     const results: Record<string, unknown> = {};

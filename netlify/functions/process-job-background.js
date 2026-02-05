@@ -19,6 +19,12 @@ const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gatew
 const IMAGE_MODEL_ID = process.env.IMAGE_MODEL_ID || 'google/gemini-3-pro-image';
 const GOOGLE_DIRECT_KEY = process.env.GOOGLE_DIRECT_API_KEY || process.env.GEMINI_API_KEY;
 
+// Netlify AI Gateway key (auto-injected by Netlify platform)
+const NETLIFY_GEMINI_KEY = process.env.GOOGLE_API_KEY ||
+                           process.env.GEMINI_API_KEY ||
+                           process.env.GOOGLE_GEMINI_API_KEY ||
+                           process.env.NETLIFY_AI_API_KEY;
+
 // Create Supabase admin client
 const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -129,9 +135,11 @@ async function processJob(job) {
 
   let endpoint, requestHeaders, requestBody;
 
-  if (gatewayType === 'byo' || gatewayType === 'direct') {
-    // Google GenAI format
-    const apiKey = gatewayType === 'byo' ? userByoKey : GOOGLE_DIRECT_KEY;
+  if (gatewayType === 'byo' || gatewayType === 'direct' || gatewayType === 'netlify') {
+    // Google GenAI format (BYO, Direct, and Netlify all use Google's native API)
+    const apiKey = gatewayType === 'byo' ? userByoKey :
+                   gatewayType === 'netlify' ? NETLIFY_GEMINI_KEY :
+                   GOOGLE_DIRECT_KEY;
     endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent`;
     requestHeaders = {
       'x-goog-api-key': apiKey,
@@ -244,7 +252,7 @@ async function processJob(job) {
     let promptTokens = 0;
     let completionTokens = 0;
 
-    if (gatewayType === 'byo' || gatewayType === 'direct') {
+    if (gatewayType === 'byo' || gatewayType === 'direct' || gatewayType === 'netlify') {
       // Google GenAI response format
       for (const part of result.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {

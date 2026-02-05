@@ -7,7 +7,7 @@ import { DEFAULT_HOURLY_RATE } from '../lib/supabase';
 interface ResultCardProps {
   item: WorkItem;
   originalImage: string;
-  onOpenLightbox?: (images: string[], index: number, title: string) => void;
+  onOpenLightbox?: (itemId: string, imageIndexWithinItem: number) => void;
   onRetry?: (itemId: string) => void;
   hourlyRate?: number | null; // User's hourly rate for money saved calculation
 }
@@ -162,7 +162,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
               className="w-full h-full object-contain cursor-pointer"
               onClick={() => {
                 if (onOpenLightbox && item.result?.images && !showOriginal) {
-                  onOpenLightbox(item.result.images, selectedImageIndex, displayName);
+                  onOpenLightbox(item.id, selectedImageIndex);
                 }
               }}
               onError={(e) => {
@@ -210,7 +210,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
             <button
               onClick={() => {
                 if (onOpenLightbox && item.result?.images) {
-                  onOpenLightbox(item.result.images, selectedImageIndex, displayName);
+                  onOpenLightbox(item.id, selectedImageIndex);
                 }
               }}
               className="btn-secondary p-2"

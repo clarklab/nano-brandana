@@ -14,6 +14,8 @@ interface LightboxProps {
   onRedo?: (itemId: string) => void;
   // Map image index to work item ID for redo
   imageToItemId?: Map<number, string>;
+  // Called when user navigates to a different image (for stable tracking)
+  onIndexChange?: (newIndex: number) => void;
 }
 
 export const Lightbox: React.FC<LightboxProps> = ({
@@ -27,6 +29,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
   onCopy,
   onRedo,
   imageToItemId,
+  onIndexChange,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -171,12 +174,20 @@ export const Lightbox: React.FC<LightboxProps> = ({
   };
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex(prev => prev > 0 ? prev - 1 : images.length - 1);
-  }, [images.length]);
+    setCurrentIndex(prev => {
+      const newIndex = prev > 0 ? prev - 1 : images.length - 1;
+      onIndexChange?.(newIndex);
+      return newIndex;
+    });
+  }, [images.length, onIndexChange]);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex(prev => prev < images.length - 1 ? prev + 1 : 0);
-  }, [images.length]);
+    setCurrentIndex(prev => {
+      const newIndex = prev < images.length - 1 ? prev + 1 : 0;
+      onIndexChange?.(newIndex);
+      return newIndex;
+    });
+  }, [images.length, onIndexChange]);
 
   const handleClose = useCallback(() => {
     setIsAnimating(false);
@@ -244,7 +255,9 @@ export const Lightbox: React.FC<LightboxProps> = ({
           {newImagesCount > 0 && (
             <button
               onClick={() => {
-                setCurrentIndex(images.length - 1);
+                const newIndex = images.length - 1;
+                setCurrentIndex(newIndex);
+                onIndexChange?.(newIndex);
                 setNewImagesCount(0);
               }}
               className="badge bg-neon text-slate-900 font-medium animate-pulse cursor-pointer hover:bg-amber-400 transition-colors"
@@ -332,7 +345,10 @@ export const Lightbox: React.FC<LightboxProps> = ({
           {images.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIndex(index)}
+              onClick={() => {
+                setCurrentIndex(index);
+                onIndexChange?.(index);
+              }}
               className={`w-2 h-2 rounded-full transition-all ${
                 index === currentIndex
                   ? 'bg-neon w-6'

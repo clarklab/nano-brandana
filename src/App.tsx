@@ -22,6 +22,13 @@ import { trackCallbackReceived, trackCallbackError } from './lib/auth-tracking';
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
 
+// Stable identifier for tracking which image the user is viewing in the lightbox
+// This survives array rebuilds when new items complete
+type LightboxImageId = {
+  itemId: string;        // WorkItem.id (unique)
+  imageIndex: number;    // Index within item.result.images
+};
+
 // Format token count for display (cosmetic only)
 // Under 100k: show real number (e.g., 45,678)
 // Under 1M: show as 126k, 724k, etc.
@@ -122,6 +129,7 @@ function App() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxTitle, setLightboxTitle] = useState('');
   const [lightboxImageToItemId, setLightboxImageToItemId] = useState<Map<number, string>>(new Map());
+  const [lightboxCurrentImageId, setLightboxCurrentImageId] = useState<LightboxImageId | null>(null);
   const [introModalOpen, setIntroModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'input' | 'tasks' | 'results'>('input');
   const [processingMode, setProcessingMode] = useState<'batch' | 'singleJob'>('batch');
@@ -923,18 +931,16 @@ function App() {
 
   const hasResults = workItems.some(item => item.status === 'completed');
 
-  const handleOpenLightbox = useCallback((_images: string[], _index: number, title: string) => {
-    // Collect ALL images from ALL completed work items
+  // Build lightbox data from completed work items and find global index for a given stable ID
+  const buildLightboxData = useCallback((targetImageId?: LightboxImageId) => {
     const allImages: string[] = [];
     const allOriginalImages: string[] = [];
     const imageToItemIdMap = new Map<number, string>();
-    let clickedImageGlobalIndex = 0;
-    let foundClickedImage = false;
+    let targetGlobalIndex = 0;
 
     workItems.forEach((item) => {
-      if (item.status === 'completed' && item.result?.images) {
-        const itemTitle = getInputDisplayName(item.input);
-        // For composite inputs, get the first image's original; for regular images, use the input's original
+      if (item.status === 'completed' && item.result?.images && item.result.images.length > 0) {
+        // Get original image using item.input.id (consistent with ResultCard)
         let originalImage = '';
         if (item.input.type === 'image') {
           originalImage = inputToBase64Map.get(item.input.id) || '';
@@ -944,12 +950,12 @@ function App() {
             originalImage = inputToBase64Map.get(firstImage.id) || '';
           }
         }
-        item.result.images.forEach((image) => {
-          if (itemTitle === title && !foundClickedImage) {
-            clickedImageGlobalIndex = allImages.length;
-            foundClickedImage = true;
+
+        item.result.images.forEach((image, imgIdx) => {
+          // Check if this is the target image
+          if (targetImageId && targetImageId.itemId === item.id && targetImageId.imageIndex === imgIdx) {
+            targetGlobalIndex = allImages.length;
           }
-          // Map this image index to its work item ID
           imageToItemIdMap.set(allImages.length, item.id);
           allImages.push(image);
           allOriginalImages.push(originalImage);
@@ -957,13 +963,29 @@ function App() {
       }
     });
 
+    return {
+      allImages,
+      allOriginalImages,
+      imageToItemIdMap,
+      targetGlobalIndex,
+    };
+  }, [workItems, inputToBase64Map]);
+
+  const handleOpenLightbox = useCallback((itemId: string, imageIndexWithinItem: number) => {
+    // Set the stable image ID first
+    const stableId: LightboxImageId = { itemId, imageIndex: imageIndexWithinItem };
+    setLightboxCurrentImageId(stableId);
+
+    // Build lightbox data and find the global index for this image
+    const { allImages, allOriginalImages, imageToItemIdMap, targetGlobalIndex } = buildLightboxData(stableId);
+
     setLightboxImages(allImages);
     setLightboxOriginalImages(allOriginalImages);
     setLightboxImageToItemId(imageToItemIdMap);
-    setLightboxIndex(clickedImageGlobalIndex);
+    setLightboxIndex(targetGlobalIndex);
     setLightboxTitle(`All Results (${allImages.length} images)`);
     setLightboxOpen(true);
-  }, [workItems, inputToBase64Map]);
+  }, [buildLightboxData]);
 
   const handleCloseLightbox = useCallback(() => {
     setLightboxOpen(false);
@@ -993,44 +1015,39 @@ function App() {
     }
   }, []);
 
+  // When user navigates in lightbox, update the stable image ID to match their new position
+  const handleLightboxIndexChange = useCallback((newIndex: number) => {
+    // Find which item and image index corresponds to this global index
+    let currentGlobalIndex = 0;
+    for (const item of workItems) {
+      if (item.status === 'completed' && item.result?.images && item.result.images.length > 0) {
+        for (let imgIdx = 0; imgIdx < item.result.images.length; imgIdx++) {
+          if (currentGlobalIndex === newIndex) {
+            setLightboxCurrentImageId({ itemId: item.id, imageIndex: imgIdx });
+            return;
+          }
+          currentGlobalIndex++;
+        }
+      }
+    }
+  }, [workItems]);
+
   // Update lightbox images reactively when new images come in while lightbox is open
   useEffect(() => {
-    if (!lightboxOpen) return;
+    if (!lightboxOpen || !lightboxCurrentImageId) return;
 
-    // Recollect all images from completed work items
-    const allImages: string[] = [];
-    const allOriginalImages: string[] = [];
-    const imageToItemIdMap = new Map<number, string>();
-
-    workItems.forEach(item => {
-      if (item.status === 'completed' && item.result?.images && item.result.images.length > 0) {
-        // Get original image for this item
-        let originalImage = '';
-        if (item.input.type === 'image') {
-          originalImage = inputToBase64Map.get(item.input.file.name) || '';
-        } else if (item.input.type === 'composite') {
-          const imageItem = item.input.items.find(i => i.type === 'image');
-          if (imageItem && imageItem.type === 'image') {
-            originalImage = inputToBase64Map.get(imageItem.file.name) || '';
-          }
-        }
-
-        item.result.images.forEach(img => {
-          imageToItemIdMap.set(allImages.length, item.id);
-          allImages.push(img);
-          allOriginalImages.push(originalImage);
-        });
-      }
-    });
+    // Rebuild data using the stable image ID to find the correct global index
+    const { allImages, allOriginalImages, imageToItemIdMap, targetGlobalIndex } = buildLightboxData(lightboxCurrentImageId);
 
     // Update the images if they've changed
     if (allImages.length !== lightboxImages.length) {
       setLightboxImages(allImages);
       setLightboxOriginalImages(allOriginalImages);
       setLightboxImageToItemId(imageToItemIdMap);
+      setLightboxIndex(targetGlobalIndex);
       setLightboxTitle(`All Results (${allImages.length} images)`);
     }
-  }, [lightboxOpen, workItems, inputToBase64Map, lightboxImages.length]);
+  }, [lightboxOpen, lightboxCurrentImageId, workItems, buildLightboxData, lightboxImages.length]);
 
   return (
     <div className="h-[var(--vh-full)] flex flex-col bg-surface dark:bg-surface-dark overflow-hidden">
@@ -1408,6 +1425,7 @@ function App() {
         onCopy={handleLightboxCopy}
         onRedo={handleRedoItem}
         imageToItemId={lightboxImageToItemId}
+        onIndexChange={handleLightboxIndexChange}
       />
       
       <IntroModal

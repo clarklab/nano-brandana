@@ -424,9 +424,16 @@ exports.handler = async (event) => {
         },
       };
 
-      // Add image configuration if specified
+      // Add image configuration if specified (imageSize and/or aspectRatio)
+      const imageConfig = {};
+      if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
+        imageConfig.imageSize = imageSize;
+      }
       if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
-        requestBody.generationConfig.aspectRatio = aspectRatio;
+        imageConfig.aspectRatio = aspectRatio;
+      }
+      if (Object.keys(imageConfig).length > 0) {
+        requestBody.generationConfig.imageConfig = imageConfig;
       }
 
     } else if (gatewayType === 'netlify') {
@@ -454,12 +461,21 @@ exports.handler = async (event) => {
         }
       }
 
+      // Build imageConfig for SDK call
+      const imageConfig = {};
+      if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
+        imageConfig.imageSize = imageSize;
+      }
+      if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
+        imageConfig.aspectRatio = aspectRatio;
+      }
+
       // Store parts for SDK call (requestBody used as carrier)
       requestBody = {
         _sdkParts: parts,
         _sdkConfig: {
           responseModalities: ['Text', 'Image'],
-          ...(aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio) && { aspectRatio }),
+          ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
         },
       };
 
@@ -497,9 +513,16 @@ exports.handler = async (event) => {
         },
       };
 
-      // Add image configuration if specified
+      // Add image configuration if specified (imageSize and/or aspectRatio)
+      const imageConfig = {};
+      if (imageSize && ['1K', '2K', '4K'].includes(imageSize)) {
+        imageConfig.imageSize = imageSize;
+      }
       if (aspectRatio && ['1:1', '2:3', '3:4', '4:5', '9:16', '3:2', '4:3', '5:4', '16:9', '21:9'].includes(aspectRatio)) {
-        requestBody.generationConfig.aspectRatio = aspectRatio;
+        imageConfig.aspectRatio = aspectRatio;
+      }
+      if (Object.keys(imageConfig).length > 0) {
+        requestBody.generationConfig.imageConfig = imageConfig;
       }
 
     } else {

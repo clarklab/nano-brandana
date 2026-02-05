@@ -152,11 +152,20 @@ async function processJob(job) {
       }
     }
 
+    // Build imageConfig for Google's API
+    const imageConfig = {};
+    if (job.image_size && ['1K', '2K', '4K'].includes(job.image_size)) {
+      imageConfig.imageSize = job.image_size;
+    }
+    if (job.aspect_ratio) {
+      imageConfig.aspectRatio = job.aspect_ratio;
+    }
+
     requestBody = {
       contents: [{ parts }],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
-        ...(job.aspect_ratio && { aspectRatio: job.aspect_ratio }),
+        ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
       },
     };
   } else {
@@ -198,6 +207,8 @@ async function processJob(job) {
     jobId: job.id,
     gateway: gatewayType,
     model: actualModel,
+    imageSize: job.image_size,
+    aspectRatio: job.aspect_ratio,
     imageCount: allImages.length,
     refCount: refImages.length,
   });

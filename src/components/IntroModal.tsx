@@ -80,14 +80,19 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
 
-            <div className="inline-flex items-center gap-2">
-              <span className="bg-slate-900 text-white px-3 py-2 text-xs font-medium rounded-lg flex items-center gap-2">
-                <svg width="12" height="12" viewBox="0 0 18 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 0.205765L18 15.7942H0L9 0.205765Z" fill="white"/>
-                </svg>
-                Powered by Vercel AI Gateway
-              </span>
-            </div>
+            <a
+              href="https://x.com/clarklab/status/2011545342945477076"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            >
+              See Peel in action
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
           </div>
 
           {/* Right Column - Before/After Image (second on mobile) */}

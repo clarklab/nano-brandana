@@ -114,7 +114,7 @@ function App() {
   const [instructionPresetInfo, setInstructionPresetInfo] = useState<{ label: string; icon: string | null } | null>(null);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentModel, setCurrentModel] = useState('google/gemini-3-pro-image');
+  const [currentModel, setCurrentModel] = useState('direct/gemini-3-pro-image');
   const [batchStartTime, setBatchStartTime] = useState<number | null>(null);
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [totalTokens, setTotalTokens] = useState(0);

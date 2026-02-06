@@ -358,6 +358,9 @@ export const Chat: React.FC<ChatProps> = ({
               }}
               className="bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-neon/30 cursor-pointer"
             >
+              <option value="direct/gemini-3-pro-image">
+                {getModelDisplayName('direct/gemini-3-pro-image')}
+              </option>
               {hasOwnApiKey && (
                 <option value="byo/gemini-3-pro-image">
                   {getModelDisplayName('byo/gemini-3-pro-image')}
@@ -368,9 +371,6 @@ export const Chat: React.FC<ChatProps> = ({
               </option>
               <option value="netlify/gemini-3-pro-image">
                 {getModelDisplayName('netlify/gemini-3-pro-image')}
-              </option>
-              <option value="direct/gemini-3-pro-image">
-                {getModelDisplayName('direct/gemini-3-pro-image')}
               </option>
             </select>
           </div>

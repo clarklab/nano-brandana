@@ -76,6 +76,29 @@ async function logJob(supabase: SupabaseClient, params: Record<string, unknown>)
   }
 }
 
+// Humanize error responses from AI gateways
+function humanizeError(status: number, rawBody: string): string {
+  let message = rawBody || '';
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed?.error?.message) message = parsed.error.message;
+    else if (parsed?.error && typeof parsed.error === 'string') message = parsed.error;
+  } catch { /* not JSON, use as-is */ }
+
+  if (status === 503) return 'Model busy — try again';
+  if (status === 429) return 'Rate limited — try again later';
+  if (status === 504) return 'Request timed out';
+  if (status >= 500) return 'Server error — please retry';
+
+  const lower = message.toLowerCase();
+  if (lower.includes('high demand') || lower.includes('overloaded')) return 'Model busy — try again';
+  if (lower.includes('safety') || lower.includes('blocked')) return 'Content blocked by safety filter';
+  if (lower.includes('timeout') || lower.includes('timed out')) return 'Request timed out';
+
+  if (message.length > 100) return message.substring(0, 100) + '...';
+  return message || 'Unknown error';
+}
+
 // CORS helper
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -458,7 +481,7 @@ export default async function handler(request: Request, _context: Context) {
 
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          JSON.stringify({ error: 'Rate limited — try again later', retryable: true }),
           { status: 429, headers: corsHeaders }
         );
       }
@@ -470,8 +493,15 @@ export default async function handler(request: Request, _context: Context) {
         );
       }
 
+      if (response.status === 503) {
+        return new Response(
+          JSON.stringify({ error: 'Model busy — try again', retryable: true }),
+          { status: 503, headers: corsHeaders }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: `AI Gateway error: ${response.statusText}` }),
+        JSON.stringify({ error: humanizeError(response.status, errorText), retryable: response.status >= 500 }),
         { status: response.status, headers: corsHeaders }
       );
     }
@@ -508,11 +538,19 @@ export default async function handler(request: Request, _context: Context) {
     }
 
     const tokensUsed = (promptTokens + completionTokens) || 1500;
-    const tokensCharged = gatewayType === 'byo' ? 0 : tokensUsed;
 
-    // Deduct tokens (skip for BYO)
+    // Determine job status - warning if API worked but no images returned
+    const noImagesReturned = generatedImages.length === 0;
+    const jobStatus = noImagesReturned ? 'warning' : 'success';
+    const warningReason = noImagesReturned && content
+      ? content.substring(0, 500)
+      : (noImagesReturned ? 'Model returned no images' : null);
+
+    // Only charge tokens when images were actually returned (skip for BYO)
+    const tokensCharged = (gatewayType === 'byo' || noImagesReturned) ? 0 : tokensUsed;
+
     let newTokenBalance = userProfile?.tokens_remaining || null;
-    if (userId && gatewayType !== 'byo') {
+    if (userId && gatewayType !== 'byo' && !noImagesReturned) {
       try {
         const { data: updateResult } = await supabase.rpc('deduct_tokens', {
           user_id: userId,
@@ -524,14 +562,9 @@ export default async function handler(request: Request, _context: Context) {
       } catch (err) {
         console.error('Token deduction failed:', err);
       }
+    } else if (noImagesReturned && gatewayType !== 'byo') {
+      console.log('No images returned - skipping token deduction:', { userId, tokensUsed: 0 });
     }
-
-    // Determine job status - warning if API worked but no images returned
-    const noImagesReturned = generatedImages.length === 0;
-    const jobStatus = noImagesReturned ? 'warning' : 'success';
-    const warningReason = noImagesReturned && content
-      ? content.substring(0, 500)
-      : (noImagesReturned ? 'Model returned no images' : null);
 
     // Log job with appropriate status
     await logJob(supabase, {

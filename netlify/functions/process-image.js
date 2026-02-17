@@ -53,6 +53,33 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB - matches client-side limit for Lambda safety
 const MAX_INSTRUCTION_LENGTH = 10000; // Max 10K characters for instruction
 
+// Humanize error responses from AI gateways
+function humanizeError(status, rawBody) {
+  // Try to extract nested error message from JSON (Google's { error: { message } } format)
+  let message = typeof rawBody === 'string' ? rawBody : String(rawBody || '');
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed?.error?.message) message = parsed.error.message;
+    else if (parsed?.error) message = typeof parsed.error === 'string' ? parsed.error : message;
+  } catch { /* not JSON, use as-is */ }
+
+  // Map by status code first
+  if (status === 503) return 'Model busy — try again';
+  if (status === 429) return 'Rate limited — try again later';
+  if (status === 504) return 'Request timed out';
+  if (status >= 500) return 'Server error — please retry';
+
+  // Pattern-match on message text
+  const lower = message.toLowerCase();
+  if (lower.includes('high demand') || lower.includes('overloaded')) return 'Model busy — try again';
+  if (lower.includes('safety') || lower.includes('blocked')) return 'Content blocked by safety filter';
+  if (lower.includes('timeout') || lower.includes('timed out')) return 'Request timed out';
+
+  // Truncate long messages to prevent raw JSON leaking through
+  if (message.length > 100) return message.substring(0, 100) + '...';
+  return message || 'Unknown error';
+}
+
 // Allowed origins for CORS (production + local dev)
 const ALLOWED_ORIGINS = [
   process.env.URL, // Netlify deploy URL
@@ -675,7 +702,8 @@ exports.handler = async (event) => {
           statusCode: sdkError.status || 500,
           headers: securityHeaders,
           body: JSON.stringify({
-            error: `Netlify AI Gateway error: ${sdkError.message || 'Unknown error'}`,
+            error: humanizeError(sdkError.status || 500, sdkError.message || 'Unknown error'),
+            retryable: sdkError.status === 503 || sdkError.status === 429 || sdkError.status >= 500,
           }),
         };
       }
@@ -753,7 +781,15 @@ exports.handler = async (event) => {
           return {
             statusCode: 429,
             headers: securityHeaders,
-            body: JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+            body: JSON.stringify({ error: 'Rate limited — try again later', retryable: true }),
+          };
+        }
+
+        if (response.status === 503) {
+          return {
+            statusCode: 503,
+            headers: securityHeaders,
+            body: JSON.stringify({ error: 'Model busy — try again', retryable: true }),
           };
         }
 
@@ -761,7 +797,8 @@ exports.handler = async (event) => {
           statusCode: response.status,
           headers: securityHeaders,
           body: JSON.stringify({
-            error: `AI Gateway error: ${response.statusText}`,
+            error: humanizeError(response.status, error),
+            retryable: response.status >= 500,
           }),
         };
       }
@@ -805,11 +842,18 @@ exports.handler = async (event) => {
     // Get tokens used from response - sum input + output tokens for accurate billing
     const tokensUsed = (promptTokens + completionTokens) || 1500; // Fallback estimate
 
-    // DEDUCT TOKENS: Deduct tokens from user's balance (skip for BYO key users)
-    let newTokenBalance = null;
-    const tokensCharged = gatewayType === 'byo' ? 0 : tokensUsed; // No charge for BYO
+    // Determine job status - warning if API worked but no images returned
+    const noImagesReturned = generatedImages.length === 0;
+    const jobStatus = noImagesReturned ? 'warning' : 'success';
+    const warningReason = noImagesReturned && content
+      ? content.substring(0, 500)
+      : (noImagesReturned ? 'Model returned no images' : null);
 
-    if (userId && gatewayType !== 'byo') {
+    // DEDUCT TOKENS: Only charge when images were actually returned (skip for BYO key users)
+    let newTokenBalance = null;
+    const tokensCharged = (gatewayType === 'byo' || noImagesReturned) ? 0 : tokensUsed;
+
+    if (userId && gatewayType !== 'byo' && !noImagesReturned) {
       try {
         // Use atomic update to prevent race conditions
         const { data: updateResult, error: updateError } = await supabaseAdmin
@@ -831,16 +875,11 @@ exports.handler = async (event) => {
       }
     } else if (gatewayType === 'byo') {
       console.log('BYO key used - no token deduction:', { userId, tokensUsed });
-      // Keep user's current token balance
+      newTokenBalance = userProfile?.tokens_remaining || null;
+    } else if (noImagesReturned) {
+      console.log('No images returned - skipping token deduction:', { userId, tokensUsed: 0 });
       newTokenBalance = userProfile?.tokens_remaining || null;
     }
-
-    // Determine job status - warning if API worked but no images returned
-    const noImagesReturned = generatedImages.length === 0;
-    const jobStatus = noImagesReturned ? 'warning' : 'success';
-    const warningReason = noImagesReturned && content
-      ? content.substring(0, 500)
-      : (noImagesReturned ? 'Model returned no images' : null);
 
     // Log job with appropriate status
     if (userId) {

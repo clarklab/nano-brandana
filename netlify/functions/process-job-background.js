@@ -30,6 +30,29 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   : null;
 
+// Humanize error responses from AI gateways
+function humanizeError(status, rawBody) {
+  let message = typeof rawBody === 'string' ? rawBody : String(rawBody || '');
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed?.error?.message) message = parsed.error.message;
+    else if (parsed?.error) message = typeof parsed.error === 'string' ? parsed.error : message;
+  } catch { /* not JSON, use as-is */ }
+
+  if (status === 503) return 'Model busy — try again';
+  if (status === 429) return 'Rate limited — try again later';
+  if (status === 504) return 'Request timed out';
+  if (status >= 500) return 'Server error — please retry';
+
+  const lower = message.toLowerCase();
+  if (lower.includes('high demand') || lower.includes('overloaded')) return 'Model busy — try again';
+  if (lower.includes('safety') || lower.includes('blocked')) return 'Content blocked by safety filter';
+  if (lower.includes('timeout') || lower.includes('timed out')) return 'Request timed out';
+
+  if (message.length > 100) return message.substring(0, 100) + '...';
+  return message || 'Unknown error';
+}
+
 // Gateway detection helpers
 function getGatewayType(model) {
   if (model?.startsWith('byo/')) return 'byo';
@@ -236,7 +259,7 @@ async function processJob(job) {
       return {
         status: 'failed',
         errorCode: String(response.status),
-        errorMessage: errorText,
+        errorMessage: humanizeError(response.status, errorText),
         elapsed: Date.now() - startTime,
         tokenBalanceBefore,
         tokenBalanceAfter: tokenBalanceBefore, // No tokens charged on error
@@ -364,6 +387,21 @@ exports.handler = async (event) => {
       console.log(`Starting job ${job.id}`);
       const result = await processJob(job);
 
+      // Refund pre-deducted tokens if job failed or returned no images
+      // (tokens were deducted upfront in enqueue-job; refund via negative deduction)
+      const gatewayType = getGatewayType(job.model);
+      if (gatewayType !== 'byo' && (result.status === 'failed' || result.status === 'warning')) {
+        try {
+          await supabaseAdmin.rpc('deduct_tokens', {
+            user_id: job.user_id,
+            amount: -1500, // Negative = refund
+          });
+          console.log(`Refunded 1500 tokens for job ${job.id} (status: ${result.status})`);
+        } catch (refundErr) {
+          console.error(`Token refund failed for job ${job.id}:`, refundErr);
+        }
+      }
+
       // Update job with results
       const updateData = {
         status: result.status === 'warning' ? 'completed' : result.status,
@@ -391,6 +429,20 @@ exports.handler = async (event) => {
 
     } catch (err) {
       console.error(`Job ${job.id} failed:`, err);
+
+      // Refund pre-deducted tokens on unexpected errors
+      const gatewayType = getGatewayType(job.model);
+      if (gatewayType !== 'byo') {
+        try {
+          await supabaseAdmin.rpc('deduct_tokens', {
+            user_id: job.user_id,
+            amount: -1500,
+          });
+          console.log(`Refunded 1500 tokens for failed job ${job.id}`);
+        } catch (refundErr) {
+          console.error(`Token refund failed for job ${job.id}:`, refundErr);
+        }
+      }
 
       // Mark job as failed
       await supabaseAdmin

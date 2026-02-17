@@ -204,6 +204,8 @@ export default async function handler(request: Request, _context: Context) {
     const jobRequestId = requestId || `job-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     // Deduct tokens upfront (skip for BYO)
+    // Contract: process-job-background will refund these tokens if the job
+    // fails or returns no images (via negative deduct_tokens call)
     let newTokenBalance = userProfile.tokens_remaining;
     if (!isByo) {
       try {

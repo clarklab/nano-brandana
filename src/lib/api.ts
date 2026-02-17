@@ -47,13 +47,38 @@ export interface ProcessImageResponse {
   tokens_remaining?: number;
 }
 
+// Strip raw JSON, gateway prefixes, and truncate long error messages
+function cleanErrorMessage(msg: string): string {
+  let cleaned = msg || 'Unknown error';
+
+  // Strip common gateway prefixes
+  cleaned = cleaned.replace(/^(AI Gateway error|Netlify AI Gateway error):\s*/i, '');
+
+  // If the message looks like raw JSON, extract just the error message
+  if (cleaned.includes('{')) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed?.error?.message) cleaned = parsed.error.message;
+      else if (typeof parsed?.error === 'string') cleaned = parsed.error;
+    } catch {
+      // Not valid JSON — strip any JSON fragments
+      cleaned = cleaned.replace(/\{[\s\S]*\}/g, '').trim() || 'Request failed';
+    }
+  }
+
+  // Truncate long messages
+  if (cleaned.length > 120) cleaned = cleaned.substring(0, 120) + '...';
+
+  return cleaned;
+}
+
 export class APIError extends Error {
   constructor(
     message: string,
     public status: number,
     public details?: any
   ) {
-    super(message);
+    super(cleanErrorMessage(message));
     this.name = 'APIError';
   }
 }

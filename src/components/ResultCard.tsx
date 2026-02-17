@@ -307,11 +307,21 @@ export const ResultCard: React.FC<ResultCardProps> = ({ item, originalImage, onO
                   <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
                 </svg>
               </div>
-              <p className="text-sm font-medium text-red-700 dark:text-red-400">
-                {item.error?.includes('Internal Server Error') ? 'Server Error' :
-                 item.error?.includes('Rate limit') ? 'Rate Limited' :
-                 item.error?.includes('validation failed') ? 'Invalid Result' :
-                 item.error || 'Failed'}
+              <p className="text-sm font-medium text-red-700 dark:text-red-400" title={item.error}>
+                {(() => {
+                  const err = item.error || '';
+                  const lower = err.toLowerCase();
+                  if (lower.includes('model busy') || lower.includes('503') || lower.includes('high demand')) return 'Model Busy';
+                  if (lower.includes('rate limit') || lower.includes('429')) return 'Rate Limited';
+                  if (lower.includes('timeout') || lower.includes('timed out')) return 'Timed Out';
+                  if (lower.includes('safety') || lower.includes('blocked')) return 'Content Blocked';
+                  if (lower.includes('authentication') || lower.includes('401') || lower.includes('403')) return 'Auth Error';
+                  if (lower.includes('insufficient tokens') || lower.includes('no tokens')) return 'No Tokens';
+                  if (lower.includes('internal server error') || lower.includes('server error')) return 'Server Error';
+                  if (lower.includes('validation failed')) return 'Invalid Result';
+                  if (err.includes('{') || err.length > 40) return 'Failed';
+                  return err || 'Failed';
+                })()}
               </p>
               {item.retries > 0 && (
                 <p className="text-xs text-red-500/70 mt-1">Retried {item.retries}x</p>

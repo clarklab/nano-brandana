@@ -22,6 +22,12 @@ import { trackCallbackReceived, trackCallbackError } from './lib/auth-tracking';
 const MAX_IMAGE_DIMENSION = 2048;
 const BASE_CONCURRENCY = 3;
 
+// Check if a model string refers to an Imagen model
+function isImagenModel(model: string): boolean {
+  const stripped = (model || '').replace(/^(byo|netlify|direct|google)\//, '');
+  return stripped.startsWith('imagen-');
+}
+
 // Stable identifier for tracking which image the user is viewing in the lightbox
 // This survives array rebuilds when new items complete
 type LightboxImageId = {
@@ -529,6 +535,13 @@ function App() {
     setInputs(prev => [...prev, ...newInputs]);
   }, []);
 
+  // Auto-switch away from Imagen when images are uploaded (Imagen is text-to-image only)
+  useEffect(() => {
+    if (isImagenModel(currentModel) && inputs.some(i => i.type === 'image')) {
+      setCurrentModel('direct/gemini-3-pro-image');
+    }
+  }, [inputs, currentModel]);
+
   // Handle "Edit with Peel" link - load image from ?img= URL parameter
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -708,7 +721,9 @@ function App() {
   }, []);
 
   const handleRunBatch = useCallback((imageSize: '1K' | '2K' | '4K' = '1K', aspectRatio?: string | null, customWidth?: number, customHeight?: number, pendingInstruction?: string, isResizeOnly?: boolean) => {
-    if (inputs.length === 0) return;
+    // For Imagen (text-to-image), allow running with 0 inputs if instructions exist
+    const isImagen = isImagenModel(currentModel);
+    if (inputs.length === 0 && !isImagen) return;
 
     // AUTH GATE: If auth is configured and user is not logged in, show auth modal
     // Skip for resize-only (free) jobs
@@ -720,7 +735,7 @@ function App() {
     // Check if user has enough tokens (rough estimate: ~1500 tokens per image)
     // Skip for resize-only (free) jobs
     if (authConfigured && profile && !isResizeOnly) {
-      const estimatedTokens = inputs.length * 1500;
+      const estimatedTokens = Math.max(inputs.length, 1) * 1500;
       if (profile.tokens_remaining < estimatedTokens) {
         alert(`Not enough tokens! You need ~${estimatedTokens.toLocaleString()} tokens but only have ${profile.tokens_remaining.toLocaleString()} remaining.`);
         return;
@@ -735,6 +750,9 @@ function App() {
     const hasImages = inputs.some(input => input.type === 'image');
     if (hasImages && effectiveInstructions.length === 0 && !isResizeOnly) return;
 
+    // For Imagen with no inputs, require instructions
+    if (isImagen && inputs.length === 0 && effectiveInstructions.length === 0) return;
+
     // Combine all global instructions
     const globalInstruction = effectiveInstructions.join('. ');
 
@@ -747,12 +765,17 @@ function App() {
     // Generate a batch ID to group all items from this run
     const batchId = `batch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+    // For Imagen text-to-image with no inputs, create a synthetic text input from the instruction
+    const effectiveInputs: BaseInputItem[] = (isImagen && inputs.length === 0)
+      ? [{ type: 'text' as const, prompt: globalInstruction, id: `imagen-${Date.now()}` }]
+      : inputs;
+
     let newItems;
 
     if (processingMode === 'singleJob') {
       // Single Job mode: combine all inputs into one composite work item
       // Gather all text prompts to include in the instruction
-      const textPrompts = inputs
+      const textPrompts = effectiveInputs
         .filter((input): input is BaseInputItem & { type: 'text' } => input.type === 'text')
         .map(input => input.prompt);
 
@@ -760,10 +783,10 @@ function App() {
       const allInstructions = [...textPrompts, globalInstruction].filter(Boolean);
       const finalInstruction = allInstructions.join('. ');
 
-      // Create composite input with all items (inputs are already BaseInputItem[])
+      // Create composite input with all items
       const compositeInput: InputItem = {
         type: 'composite',
-        items: inputs, // Already BaseInputItem[]
+        items: effectiveInputs,
         id: `composite-${Date.now()}`,
       };
 
@@ -781,7 +804,7 @@ function App() {
       }];
     } else {
       // Batch mode: create work items for each input separately
-      newItems = inputs.map(input => {
+      newItems = effectiveInputs.map(input => {
         let finalInstruction: string;
 
         if (isResizeOnly) {
@@ -820,7 +843,7 @@ function App() {
 
     // On mobile, jump to results view when starting a job
     setActiveTab('results');
-  }, [inputs, instructions, instructionReferenceImages, instructionPresetInfo, batchProcessor, processingMode, authConfigured, user, profile]);
+  }, [inputs, instructions, instructionReferenceImages, instructionPresetInfo, batchProcessor, processingMode, authConfigured, user, profile, currentModel]);
 
   // Handle cancel job - stops processing, clears results, keeps inputs
   const handleCancelJob = useCallback(() => {
@@ -1258,10 +1281,12 @@ function App() {
                 onModelChange={setCurrentModel}
                 onRunBatch={handleRunBatch}
                 canRunBatch={
-                  inputs.length > 0 &&
-                  !isProcessing &&
-                  // Either all text prompts, or has instructions for images
-                  (inputs.every(i => i.type === 'text') || instructions.length > 0)
+                  !isProcessing && (
+                    // Normal mode: inputs exist and either all text prompts, or has instructions for images
+                    (inputs.length > 0 && (inputs.every(i => i.type === 'text') || instructions.length > 0)) ||
+                    // Imagen text-to-image: no inputs needed, just instructions
+                    (isImagenModel(currentModel) && instructions.length > 0)
+                  )
                 }
                 instructions={displayInstructions}
                 onClearInstructions={handleClearInstructions}

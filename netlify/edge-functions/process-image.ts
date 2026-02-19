@@ -21,6 +21,12 @@ function getGatewayType(model: string | undefined): string {
   return 'vercel'; // default
 }
 
+// Check if model is an Imagen model (text-to-image only)
+function isImagenModel(model: string | undefined): boolean {
+  const stripped = (model || '').replace(/^(byo|netlify|direct|google)\//, '');
+  return stripped.startsWith('imagen-');
+}
+
 function getActualModelId(model: string | undefined, gatewayType: string): string {
   let actualModel = model || 'gemini-3-pro-image';
 
@@ -325,6 +331,143 @@ export default async function handler(request: Request, _context: Context) {
       refCount: refImages.length,
       instructionLength: instruction.length,
     });
+
+    // ========== IMAGEN (text-to-image only) via REST :predict endpoint ==========
+    if ((gatewayType === 'byo' || gatewayType === 'direct') && isImagenModel(model)) {
+      // Imagen is text-to-image only — reject if images were sent
+      if (allImages.length > 0) {
+        return new Response(
+          JSON.stringify({ error: 'Imagen models are text-to-image only. Remove uploaded images or switch to a Gemini model.' }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      const apiKey = gatewayType === 'byo' ? userByoKey : GOOGLE_DIRECT_KEY;
+
+      const imagenParams: Record<string, unknown> = { sampleCount: 1 };
+      if (aspectRatio) {
+        imagenParams.aspectRatio = aspectRatio;
+      }
+
+      const imagenEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:predict`;
+      const imagenBody = {
+        instances: [{ prompt: instruction }],
+        parameters: imagenParams,
+      };
+
+      console.log('Calling Imagen :predict', { model: actualModel, aspectRatio });
+
+      const imagenController = new AbortController();
+      const imagenTimeoutId = setTimeout(() => imagenController.abort(), 30000);
+
+      let imagenResponse: Response;
+      try {
+        imagenResponse = await fetch(imagenEndpoint, {
+          method: 'POST',
+          headers: {
+            'x-goog-api-key': apiKey!,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(imagenBody),
+          signal: imagenController.signal,
+        });
+        clearTimeout(imagenTimeoutId);
+      } catch (fetchError) {
+        clearTimeout(imagenTimeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          const timeoutElapsed = Date.now() - startTime;
+          logJob(supabase, {
+            userId, requestId, batchId, mode, imageSize, model,
+            imagesSubmitted: 0, instructionLength: instruction.length,
+            totalInputBytes: 0, imagesReturned: 0, elapsedMs: timeoutElapsed,
+            status: 'error', errorCode: 'TIMEOUT',
+            errorMessage: 'Imagen request timed out after 30 seconds',
+            tokenBalanceBefore: userProfile?.tokens_remaining,
+            tokenBalanceAfter: userProfile?.tokens_remaining,
+          }).catch(() => {});
+
+          return new Response(
+            JSON.stringify({ error: 'Request timed out. The AI service is busy - please retry.', retryable: true }),
+            { status: 504, headers: corsHeaders }
+          );
+        }
+        throw fetchError;
+      }
+
+      if (!imagenResponse.ok) {
+        const errorText = await imagenResponse.text();
+        console.error('Imagen API error:', imagenResponse.status, errorText);
+
+        const errorElapsed = Date.now() - startTime;
+        await logJob(supabase, {
+          userId, requestId, batchId, mode, imageSize, model,
+          imagesSubmitted: 0, instructionLength: instruction.length,
+          totalInputBytes: 0, imagesReturned: 0, elapsedMs: errorElapsed,
+          status: 'error', errorCode: String(imagenResponse.status),
+          errorMessage: errorText,
+          tokenBalanceBefore: userProfile?.tokens_remaining,
+          tokenBalanceAfter: userProfile?.tokens_remaining,
+        });
+
+        return new Response(
+          JSON.stringify({ error: humanizeError(imagenResponse.status, errorText), retryable: imagenResponse.status >= 500 }),
+          { status: imagenResponse.status, headers: corsHeaders }
+        );
+      }
+
+      const imagenResult = await imagenResponse.json();
+      const elapsed = Date.now() - startTime;
+
+      // Extract images from :predict response
+      const generatedImages: string[] = (imagenResult.predictions || [])
+        .map((pred: { bytesBase64Encoded?: string }) =>
+          pred.bytesBase64Encoded ? `data:image/png;base64,${pred.bytesBase64Encoded}` : null
+        )
+        .filter(Boolean);
+
+      const tokensUsed = 1500; // Flat estimate — Imagen doesn't return usage
+      const noImagesReturned = generatedImages.length === 0;
+      const jobStatus = noImagesReturned ? 'warning' : 'success';
+      const tokensCharged = (gatewayType === 'byo' || noImagesReturned) ? 0 : tokensUsed;
+
+      let newTokenBalance = userProfile?.tokens_remaining || null;
+      if (userId && gatewayType !== 'byo' && !noImagesReturned) {
+        try {
+          const { data: updateResult } = await supabase.rpc('deduct_tokens', {
+            user_id: userId, amount: tokensUsed
+          });
+          if (updateResult && updateResult[0]) {
+            newTokenBalance = updateResult[0].new_balance;
+          }
+        } catch (err) {
+          console.error('Token deduction failed:', err);
+        }
+      }
+
+      await logJob(supabase, {
+        userId, requestId, batchId, mode, imageSize, model,
+        imagesSubmitted: 0, instructionLength: instruction.length,
+        totalInputBytes: 0, imagesReturned: generatedImages.length,
+        promptTokens: 0, completionTokens: 0, totalTokens: tokensUsed,
+        elapsedMs: elapsed, status: jobStatus,
+        errorCode: noImagesReturned ? 'NO_IMAGES' : null,
+        errorMessage: noImagesReturned ? 'Imagen returned no images' : null,
+        tokensCharged,
+        tokenBalanceBefore: userProfile?.tokens_remaining,
+        tokenBalanceAfter: newTokenBalance,
+      });
+
+      return new Response(
+        JSON.stringify({
+          images: generatedImages,
+          content: '',
+          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: tokensUsed },
+          elapsed, model: actualModel, imageSize,
+          tokens_remaining: newTokenBalance, gateway: gatewayType,
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
 
     let endpoint: string;
     let requestHeaders: Record<string, string>;

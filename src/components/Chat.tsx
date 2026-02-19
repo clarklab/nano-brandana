@@ -335,12 +335,24 @@ export const Chat: React.FC<ChatProps> = ({
     ));
   };
 
+  // Check if model is an Imagen model
+  const isImagenModel = (model: string) => {
+    const stripped = (model || '').replace(/^(byo|netlify|direct|google)\//, '');
+    return stripped.startsWith('imagen-');
+  };
+
+  // Whether the current inputs contain images
+  const hasImageInputs = inputs?.some(i => i.type === 'image') ?? false;
+
   // Get display name for model
   const getModelDisplayName = (model: string) => {
     if (model === 'byo/gemini-3-pro-image') return 'Nano Banana Pro (Your Key)';
     if (model === 'google/gemini-3-pro-image') return 'Nano Banana Pro (Vercel)';
     if (model === 'netlify/gemini-3-pro-image') return 'Nano Banana Pro (Netlify)';
     if (model === 'direct/gemini-3-pro-image') return 'Nano Banana Pro (Direct)';
+    if (model === 'direct/imagen-4.0-fast-generate-001') return 'Imagen 4 Fast';
+    if (model === 'direct/imagen-4.0-generate-001') return 'Imagen 4';
+    if (model === 'direct/imagen-4.0-ultra-generate-001') return 'Imagen 4 Ultra';
     return model;
   };
 
@@ -358,20 +370,35 @@ export const Chat: React.FC<ChatProps> = ({
               }}
               className="bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-neon/30 cursor-pointer"
             >
-              <option value="direct/gemini-3-pro-image">
-                {getModelDisplayName('direct/gemini-3-pro-image')}
-              </option>
-              {hasOwnApiKey && (
-                <option value="byo/gemini-3-pro-image">
-                  {getModelDisplayName('byo/gemini-3-pro-image')}
+              <optgroup label="Edit + Generate">
+                <option value="direct/gemini-3-pro-image">
+                  {getModelDisplayName('direct/gemini-3-pro-image')}
                 </option>
+                {hasOwnApiKey && (
+                  <option value="byo/gemini-3-pro-image">
+                    {getModelDisplayName('byo/gemini-3-pro-image')}
+                  </option>
+                )}
+                <option value="google/gemini-3-pro-image">
+                  {getModelDisplayName('google/gemini-3-pro-image')}
+                </option>
+                <option value="netlify/gemini-3-pro-image">
+                  {getModelDisplayName('netlify/gemini-3-pro-image')}
+                </option>
+              </optgroup>
+              {!hasImageInputs && (
+                <optgroup label="Text-to-Image">
+                  <option value="direct/imagen-4.0-fast-generate-001">
+                    {getModelDisplayName('direct/imagen-4.0-fast-generate-001')}
+                  </option>
+                  <option value="direct/imagen-4.0-generate-001">
+                    {getModelDisplayName('direct/imagen-4.0-generate-001')}
+                  </option>
+                  <option value="direct/imagen-4.0-ultra-generate-001">
+                    {getModelDisplayName('direct/imagen-4.0-ultra-generate-001')}
+                  </option>
+                </optgroup>
               )}
-              <option value="google/gemini-3-pro-image">
-                {getModelDisplayName('google/gemini-3-pro-image')}
-              </option>
-              <option value="netlify/gemini-3-pro-image">
-                {getModelDisplayName('netlify/gemini-3-pro-image')}
-              </option>
             </select>
           </div>
         </div>
@@ -611,15 +638,17 @@ export const Chat: React.FC<ChatProps> = ({
             </button>
           </div>
           {/* Footer with pickers and generate button */}
-          {inputs.length > 0 && (() => {
+          {(inputs.length > 0 || (isImagenModel(currentModel) && canRunBatch)) && (() => {
             // Check if output settings have been changed from defaults
             const hasOutputSettings = imageSize !== '1K' || aspectRatio !== null || customSize !== null;
             // Check if all inputs are images (resize-only requires images, not text prompts)
             const allImagesInput = inputs.every(i => i.type === 'image');
             // Resize-only: has output settings, no instructions, no preset, all images
-            const isResizeOnly = hasOutputSettings && !instruction.trim() && !currentPreset && !canRunBatch && allImagesInput;
-            // Button is ready if: has existing instructions, OR user typed something, OR preset is selected, OR resize-only mode
-            const isReady = canRunBatch || !!instruction.trim() || !!currentPreset || isResizeOnly;
+            const isResizeOnly = hasOutputSettings && !instruction.trim() && !currentPreset && !canRunBatch && allImagesInput && inputs.length > 0;
+            // Imagen text-to-image mode
+            const isImagenGenerate = isImagenModel(currentModel) && inputs.length === 0;
+            // Button is ready if: has existing instructions, OR user typed something, OR preset is selected, OR resize-only mode, OR Imagen generate
+            const isReady = canRunBatch || !!instruction.trim() || !!currentPreset || isResizeOnly || isImagenGenerate;
             return (
               <div className="border-t border-slate-200 dark:border-slate-700 flex items-center gap-2 p-2">
                 {/* Pickers on the left */}
@@ -638,7 +667,7 @@ export const Chat: React.FC<ChatProps> = ({
                     }
                     const settings = getEffectiveSettings();
                     // Re-check resize-only at click time
-                    const clickResizeOnly = hasOutputSettings && !pending && !currentPreset && !canRunBatch && allImagesInput;
+                    const clickResizeOnly = hasOutputSettings && !pending && !currentPreset && !canRunBatch && allImagesInput && inputs.length > 0;
                     onRunBatch(settings.imageSize, settings.aspectRatio, settings.customWidth, settings.customHeight, pending || undefined, clickResizeOnly);
                   }}
                   disabled={isProcessing || !isReady}
@@ -648,7 +677,7 @@ export const Chat: React.FC<ChatProps> = ({
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                   }`}
                 >
-                  {isProcessing ? 'Processing...' : isResizeOnly ? 'Resize' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Image' : `Make ${inputs.length} Images`}
+                  {isProcessing ? 'Processing...' : isResizeOnly ? 'Resize' : isImagenGenerate ? 'Generate' : (processingMode === 'singleJob' || inputs.length === 1) ? 'Make Image' : `Make ${inputs.length} Images`}
                 </button>
               </div>
             );

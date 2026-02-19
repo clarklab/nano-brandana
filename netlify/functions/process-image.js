@@ -25,6 +25,12 @@ function getGatewayType(model) {
   return 'vercel'; // default (google/ prefix or no prefix)
 }
 
+// Check if model is an Imagen model (text-to-image only)
+function isImagenModel(model) {
+  const stripped = (model || '').replace(/^(byo|netlify|direct|google)\//, '');
+  return stripped.startsWith('imagen-');
+}
+
 function getActualModelId(model, gatewayType) {
   // Strip gateway prefix first
   let actualModel = model;
@@ -615,6 +621,125 @@ exports.handler = async (event) => {
     });
 
     let result;
+
+    // ========== IMAGEN (text-to-image only) via @google/genai SDK ==========
+    if (gatewayType === 'direct' && isImagenModel(actualModel)) {
+      // Imagen is text-to-image only — reject if images were sent
+      if (allImages.length > 0) {
+        return {
+          statusCode: 400,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Imagen models are text-to-image only. Remove uploaded images or switch to a Gemini model.' }),
+        };
+      }
+
+      if (!GOOGLE_DIRECT_KEY) {
+        return {
+          statusCode: 500,
+          headers: securityHeaders,
+          body: JSON.stringify({ error: 'Google Direct API key not configured.' }),
+        };
+      }
+
+      try {
+        const ai = new GoogleGenAI({ apiKey: GOOGLE_DIRECT_KEY });
+
+        console.log('Calling Imagen generateImages:', { model: actualModel, promptLength: instruction.length, aspectRatio });
+
+        const imagenConfig = { numberOfImages: 1 };
+        if (aspectRatio) {
+          imagenConfig.aspectRatio = aspectRatio;
+        }
+
+        const imagenResponse = await ai.models.generateImages({
+          model: actualModel,
+          prompt: instruction,
+          config: imagenConfig,
+        });
+
+        const elapsed = Date.now() - startTime;
+
+        // Extract images from response
+        const generatedImages = (imagenResponse.generatedImages || []).map(img => {
+          const b64 = img.image?.imageBytes;
+          return b64 ? `data:image/png;base64,${b64}` : null;
+        }).filter(Boolean);
+
+        // Imagen doesn't return token usage — use flat estimate
+        const tokensUsed = 1500;
+        const noImagesReturned = generatedImages.length === 0;
+        const jobStatus = noImagesReturned ? 'warning' : 'success';
+
+        // Deduct tokens (skip if no images returned)
+        let newTokenBalance = null;
+        const tokensCharged = noImagesReturned ? 0 : tokensUsed;
+
+        if (userId && !noImagesReturned) {
+          try {
+            const { data: updateResult, error: updateError } = await supabaseAdmin
+              .rpc('deduct_tokens', { user_id: userId, amount: tokensUsed });
+            if (!updateError && updateResult && updateResult[0]) {
+              newTokenBalance = updateResult[0].new_balance;
+            }
+          } catch (err) {
+            console.error('Token deduction failed:', err);
+          }
+        } else if (noImagesReturned) {
+          newTokenBalance = userProfile?.tokens_remaining || null;
+        }
+
+        // Log job
+        if (userId) {
+          await logJob({
+            userId, requestId: body.requestId, batchId, mode, imageSize, model,
+            imagesSubmitted: 0, instructionLength: instruction?.length,
+            totalInputBytes: 0, imagesReturned: generatedImages.length,
+            promptTokens: 0, completionTokens: 0, totalTokens: tokensUsed,
+            elapsedMs: elapsed, status: jobStatus,
+            errorCode: noImagesReturned ? 'NO_IMAGES' : null,
+            errorMessage: noImagesReturned ? 'Imagen returned no images' : null,
+            tokensCharged, tokenBalanceBefore: userProfile?.tokens_remaining,
+            tokenBalanceAfter: newTokenBalance, gateway: gatewayType,
+          });
+        }
+
+        return {
+          statusCode: 200,
+          headers: securityHeaders,
+          body: JSON.stringify({
+            images: generatedImages,
+            content: '',
+            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: tokensUsed },
+            elapsed, model: actualModel, imageSize,
+            tokens_remaining: newTokenBalance, gateway: gatewayType,
+          }),
+        };
+      } catch (imagenError) {
+        console.error('Imagen SDK error:', imagenError);
+        const errorElapsed = Date.now() - startTime;
+
+        if (userId) {
+          await logJob({
+            userId, requestId: body.requestId, batchId, mode, imageSize, model,
+            imagesSubmitted: 0, instructionLength: instruction?.length,
+            totalInputBytes: 0, imagesReturned: 0, elapsedMs: errorElapsed,
+            status: 'error', errorCode: imagenError.status || '500',
+            errorMessage: (imagenError.message || 'Imagen SDK error').substring(0, 500),
+            tokenBalanceBefore: userProfile?.tokens_remaining,
+            tokenBalanceAfter: userProfile?.tokens_remaining,
+          });
+        }
+
+        return {
+          statusCode: imagenError.status || 500,
+          headers: securityHeaders,
+          body: JSON.stringify({
+            error: humanizeError(imagenError.status || 500, imagenError.message || 'Unknown error'),
+            retryable: imagenError.status === 503 || imagenError.status === 429 || (imagenError.status || 500) >= 500,
+          }),
+        };
+      }
+    }
 
     if (gatewayType === 'netlify') {
       // ========== NETLIFY AI GATEWAY - Use @google/genai SDK ==========

@@ -5,6 +5,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { GoogleGenAI } = require('@google/genai');
 
 // Configuration for background function
 exports.config = {
@@ -51,6 +52,12 @@ function humanizeError(status, rawBody) {
 
   if (message.length > 100) return message.substring(0, 100) + '...';
   return message || 'Unknown error';
+}
+
+// Check if model is an Imagen model (text-to-image only)
+function isImagenModel(model) {
+  const stripped = (model || '').replace(/^(byo|netlify|direct|google)\//, '');
+  return stripped.startsWith('imagen-');
 }
 
 // Gateway detection helpers
@@ -155,6 +162,75 @@ async function processJob(job) {
   // Build API request
   const allImages = job.images || [];
   const refImages = job.reference_images || [];
+
+  // ========== IMAGEN (text-to-image only) via @google/genai SDK ==========
+  if ((gatewayType === 'direct' || gatewayType === 'byo' || gatewayType === 'netlify') && isImagenModel(actualModel)) {
+    // Imagen is text-to-image only — reject if images were sent
+    if (allImages.length > 0) {
+      return {
+        status: 'failed',
+        errorCode: 'INVALID_INPUT',
+        errorMessage: 'Imagen models are text-to-image only. Remove uploaded images.',
+        elapsed: Date.now() - startTime,
+        tokenBalanceBefore,
+        tokenBalanceAfter: tokenBalanceBefore,
+      };
+    }
+
+    const apiKey = gatewayType === 'byo' ? userByoKey :
+                   gatewayType === 'netlify' ? NETLIFY_GEMINI_KEY :
+                   GOOGLE_DIRECT_KEY;
+
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+
+      const imagenConfig = { numberOfImages: 1 };
+      if (job.aspect_ratio) {
+        imagenConfig.aspectRatio = job.aspect_ratio;
+      }
+
+      console.log('Calling Imagen generateImages:', { model: actualModel, aspectRatio: job.aspect_ratio });
+
+      const imagenResponse = await ai.models.generateImages({
+        model: actualModel,
+        prompt: job.instruction,
+        config: imagenConfig,
+      });
+
+      const elapsed = Date.now() - startTime;
+
+      const generatedImages = (imagenResponse.generatedImages || []).map(img => {
+        const b64 = img.image?.imageBytes;
+        return b64 ? `data:image/png;base64,${b64}` : null;
+      }).filter(Boolean);
+
+      const tokensUsed = 1500; // Flat estimate
+      const tokensCharged = gatewayType === 'byo' ? 0 : tokensUsed;
+
+      return {
+        status: generatedImages.length > 0 ? 'completed' : 'warning',
+        images: generatedImages,
+        content: '',
+        usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: tokensUsed },
+        elapsed,
+        tokensCharged,
+        tokenBalanceBefore,
+        tokenBalanceAfter: tokenBalanceBefore - tokensCharged,
+        errorCode: generatedImages.length === 0 ? 'NO_IMAGES' : null,
+        errorMessage: generatedImages.length === 0 ? 'Imagen returned no images' : null,
+      };
+    } catch (err) {
+      console.error('Imagen SDK error in background job:', err);
+      return {
+        status: 'failed',
+        errorCode: err.status || 'IMAGEN_ERROR',
+        errorMessage: (err.message || 'Imagen SDK error').substring(0, 500),
+        elapsed: Date.now() - startTime,
+        tokenBalanceBefore,
+        tokenBalanceAfter: tokenBalanceBefore,
+      };
+    }
+  }
 
   let endpoint, requestHeaders, requestBody;
 

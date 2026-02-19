@@ -44,6 +44,12 @@ function getGatewayType(model: string | undefined): string {
   return 'vercel';
 }
 
+// Check if model is an Imagen model (text-to-image only)
+function isImagenModel(model: string | undefined): boolean {
+  const stripped = (model || '').replace(/^(byo|netlify|direct|google)\//, '');
+  return stripped.startsWith('imagen-');
+}
+
 export default async function handler(request: Request, _context: Context) {
   const origin = request.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -155,6 +161,14 @@ export default async function handler(request: Request, _context: Context) {
     // Get all images
     const allImages: string[] = images || (image ? [image] : []);
     const refImages: string[] = referenceImages || [];
+
+    // Imagen models are text-to-image only — reject if images are provided
+    if (isImagenModel(model) && allImages.length > 0) {
+      return new Response(
+        JSON.stringify({ error: 'Imagen models are text-to-image only. Remove uploaded images or switch to a Gemini model.' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // Validate image sizes
     for (let i = 0; i < allImages.length; i++) {

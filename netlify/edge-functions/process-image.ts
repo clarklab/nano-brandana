@@ -41,6 +41,9 @@ function getActualModelId(model: string | undefined, gatewayType: string): strin
     if (actualModel === 'gemini-3-pro-image') {
       actualModel = 'gemini-3-pro-image-preview';
     }
+    if (actualModel === 'gemini-3.1-flash-image') {
+      actualModel = 'gemini-3.1-flash-image-preview';
+    }
   }
 
   return actualModel;

@@ -352,6 +352,8 @@ export const Chat: React.FC<ChatProps> = ({
     if (model === 'direct/gemini-3-pro-image') return 'Nano Banana Pro (Direct)';
     if (model === 'direct/imagen-4.0-fast-generate-001') return 'Imagen 4 Fast';
     if (model === 'direct/imagen-4.0-generate-001') return 'Imagen 4';
+    if (model === 'direct/gemini-3.1-flash-image') return 'Nano Banana 2 (Direct)';
+    if (model === 'byo/gemini-3.1-flash-image') return 'Nano Banana 2 (Your Key)';
     if (model === 'direct/imagen-4.0-ultra-generate-001') return 'Imagen 4 Ultra';
     return model;
   };
@@ -374,10 +376,18 @@ export const Chat: React.FC<ChatProps> = ({
                 <option value="direct/gemini-3-pro-image">
                   {getModelDisplayName('direct/gemini-3-pro-image')}
                 </option>
+                <option value="direct/gemini-3.1-flash-image">
+                  {getModelDisplayName('direct/gemini-3.1-flash-image')}
+                </option>
                 {hasOwnApiKey && (
-                  <option value="byo/gemini-3-pro-image">
-                    {getModelDisplayName('byo/gemini-3-pro-image')}
-                  </option>
+                  <>
+                    <option value="byo/gemini-3-pro-image">
+                      {getModelDisplayName('byo/gemini-3-pro-image')}
+                    </option>
+                    <option value="byo/gemini-3.1-flash-image">
+                      {getModelDisplayName('byo/gemini-3.1-flash-image')}
+                    </option>
+                  </>
                 )}
                 <option value="google/gemini-3-pro-image">
                   {getModelDisplayName('google/gemini-3-pro-image')}

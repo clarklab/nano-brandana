@@ -291,26 +291,27 @@ export function validateImageData(imageData: string): boolean {
   if (!imageData || typeof imageData !== 'string') {
     return false;
   }
-  
+
   // Check if it's a valid data URL for an image
   if (!imageData.startsWith('data:image/')) {
     return false;
   }
-  
+
   // Check if it has reasonable length (at least 100 characters for a tiny image)
   if (imageData.length < 100) {
     return false;
   }
-  
+
   // Check if the base64 part looks valid
   const base64Part = imageData.split(',')[1];
   if (!base64Part || base64Part.length < 50) {
     return false;
   }
-  
+
   // Try to decode a small portion to verify it's valid base64
+  // Strip whitespace/newlines first — Google's API sometimes embeds these
   try {
-    atob(base64Part.substring(0, 100));
+    atob(base64Part.replace(/\s/g, '').substring(0, 100));
     return true;
   } catch (e) {
     return false;

@@ -947,7 +947,9 @@ exports.handler = async (event) => {
       for (const part of result.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           // Convert back to data URL format for consistency with frontend
-          generatedImages.push(`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`);
+          // Strip whitespace/newlines from base64 — Google's API sometimes embeds these
+          const cleanData = (part.inlineData.data || '').replace(/\s/g, '');
+          generatedImages.push(`data:${part.inlineData.mimeType};base64,${cleanData}`);
         }
         if (part.text) {
           content += part.text;
